@@ -1,0 +1,9 @@
+bin/
+obj/
+.vs/
+backups/
+github_release/
+*.user
+
+# Internal documentation (not for end users)
+z:\xa-xiv-docs/

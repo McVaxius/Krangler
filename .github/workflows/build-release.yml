@@ -1,0 +1,37 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Restore
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build -c Release
+
+    - name: Package
+      run: |
+        cd Krangler/bin/x64/Release
+        zip -r latest.zip Krangler.dll Krangler.json images/
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: Krangler/bin/x64/Release/latest.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
