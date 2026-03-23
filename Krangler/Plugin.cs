@@ -374,77 +374,88 @@ public sealed class Plugin : IDalamudPlugin
 
         if (nameMap.Count == 0) return;
 
-        // Direct node targeting based on user investigation
-        // Party members are at (15,17), (16,17), (17,17), (18,17), (19,17), (20,17), (21,17), (22,17)
-        var rootNode = addon->RootNode;
-        if (rootNode != null)
+        // Diagnostic: Log party member names once so we know what we're looking for
+        if (!hasLoggedPartyList)
         {
-            // Try direct node access first (more reliable)
-            for (int row = 15; row <= 22; row++)
+            foreach (var (orig, krangled) in nameMap)
+                Log.Information($"[Krangler] PartyList name mapping: '{orig}' -> '{krangled}'");
+        }
+
+        // Walk all text nodes in the addon via UldManager NodeList
+        var replacedCount = 0;
+        var nodeCount = addon->UldManager.NodeListCount;
+
+        if (!hasLoggedPartyList)
+            Log.Information($"[Krangler] _PartyList addon: {nodeCount} nodes in UldManager NodeList");
+
+        for (var i = 0; i < nodeCount; i++)
+        {
+            var node = addon->UldManager.NodeList[i];
+            if (node == null) continue;
+
+            // Check direct text nodes
+            if (node->Type == NodeType.Text)
             {
-                var node = GetNodeAt(rootNode, row, 17);
-                if (node != null && node->Type == NodeType.Text)
+                var textNode = (AtkTextNode*)node;
+                var text = textNode->NodeText.ToString();
+                if (string.IsNullOrEmpty(text)) continue;
+
+                // Diagnostic: Log first batch of text node contents once
+                if (!hasLoggedPartyList && text.Length > 1 && text.Length < 60)
+                    Log.Information($"[Krangler] PartyList text node [{i}] id={node->NodeId}: '{text}'");
+
+                foreach (var (original, krangled) in nameMap)
                 {
-                    var textNode = (AtkTextNode*)node;
-                    var text = textNode->NodeText.ToString();
-                    
-                    foreach (var (original, krangled) in nameMap)
+                    if (text.Contains(original))
                     {
-                        if (text.Contains(original))
+                        var newText = text.Replace(original, krangled);
+                        textNode->SetText(newText);
+                        replacedCount++;
+                        break;
+                    }
+                }
+            }
+
+            // Also check inside component nodes
+            if ((int)node->Type >= 1000)
+            {
+                var comp = (AtkComponentNode*)node;
+                if (comp->Component != null)
+                {
+                    var compNodeCount = comp->Component->UldManager.NodeListCount;
+                    for (var j = 0; j < compNodeCount; j++)
+                    {
+                        var subNode = comp->Component->UldManager.NodeList[j];
+                        if (subNode == null || subNode->Type != NodeType.Text) continue;
+
+                        var textNode = (AtkTextNode*)subNode;
+                        var text = textNode->NodeText.ToString();
+                        if (string.IsNullOrEmpty(text)) continue;
+
+                        // Diagnostic: Log component text nodes once
+                        if (!hasLoggedPartyList && text.Length > 1 && text.Length < 60)
+                            Log.Information($"[Krangler] PartyList component [{i}] sub [{j}] id={subNode->NodeId}: '{text}'");
+
+                        foreach (var (original, krangled) in nameMap)
                         {
-                            var newText = text.Replace(original, krangled);
-                            textNode->SetText(newText);
-                            break;
+                            if (text.Contains(original))
+                            {
+                                var newText = text.Replace(original, krangled);
+                                textNode->SetText(newText);
+                                replacedCount++;
+                                break;
+                            }
                         }
                     }
                 }
             }
-            
-            // Fallback to recursive walk if direct targeting fails
-            WalkAndReplaceTextNodes(rootNode, nameMap);
         }
 
         if (!hasLoggedPartyList)
         {
-            Log.Information($"[Krangler] Party list: {nameMap.Count} members krangled (direct targeting)");
+            Log.Information($"[Krangler] Party list scan: {nameMap.Count} members, {replacedCount} text nodes replaced");
             hasLoggedPartyList = true;
         }
-    }
-
-    private unsafe AtkResNode* GetNodeAt(AtkResNode* root, int row, int col)
-    {
-        if (root == null) return null;
-        
-        // Navigate through the node tree to find the specific coordinates
-        var current = root;
-        
-        // Try to find by node list index (party list uses specific node structure)
-        var node = current->ChildNode;
-        var currentIndex = 0;
-        
-        while (node != null && currentIndex < 100) // safety limit
-        {
-            if (currentIndex == row)
-            {
-                // Found the row, now look for column
-                var colNode = node->ChildNode;
-                var colIndex = 0;
-                
-                while (colNode != null && colIndex < 50) // safety limit
-                {
-                    if (colIndex == col)
-                        return colNode;
-                    
-                    colNode = colNode->NextSiblingNode;
-                    colIndex++;
-                }
-            }
-            
-            node = node->NextSiblingNode;
-            currentIndex++;
-        }
-        
-        return null;
     }
 
     private unsafe void WalkAndReplaceTextNodes(AtkResNode* node, Dictionary<string, string> nameMap)
@@ -673,31 +684,15 @@ public sealed class Plugin : IDalamudPlugin
         if (c.TailShape.Apply) customizePtr[24] = c.TailShape.Value;
         if (c.BustSize.Apply) customizePtr[25] = c.BustSize.Value;
 
-        // ── Apply equipment (except weapons) ──
-        // Equipment is at DrawData + 0x1D0, each slot is 8 bytes (EquipmentModelId)
-        // We write the Glamourer ItemId as raw 8 bytes to each equipment slot
-        var equipBase = (byte*)&character->DrawData + 0x1D0;
-
-        // Map Glamourer slot names to game slot indices (skip MainHand/OffHand)
-        var slotMap = new (string name, int index)[]
-        {
-            ("Head", 0), ("Body", 1), ("Hands", 2), ("Legs", 3), ("Feet", 4),
-            ("Ears", 5), ("Neck", 6), ("Wrists", 7), ("RFinger", 8), ("LFinger", 9),
-        };
-
-        var equipChanged = 0;
-        foreach (var (slotName, slotIndex) in slotMap)
-        {
-            if (preset.Equipment.TryGetValue(slotName, out var equipSlot) && equipSlot.Apply)
-            {
-                var slotPtr = (ulong*)(equipBase + slotIndex * 8);
-                *slotPtr = equipSlot.ItemId;
-                equipChanged++;
-            }
-        }
-
-        if (!hasLoggedAppearanceScan && equipChanged > 0)
-            Log.Information($"[Krangler] Applied {equipChanged} equipment slots from preset '{preset.Name}'");
+        // ── Equipment modification DISABLED ──
+        // CRASH FIX: Glamourer's packed ItemId (ulong) is NOT the raw EquipmentModelId format.
+        // Glamourer encodes: game item row ID + model set + variant + stain + flags into a single ulong.
+        // The game's EquipmentModelId at DrawData+0x1D0 is: ushort SetId + byte Variant + byte Stain1 + byte Stain2 + padding.
+        // Writing the packed ItemId directly corrupts the model data and crashes on redraw.
+        // TODO: Decode Glamourer ItemId → extract (SetId, Variant, Stain) → write correct EquipmentModelId.
+        // Alternative: Use LoadEquipment() with properly decoded model IDs.
+        if (!hasLoggedAppearanceScan && preset.Equipment.Count > 0)
+            Log.Information($"[Krangler] Applied appearance from preset '{preset.Name}' (equipment swap pending decode implementation)");
     }
 
     // ─── Super Krangle Master 4000 Methods ─────────────────────────────────────
