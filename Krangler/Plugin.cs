@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.Command;
 using Dalamud.Game.Gui.Dtr;
 using Dalamud.Game.Gui.NamePlate;
@@ -39,6 +40,9 @@ public sealed class Plugin : IDalamudPlugin
 
     private IDtrBarEntry? dtrEntry;
     private bool wasEnabled;
+    private bool hasLoggedNameplateUpdate;
+    private DateTime lastAppearanceScan = DateTime.MinValue;
+    private bool hasLoggedAppearanceScan;
 
     public Plugin()
     {
@@ -138,24 +142,109 @@ public sealed class Plugin : IDalamudPlugin
             if (Configuration.Enabled)
             {
                 Log.Information("[Krangler] Krangling activated");
+                hasLoggedNameplateUpdate = false; // Re-enable one-shot logging
+                hasLoggedAppearanceScan = false;
             }
             else
             {
                 Log.Information("[Krangler] Krangling deactivated");
                 KrangleService.ClearCache();
                 AppearanceService.Reset();
+                GlamourerIPC.RevertAll();
             }
             wasEnabled = Configuration.Enabled;
+        }
+
+        // Appearance krangling via Glamourer (throttled to every 5 seconds)
+        if (Configuration.Enabled && (Configuration.KrangleGenders || Configuration.KrangleRaces || Configuration.KrangleAppearance))
+        {
+            var now = DateTime.UtcNow;
+            if ((now - lastAppearanceScan).TotalSeconds >= 5)
+            {
+                lastAppearanceScan = now;
+                ScanAndKrangleAppearances();
+            }
         }
 
         UpdateDtrBar();
     }
 
+    private void ScanAndKrangleAppearances()
+    {
+        if (!GlamourerIPC.IsAvailable())
+        {
+            if (!hasLoggedAppearanceScan)
+            {
+                Log.Warning("[Krangler] Glamourer not available — appearance krangling skipped");
+                hasLoggedAppearanceScan = true;
+            }
+            return;
+        }
+
+        var playerCount = 0;
+        var appliedCount = 0;
+
+        foreach (var obj in ObjectTable)
+        {
+            if (obj == null || obj.ObjectKind != ObjectKind.Player)
+                continue;
+
+            playerCount++;
+            var name = obj.Name.ToString();
+            if (string.IsNullOrEmpty(name))
+                continue;
+
+            // Skip if already applied
+            if (AppearanceService.IsApplied(obj.EntityId))
+                continue;
+
+            // Build customize byte array based on config toggles
+            var (race, tribe, gender) = AppearanceService.GetRandomRaceGender(name);
+            var customizeBytes = new byte[26];
+
+            if (Configuration.KrangleRaces)
+            {
+                customizeBytes[0] = race;  // Race
+                customizeBytes[4] = tribe; // Clan/Tribe
+            }
+
+            if (Configuration.KrangleGenders)
+            {
+                customizeBytes[1] = gender; // Gender
+            }
+
+            if (Configuration.KrangleAppearance)
+            {
+                var appearance = AppearanceService.GetRandomAppearance(name, race, gender);
+                foreach (var (index, value) in appearance)
+                {
+                    if (index < 26)
+                        customizeBytes[index] = value;
+                }
+            }
+
+            // Try to apply via Glamourer IPC
+            var success = GlamourerIPC.ApplyCustomize(name, customizeBytes);
+            if (success)
+            {
+                AppearanceService.MarkApplied(obj.EntityId);
+                appliedCount++;
+            }
+        }
+
+        if (!hasLoggedAppearanceScan)
+        {
+            Log.Information($"[Krangler] Appearance scan: {playerCount} players found, {appliedCount} appearances applied");
+            hasLoggedAppearanceScan = true;
+        }
+    }
+
     private void OnNamePlateUpdate(INamePlateUpdateContext context, IReadOnlyList<INamePlateUpdateHandler> handlers)
     {
-        if (!Configuration.Enabled || !Configuration.KrangleNames)
+        if (!Configuration.Enabled)
             return;
 
+        var playerCount = 0;
         for (var i = 0; i < handlers.Count; i++)
         {
             var handler = handlers[i];
@@ -164,12 +253,62 @@ public sealed class Plugin : IDalamudPlugin
             if (handler.NamePlateKind != NamePlateKind.PlayerCharacter)
                 continue;
 
-            var originalName = handler.Name.ToString();
-            if (string.IsNullOrEmpty(originalName))
-                continue;
+            playerCount++;
 
-            var krangled = KrangleService.KrangleName(originalName);
-            handler.Name = krangled;
+            // Krangle name
+            if (Configuration.KrangleNames)
+            {
+                var originalName = handler.Name.ToString();
+                if (!string.IsNullOrEmpty(originalName))
+                {
+                    var krangled = KrangleService.KrangleName(originalName);
+                    if (!hasLoggedNameplateUpdate)
+                        Log.Information($"[Krangler] Name: '{originalName}' -> '{krangled}'");
+                    handler.Name = krangled;
+                }
+            }
+
+            // Krangle FC tag
+            try
+            {
+                var originalFc = handler.FreeCompanyTag.ToString();
+                if (!string.IsNullOrEmpty(originalFc))
+                {
+                    var krangledFc = KrangleService.KrangleFCTag(originalFc);
+                    if (!hasLoggedNameplateUpdate)
+                        Log.Information($"[Krangler] FC: '{originalFc}' -> '{krangledFc}'");
+                    handler.FreeCompanyTag = krangledFc;
+                }
+            }
+            catch (Exception ex)
+            {
+                if (!hasLoggedNameplateUpdate)
+                    Log.Warning($"[Krangler] FreeCompanyTag not available: {ex.Message}");
+            }
+
+            // Krangle title
+            try
+            {
+                var originalTitle = handler.Title.ToString();
+                if (!string.IsNullOrEmpty(originalTitle))
+                {
+                    var krangledTitle = KrangleService.KrangleTitle(originalTitle);
+                    if (!hasLoggedNameplateUpdate)
+                        Log.Information($"[Krangler] Title: '{originalTitle}' -> '{krangledTitle}'");
+                    handler.Title = krangledTitle;
+                }
+            }
+            catch (Exception ex)
+            {
+                if (!hasLoggedNameplateUpdate)
+                    Log.Warning($"[Krangler] Title not available: {ex.Message}");
+            }
+        }
+
+        if (!hasLoggedNameplateUpdate && playerCount > 0)
+        {
+            Log.Information($"[Krangler] OnNamePlateUpdate: {handlers.Count} handlers, {playerCount} players");
+            hasLoggedNameplateUpdate = true;
         }
     }
 

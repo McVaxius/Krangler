@@ -80,6 +80,16 @@ public class AppearanceService
     }
 
     /// <summary>
+    /// Check if we've already applied appearance changes to this player.
+    /// </summary>
+    public bool IsApplied(uint entityId) => appliedPlayers.Contains(entityId);
+
+    /// <summary>
+    /// Mark a player as having had appearance changes applied.
+    /// </summary>
+    public void MarkApplied(uint entityId) => appliedPlayers.Add(entityId);
+
+    /// <summary>
     /// Clear tracking state when plugin is disabled.
     /// </summary>
     public void Reset()

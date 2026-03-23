@@ -59,6 +59,48 @@ public static class KrangleService
         return result;
     }
 
+    private static readonly string[] FCWords =
+    {
+        "GYM", "FIT", "REP", "SET", "MAX", "PRO", "ZEN", "OHM",
+        "KAI", "RYU", "TAO", "CHI", "POW", "ARC", "OAK", "ASH",
+    };
+
+    private static readonly string[] TitleWords =
+    {
+        "The Swole", "The Ripped", "Gains Incarnate", "The Buffed",
+        "Master of Reps", "The Shredded", "Iron Will", "Steel Thighs",
+        "The Absolute Unit", "Cardio King", "Flex Champion", "The Yolked",
+        "Dumbbell Sage", "The Juiced", "Barbell Lord", "Kettlebell Saint",
+    };
+
+    public static string KrangleFCTag(string originalTag)
+    {
+        if (string.IsNullOrWhiteSpace(originalTag)) return originalTag;
+        var key = $"fc:{originalTag}";
+        if (Cache.TryGetValue(key, out var cached)) return cached;
+
+        var hash = GetStableHash(originalTag);
+        var rng = new Random(hash);
+        var word = FCWords[rng.Next(FCWords.Length)];
+
+        Cache[key] = word;
+        return word;
+    }
+
+    public static string KrangleTitle(string originalTitle)
+    {
+        if (string.IsNullOrWhiteSpace(originalTitle)) return originalTitle;
+        var key = $"title:{originalTitle}";
+        if (Cache.TryGetValue(key, out var cached)) return cached;
+
+        var hash = GetStableHash(originalTitle);
+        var rng = new Random(hash);
+        var word = TitleWords[rng.Next(TitleWords.Length)];
+
+        Cache[key] = word;
+        return word;
+    }
+
     public static string KrangleServer(string serverName)
     {
         if (string.IsNullOrWhiteSpace(serverName)) return serverName;
