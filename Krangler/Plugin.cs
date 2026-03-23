@@ -93,32 +93,6 @@ public sealed class Plugin : IDalamudPlugin
         Log.Information("===Krangler loaded===");
     }
 
-    public void Dispose()
-    {
-        Framework.Update -= OnFrameworkUpdate;
-        NamePlateGui.OnNamePlateUpdate -= OnNamePlateUpdate;
-
-        PluginInterface.UiBuilder.Draw -= WindowSystem.Draw;
-        PluginInterface.UiBuilder.OpenConfigUi -= ToggleMainUi;
-        PluginInterface.UiBuilder.OpenMainUi -= ToggleMainUi;
-
-        WindowSystem.RemoveAllWindows();
-        MainWindow.Dispose();
-
-        // Revert any appearance changes
-        RevertAllAppearances();
-
-        dtrEntry?.Remove();
-
-        CommandManager.RemoveHandler(AliasCommandName);
-        CommandManager.RemoveHandler(CommandName);
-
-        // Clear krangled name cache
-        KrangleService.ClearCache();
-
-        Log.Information("[Krangler] Plugin unloaded!");
-    }
-
     private void OnCommand(string command, string args)
     {
         MainWindow.Toggle();
@@ -178,7 +152,7 @@ public sealed class Plugin : IDalamudPlugin
         }
 
         // Appearance krangling via direct memory (throttled to every 5 seconds)
-        if (Configuration.KrangleGenders || Configuration.KrangleRaces || Configuration.KrangleAppearance)
+        if (Configuration.KrangleGenders || Configuration.KrangleRaces || Configuration.KrangleAppearance || Configuration.SuperKrangleMaster4000)
         {
             var now = DateTime.UtcNow;
             if ((now - lastAppearanceScan).TotalSeconds >= 5)
@@ -189,7 +163,7 @@ public sealed class Plugin : IDalamudPlugin
         }
 
         // Party list krangling (throttled to every 1 second)
-        if (Configuration.KrangleNames)
+        if (Configuration.KrangleNames || Configuration.SuperKrangleMaster4000)
         {
             var now = DateTime.UtcNow;
             if ((now - lastPartyListScan).TotalSeconds >= 1)
@@ -236,31 +210,48 @@ public sealed class Plugin : IDalamudPlugin
                 originalCustomizeData[obj.EntityId] = originalBytes;
 
                 // Generate krangled appearance
-                var (race, tribe, gender) = AppearanceService.GetRandomRaceGender(name);
+                var (race, tribe, gender) = Configuration.SuperKrangleMaster4000 
+                    ? GetSuperKrangleAppearance(name) 
+                    : AppearanceService.GetRandomRaceGender(name);
                 bool changed = false;
 
-                if (Configuration.KrangleRaces)
+                if (Configuration.SuperKrangleMaster4000)
                 {
-                    customizePtr[0] = race;   // Race
-                    customizePtr[4] = tribe;  // Tribe
-                    changed = true;
-                }
-
-                if (Configuration.KrangleGenders)
-                {
-                    customizePtr[1] = gender; // Sex
-                    changed = true;
-                }
-
-                if (Configuration.KrangleAppearance)
-                {
-                    var appearance = AppearanceService.GetRandomAppearance(name, race, gender);
-                    foreach (var (index, value) in appearance)
+                    // Super Krangle: Override everything with special NPC appearance
+                    var superAppearance = GetSuperKrangleFullAppearance(name);
+                    foreach (var (index, value) in superAppearance)
                     {
                         if (index < 26)
                             customizePtr[index] = value;
                     }
                     changed = true;
+                }
+                else
+                {
+                    // Normal krangling options
+                    if (Configuration.KrangleRaces)
+                    {
+                        customizePtr[0] = race;   // Race
+                        customizePtr[4] = tribe;  // Tribe
+                        changed = true;
+                    }
+
+                    if (Configuration.KrangleGenders)
+                    {
+                        customizePtr[1] = gender; // Sex
+                        changed = true;
+                    }
+
+                    if (Configuration.KrangleAppearance)
+                    {
+                        var appearance = AppearanceService.GetRandomAppearance(name, race, gender);
+                        foreach (var (index, value) in appearance)
+                        {
+                            if (index < 26)
+                                customizePtr[index] = value;
+                        }
+                        changed = true;
+                    }
                 }
 
                 if (changed)
@@ -548,4 +539,134 @@ public sealed class Plugin : IDalamudPlugin
     }
 
     public void ToggleMainUi() => MainWindow.Toggle();
+
+    // ─── Super Krangle Master 4000 Methods ─────────────────────────────────────
+
+    /// <summary>
+    /// Get special NPC appearance data for Super Krangle Master 4000 mode.
+    /// Returns (race, tribe, gender) for iconic NPCs like Gaius, Nero, Louisoix, etc.
+    /// </summary>
+    private static (byte race, byte tribe, byte gender) GetSuperKrangleAppearance(string playerName)
+    {
+        var hash = GetStableHash(playerName + "_super");
+        var rng = new Random(hash);
+
+        // Special NPC appearances - iconic characters
+        var npcAppearances = new[]
+        {
+            ((byte)1, (byte)1, (byte)0),   // Hyur Midlander Male (Gaius)
+            ((byte)1, (byte)1, (byte)1),   // Hyur Midlander Female (Minfilia)
+            ((byte)1, (byte)2, (byte)0),   // Hyur Highlander Male (Raubahn)
+            ((byte)4, (byte)7, (byte)0),   // Roegadyn Sea Wolves Male (Nero)
+            ((byte)5, (byte)9, (byte)0),   // Elezen Wildwood Male (Louisoix)
+            ((byte)5, (byte)10, (byte)1),  // Elezen Duskwight Female (Urianger)
+            ((byte)6, (byte)11, (byte)0),  // Au Ra Raen Male (Hien)
+            ((byte)6, (byte)12, (byte)1),  // Au Ra Xaela Female (Lyse)
+            ((byte)7, (byte)13, (byte)0),  // Hrothgar Helions Male (Varis)
+            ((byte)8, (byte)15, (byte)1),  // Viera Rava Female (Y'shtola)
+        };
+
+        return npcAppearances[rng.Next(npcAppearances.Length)];
+    }
+
+    /// <summary>
+    /// Get full customize data for Super Krangle Master 4000 mode.
+    /// Returns complete 26-byte customize array for iconic NPCs.
+    /// </summary>
+    private static Dictionary<int, byte> GetSuperKrangleFullAppearance(string playerName)
+    {
+        var hash = GetStableHash(playerName + "_super_full");
+        var rng = new Random(hash);
+
+        // Select a base NPC template
+        var templates = new[]
+        {
+            // Gaius van Baelsrar - Hyur Midlander Male
+            new Dictionary<int, byte>
+            {
+                {0, 1}, {1, 0}, {2, 1}, {3, 50}, {4, 1}, {5, 4}, {6, 4}, {7, 0},
+                {8, 8}, {9, 24}, {10, 24}, {11, 24}, {12, 0}, {13, 0}, {14, 0},
+                {15, 1}, {16, 0}, {17, 1}, {18, 1}, {19, 1}, {20, 1}, {21, 0},
+                {22, 0}, {23, 0}, {24, 0}, {25, 50}
+            },
+            // Nero tol Scaeva - Hyur Midlander Male
+            new Dictionary<int, byte>
+            {
+                {0, 1}, {1, 0}, {2, 1}, {3, 75}, {4, 1}, {5, 2}, {6, 11}, {7, 0},
+                {8, 12}, {9, 120}, {10, 120}, {11, 120}, {12, 0}, {13, 0}, {14, 0},
+                {15, 2}, {16, 0}, {17, 2}, {18, 2}, {19, 2}, {20, 2}, {21, 0},
+                {22, 0}, {23, 0}, {24, 0}, {25, 50}
+            },
+            // Louisoix Leveilleur - Elezen Wildwood Male  
+            new Dictionary<int, byte>
+            {
+                {0, 5}, {1, 0}, {2, 1}, {3, 60}, {4, 9}, {5, 6}, {6, 1}, {7, 0},
+                {8, 95}, {9, 180}, {10, 180}, {11, 180}, {12, 0}, {13, 0}, {14, 0},
+                {15, 3}, {16, 0}, {17, 3}, {18, 3}, {19, 3}, {20, 3}, {21, 0},
+                {22, 0}, {23, 0}, {24, 0}, {25, 50}
+            },
+            // Y'shtola Rhul - Viera Rava Female
+            new Dictionary<int, byte>
+            {
+                {0, 8}, {1, 1}, {2, 1}, {3, 25}, {4, 15}, {5, 3}, {6, 1}, {7, 0},
+                {8, 140}, {9, 160}, {10, 160}, {11, 160}, {12, 0}, {13, 0}, {14, 0},
+                {15, 4}, {16, 0}, {17, 4}, {18, 4}, {19, 4}, {20, 4}, {21, 0},
+                {22, 0}, {23, 0}, {24, 0}, {25, 25}
+            },
+            // Minfilia Warde - Hyur Midlander Female
+            new Dictionary<int, byte>
+            {
+                {0, 1}, {1, 1}, {2, 1}, {3, 30}, {4, 1}, {5, 1}, {6, 2}, {7, 0},
+                {8, 20}, {9, 90}, {10, 90}, {11, 90}, {12, 0}, {13, 0}, {14, 0},
+                {15, 5}, {16, 0}, {17, 5}, {18, 5}, {19, 5}, {20, 5}, {21, 0},
+                {22, 0}, {23, 0}, {24, 0}, {25, 30}
+            }
+        };
+
+        var baseTemplate = templates[rng.Next(templates.Length)];
+        
+        // Add some randomization to make it interesting
+        var result = new Dictionary<int, byte>(baseTemplate);
+        result[3] = (byte)rng.Next(20, 80); // Height variation
+        result[25] = (byte)rng.Next(20, 80); // Bust variation for females
+        
+        return result;
+    }
+
+    private static int GetStableHash(string input)
+    {
+        unchecked
+        {
+            int hash = 17;
+            foreach (var c in input)
+                hash = hash * 31 + c;
+            return hash;
+        }
+    }
+
+    public void Dispose()
+    {
+        Framework.Update -= OnFrameworkUpdate;
+        NamePlateGui.OnNamePlateUpdate -= OnNamePlateUpdate;
+
+        PluginInterface.UiBuilder.Draw -= WindowSystem.Draw;
+        PluginInterface.UiBuilder.OpenConfigUi -= ToggleMainUi;
+        PluginInterface.UiBuilder.OpenMainUi -= ToggleMainUi;
+
+        WindowSystem.RemoveAllWindows();
+        MainWindow.Dispose();
+
+        // Revert any appearance changes
+        RevertAllAppearances();
+
+        dtrEntry?.Remove();
+
+        CommandManager.RemoveHandler(AliasCommandName);
+        CommandManager.RemoveHandler(CommandName);
+
+        // Clear krangled name cache
+        KrangleService.ClearCache();
+
+        Log.Information("[Krangler] Plugin unloaded!");
+    }
 }
