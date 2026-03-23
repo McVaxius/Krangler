@@ -26,7 +26,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
     [PluginService] internal static IGameGui GameGui { get; private set; } = null!;
     [PluginService] internal static INamePlateGui NamePlateGui { get; private set; } = null!;
-
+    
     private const string CommandName = "/krangler";
     private const string AliasCommandName = "/kr";
 
@@ -75,7 +75,7 @@ public sealed class Plugin : IDalamudPlugin
 
         wasEnabled = Configuration.Enabled;
 
-        Log.Information("[Krangler] Plugin loaded!");
+        Log.Information("===Krangler loaded===");
     }
 
     public void Dispose()

@@ -6,7 +6,7 @@ namespace Krangler;
 [Serializable]
 public class Configuration : IPluginConfiguration
 {
-    public int Version { get; set; } = 0;
+    public int Version { get; set; } = 1;
 
     // Master toggle
     public bool Enabled { get; set; } = false;
