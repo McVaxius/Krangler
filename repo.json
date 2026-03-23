@@ -17,7 +17,7 @@
         "DalamudApiLevel": 14,
         "DownloadLinkInstall": "https://github.com/McVaxius/Krangler/releases/download/v0.0.0.1/latest.zip",
         "DownloadLinkUpdate": "https://github.com/McVaxius/Krangler/releases/download/v0.0.0.1/latest.zip",
-        "IconUrl": "https://raw.githubusercontent.com/McVaxius/Krangler/master/images/icon.png",
+        "IconUrl": "https://raw.githubusercontent.com/McVaxius/Krangler/refs/heads/master/Krangler/images/icon.png",
         "ImageUrls": []
     }
 ]
