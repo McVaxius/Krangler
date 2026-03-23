@@ -10,9 +10,12 @@ using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Dalamud.Interface.Windowing;
-using Krangler.IPC;
+using FFXIVClientStructs.FFXIV.Component.GUI;
+using static FFXIVClientStructs.FFXIV.Client.UI.RaptureAtkUnitManager;
 using Krangler.Services;
 using Krangler.Windows;
+using CharacterStruct = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
+using GameObjectStruct = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
 
 namespace Krangler;
 
@@ -27,12 +30,12 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
     [PluginService] internal static IGameGui GameGui { get; private set; } = null!;
     [PluginService] internal static INamePlateGui NamePlateGui { get; private set; } = null!;
+    [PluginService] internal static IPartyList PartyList { get; private set; } = null!;
     
     private const string CommandName = "/krangler";
     private const string AliasCommandName = "/kr";
 
     public Configuration Configuration { get; init; }
-    public GlamourerIPC GlamourerIPC { get; init; }
     public AppearanceService AppearanceService { get; init; }
 
     public readonly WindowSystem WindowSystem = new("Krangler");
@@ -42,13 +45,21 @@ public sealed class Plugin : IDalamudPlugin
     private bool wasEnabled;
     private bool hasLoggedNameplateUpdate;
     private DateTime lastAppearanceScan = DateTime.MinValue;
+    private DateTime lastPartyListScan = DateTime.MinValue;
     private bool hasLoggedAppearanceScan;
+    private bool hasLoggedPartyList;
+
+    // Track original customize data for revert, keyed by EntityId
+    private readonly Dictionary<uint, byte[]> originalCustomizeData = new();
+    // Staggered redraw queue — one character per N frames to avoid crashing the game
+    private readonly Queue<nint> redrawQueue = new();
+    private int redrawCooldownFrames = 0;
+    private const int RedrawFrameDelay = 2; // frames between each redraw
 
     public Plugin()
     {
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
-        GlamourerIPC = new GlamourerIPC(PluginInterface, Log);
         AppearanceService = new AppearanceService(Log, ObjectTable, Configuration);
 
         MainWindow = new MainWindow(this);
@@ -74,7 +85,7 @@ public sealed class Plugin : IDalamudPlugin
         // Nameplate hook for name krangling
         NamePlateGui.OnNamePlateUpdate += OnNamePlateUpdate;
 
-        // Framework update for DTR bar
+        // Framework update for DTR bar + appearance + party list
         Framework.Update += OnFrameworkUpdate;
 
         wasEnabled = Configuration.Enabled;
@@ -94,7 +105,8 @@ public sealed class Plugin : IDalamudPlugin
         WindowSystem.RemoveAllWindows();
         MainWindow.Dispose();
 
-        GlamourerIPC.Dispose();
+        // Revert any appearance changes
+        RevertAllAppearances();
 
         dtrEntry?.Remove();
 
@@ -136,27 +148,37 @@ public sealed class Plugin : IDalamudPlugin
 
     private void OnFrameworkUpdate(IFramework fw)
     {
+        // Process staggered redraws — one character per N frames
+        ProcessRedrawQueue();
+
         // Track enable/disable transitions for logging
         if (Configuration.Enabled != wasEnabled)
         {
             if (Configuration.Enabled)
             {
                 Log.Information("[Krangler] Krangling activated");
-                hasLoggedNameplateUpdate = false; // Re-enable one-shot logging
+                hasLoggedNameplateUpdate = false;
                 hasLoggedAppearanceScan = false;
+                hasLoggedPartyList = false;
             }
             else
             {
                 Log.Information("[Krangler] Krangling deactivated");
                 KrangleService.ClearCache();
                 AppearanceService.Reset();
-                GlamourerIPC.RevertAll();
+                RevertAllAppearances();
             }
             wasEnabled = Configuration.Enabled;
         }
 
-        // Appearance krangling via Glamourer (throttled to every 5 seconds)
-        if (Configuration.Enabled && (Configuration.KrangleGenders || Configuration.KrangleRaces || Configuration.KrangleAppearance))
+        if (!Configuration.Enabled)
+        {
+            UpdateDtrBar();
+            return;
+        }
+
+        // Appearance krangling via direct memory (throttled to every 5 seconds)
+        if (Configuration.KrangleGenders || Configuration.KrangleRaces || Configuration.KrangleAppearance)
         {
             var now = DateTime.UtcNow;
             if ((now - lastAppearanceScan).TotalSeconds >= 5)
@@ -166,21 +188,24 @@ public sealed class Plugin : IDalamudPlugin
             }
         }
 
+        // Party list krangling (throttled to every 1 second)
+        if (Configuration.KrangleNames)
+        {
+            var now = DateTime.UtcNow;
+            if ((now - lastPartyListScan).TotalSeconds >= 1)
+            {
+                lastPartyListScan = now;
+                KranglePartyList();
+            }
+        }
+
         UpdateDtrBar();
     }
 
-    private void ScanAndKrangleAppearances()
-    {
-        if (!GlamourerIPC.IsAvailable())
-        {
-            if (!hasLoggedAppearanceScan)
-            {
-                Log.Warning("[Krangler] Glamourer not available — appearance krangling skipped");
-                hasLoggedAppearanceScan = true;
-            }
-            return;
-        }
+    // ─── Direct Appearance Modification ─────────────────────────────────────
 
+    private unsafe void ScanAndKrangleAppearances()
+    {
         var playerCount = 0;
         var appliedCount = 0;
 
@@ -198,45 +223,200 @@ public sealed class Plugin : IDalamudPlugin
             if (AppearanceService.IsApplied(obj.EntityId))
                 continue;
 
-            // Build customize byte array based on config toggles
-            var (race, tribe, gender) = AppearanceService.GetRandomRaceGender(name);
-            var customizeBytes = new byte[26];
-
-            if (Configuration.KrangleRaces)
+            try
             {
-                customizeBytes[0] = race;  // Race
-                customizeBytes[4] = tribe; // Clan/Tribe
-            }
+                var character = (CharacterStruct*)obj.Address;
+                if (character == null) continue;
 
-            if (Configuration.KrangleGenders)
-            {
-                customizeBytes[1] = gender; // Gender
-            }
+                // Save original customize data for revert
+                var customizePtr = (byte*)&character->DrawData.CustomizeData;
+                var originalBytes = new byte[26];
+                for (int j = 0; j < 26; j++)
+                    originalBytes[j] = customizePtr[j];
+                originalCustomizeData[obj.EntityId] = originalBytes;
 
-            if (Configuration.KrangleAppearance)
-            {
-                var appearance = AppearanceService.GetRandomAppearance(name, race, gender);
-                foreach (var (index, value) in appearance)
+                // Generate krangled appearance
+                var (race, tribe, gender) = AppearanceService.GetRandomRaceGender(name);
+                bool changed = false;
+
+                if (Configuration.KrangleRaces)
                 {
-                    if (index < 26)
-                        customizeBytes[index] = value;
+                    customizePtr[0] = race;   // Race
+                    customizePtr[4] = tribe;  // Tribe
+                    changed = true;
+                }
+
+                if (Configuration.KrangleGenders)
+                {
+                    customizePtr[1] = gender; // Sex
+                    changed = true;
+                }
+
+                if (Configuration.KrangleAppearance)
+                {
+                    var appearance = AppearanceService.GetRandomAppearance(name, race, gender);
+                    foreach (var (index, value) in appearance)
+                    {
+                        if (index < 26)
+                            customizePtr[index] = value;
+                    }
+                    changed = true;
+                }
+
+                if (changed)
+                {
+                    // Queue a safe staggered redraw (one per N frames)
+                    redrawQueue.Enqueue(obj.Address);
+
+                    AppearanceService.MarkApplied(obj.EntityId);
+                    appliedCount++;
+
+                    if (!hasLoggedAppearanceScan)
+                        Log.Information($"[Krangler] Applied appearance to '{name}': race={race}, tribe={tribe}, gender={gender}");
                 }
             }
-
-            // Try to apply via Glamourer IPC
-            var success = GlamourerIPC.ApplyCustomize(name, customizeBytes);
-            if (success)
+            catch (Exception ex)
             {
-                AppearanceService.MarkApplied(obj.EntityId);
-                appliedCount++;
+                if (!hasLoggedAppearanceScan)
+                    Log.Warning($"[Krangler] Failed to modify appearance for '{name}': {ex.Message}");
             }
         }
 
-        if (!hasLoggedAppearanceScan)
+        if (!hasLoggedAppearanceScan && playerCount > 0)
         {
-            Log.Information($"[Krangler] Appearance scan: {playerCount} players found, {appliedCount} appearances applied");
+            Log.Information($"[Krangler] Appearance scan: {playerCount} players, {appliedCount} modified (direct memory)");
             hasLoggedAppearanceScan = true;
         }
+    }
+
+    private unsafe void ProcessRedrawQueue()
+    {
+        if (redrawCooldownFrames > 0)
+        {
+            redrawCooldownFrames--;
+            return;
+        }
+
+        if (redrawQueue.Count == 0) return;
+
+        var address = redrawQueue.Dequeue();
+        try
+        {
+            var gameObj = (GameObjectStruct*)address;
+            // Safe redraw: DisableDraw/EnableDraw only affects rendering,
+            // does NOT change ObjectKind so the game won't crash processing the object
+            gameObj->DisableDraw();
+            gameObj->EnableDraw();
+        }
+        catch (Exception ex)
+        {
+            Log.Warning($"[Krangler] Safe redraw failed: {ex.Message}");
+        }
+
+        redrawCooldownFrames = RedrawFrameDelay;
+    }
+
+    private unsafe void RevertAllAppearances()
+    {
+        var reverted = 0;
+        foreach (var obj in ObjectTable)
+        {
+            if (obj == null) continue;
+            if (!originalCustomizeData.TryGetValue(obj.EntityId, out var originalBytes)) continue;
+
+            try
+            {
+                var character = (CharacterStruct*)obj.Address;
+                var customizePtr = (byte*)&character->DrawData.CustomizeData;
+                for (int j = 0; j < 26; j++)
+                    customizePtr[j] = originalBytes[j];
+
+                // Queue safe staggered redraw
+                redrawQueue.Enqueue(obj.Address);
+                reverted++;
+            }
+            catch { /* best effort revert */ }
+        }
+
+        if (reverted > 0)
+            Log.Information($"[Krangler] Reverted {reverted} appearance changes");
+
+        originalCustomizeData.Clear();
+        AppearanceService.Reset();
+    }
+
+    // ─── Party List Krangling ───────────────────────────────────────────────
+
+    private unsafe void KranglePartyList()
+    {
+        var addon = Instance()->GetAddonByName("_PartyList");
+        if (addon == null || !addon->IsVisible) return;
+
+        // Build lookup of original party member names -> krangled names
+        var nameMap = new Dictionary<string, string>();
+        for (int i = 0; i < PartyList.Length; i++)
+        {
+            var member = PartyList[i];
+            if (member == null) continue;
+            var orig = member.Name.ToString();
+            if (!string.IsNullOrEmpty(orig))
+                nameMap[orig] = KrangleService.KrangleName(orig);
+        }
+
+        if (nameMap.Count == 0) return;
+
+        // Walk all text nodes in the addon tree and replace matching names
+        var rootNode = addon->RootNode;
+        if (rootNode != null)
+            WalkAndReplaceTextNodes(rootNode, nameMap);
+
+        if (!hasLoggedPartyList)
+        {
+            Log.Information($"[Krangler] Party list: {nameMap.Count} members krangled");
+            hasLoggedPartyList = true;
+        }
+    }
+
+    private unsafe void WalkAndReplaceTextNodes(AtkResNode* node, Dictionary<string, string> nameMap)
+    {
+        if (node == null) return;
+
+        // Check if this is a text node
+        if (node->Type == NodeType.Text)
+        {
+            var textNode = (AtkTextNode*)node;
+            var text = textNode->NodeText.ToString();
+
+            foreach (var (original, krangled) in nameMap)
+            {
+                if (text.Contains(original))
+                {
+                    var newText = text.Replace(original, krangled);
+                    textNode->SetText(newText);
+                    break;
+                }
+            }
+        }
+
+        // Recurse into component nodes (Type >= 1000 = component)
+        if ((int)node->Type >= 1000)
+        {
+            var comp = (AtkComponentNode*)node;
+            if (comp->Component != null)
+            {
+                var child = comp->Component->UldManager.RootNode;
+                while (child != null)
+                {
+                    WalkAndReplaceTextNodes(child, nameMap);
+                    child = child->PrevSiblingNode;
+                }
+            }
+        }
+
+        // Walk siblings
+        var sibling = node->PrevSiblingNode;
+        if (sibling != null)
+            WalkAndReplaceTextNodes(sibling, nameMap);
     }
 
     private void OnNamePlateUpdate(INamePlateUpdateContext context, IReadOnlyList<INamePlateUpdateHandler> handlers)

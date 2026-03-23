@@ -119,7 +119,7 @@ public class MainWindow : Window, IDisposable
         }
         if (ImGui.IsItemHovered())
         {
-            ImGui.SetTooltip("Randomize genders for all visible player characters.\nRequires Glamourer plugin.");
+            ImGui.SetTooltip("Randomize genders for all visible player characters.\nDirect memory modification — no external plugins needed.");
         }
 
         // Krangle Races
@@ -131,7 +131,7 @@ public class MainWindow : Window, IDisposable
         }
         if (ImGui.IsItemHovered())
         {
-            ImGui.SetTooltip("Randomize races (including subraces) for all visible player characters.\nRequires Glamourer plugin.");
+            ImGui.SetTooltip("Randomize races (including subraces) for all visible player characters.\nDirect memory modification — no external plugins needed.");
         }
 
         // Krangle Appearance
@@ -143,7 +143,7 @@ public class MainWindow : Window, IDisposable
         }
         if (ImGui.IsItemHovered())
         {
-            ImGui.SetTooltip("Randomize hair, face, eyes, etc. for all visible player characters.\nRequires Glamourer plugin.");
+            ImGui.SetTooltip("Randomize hair, face, eyes, etc. for all visible player characters.\nDirect memory modification — no external plugins needed.");
         }
 
         ImGui.Spacing();
@@ -159,25 +159,10 @@ public class MainWindow : Window, IDisposable
         }
         if (ImGui.IsItemHovered())
         {
-            ImGui.SetTooltip("OVERRIDE ALL OPTIONS — Krangle players into special NPC models!\n(Gaius, Nero, Louisoix, etc.)\nRequires Glamourer plugin.");
+            ImGui.SetTooltip("OVERRIDE ALL OPTIONS — Krangle players into special NPC models!\n(Gaius, Nero, Louisoix, etc.)");
         }
 
         ImGui.Spacing();
-
-        // Glamourer status
-        var glamourerAvail = plugin.GlamourerIPC.IsAvailable();
-        if (glamourerAvail)
-        {
-            ImGui.TextColored(new Vector4(0.0f, 1.0f, 0.0f, 1.0f), "Glamourer: Detected");
-        }
-        else
-        {
-            ImGui.TextColored(new Vector4(1.0f, 0.5f, 0.0f, 1.0f), "Glamourer: Not detected");
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.SetTooltip("Glamourer is required for gender, race, and appearance krangling.\nName krangling works without Glamourer.");
-            }
-        }
 
         // Status summary
         if (config.Enabled)
