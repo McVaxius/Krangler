@@ -1,0 +1,370 @@
+﻿{
+  "FileVersion": 1,
+  "Identifier": "d6fe4f5d-e0d2-4bf0-8e19-9ab44770d624",
+  "CreationDate": "2024-07-19T02:32:51.2499977+00:00",
+  "LastEdit": "2024-07-19T02:32:51.2499981+00:00",
+  "Name": "Floop Boop test ink",
+  "Description": "",
+  "ForcedRedraw": false,
+  "Color": "",
+  "QuickDesign": true,
+  "Tags": [],
+  "WriteProtected": false,
+  "Equipment": {
+    "MainHand": {
+      "ItemId": 10054,
+      "Crest": false,
+      "Apply": true,
+      "ApplyStain": true,
+      "ApplyCrest": false,
+      "Stain": 113,
+      "Stain2": 0
+    },
+    "OffHand": {
+      "ItemId": 10063,
+      "Crest": false,
+      "Apply": true,
+      "ApplyStain": true,
+      "ApplyCrest": true,
+      "Stain": 113,
+      "Stain2": 0
+    },
+    "Head": {
+      "ItemId": 16578,
+      "Crest": false,
+      "Apply": true,
+      "ApplyStain": true,
+      "ApplyCrest": true,
+      "Stain": 0,
+      "Stain2": 0
+    },
+    "Body": {
+      "ItemId": 26954,
+      "Crest": false,
+      "Apply": true,
+      "ApplyStain": true,
+      "ApplyCrest": true,
+      "Stain": 113,
+      "Stain2": 0
+    },
+    "Hands": {
+      "ItemId": 26955,
+      "Crest": false,
+      "Apply": true,
+      "ApplyStain": true,
+      "ApplyCrest": false,
+      "Stain": 113,
+      "Stain2": 0
+    },
+    "Legs": {
+      "ItemId": 30682,
+      "Crest": false,
+      "Apply": true,
+      "ApplyStain": true,
+      "ApplyCrest": false,
+      "Stain": 113,
+      "Stain2": 0
+    },
+    "Feet": {
+      "ItemId": 26957,
+      "Crest": false,
+      "Apply": true,
+      "ApplyStain": true,
+      "ApplyCrest": false,
+      "Stain": 113,
+      "Stain2": 0
+    },
+    "Ears": {
+      "ItemId": 40800,
+      "Crest": false,
+      "Apply": true,
+      "ApplyStain": true,
+      "ApplyCrest": false,
+      "Stain": 0,
+      "Stain2": 0
+    },
+    "Neck": {
+      "ItemId": 9292,
+      "Crest": false,
+      "Apply": true,
+      "ApplyStain": true,
+      "ApplyCrest": false,
+      "Stain": 0,
+      "Stain2": 0
+    },
+    "Wrists": {
+      "ItemId": 8693,
+      "Crest": false,
+      "Apply": true,
+      "ApplyStain": true,
+      "ApplyCrest": false,
+      "Stain": 0,
+      "Stain2": 0
+    },
+    "RFinger": {
+      "ItemId": 9295,
+      "Crest": false,
+      "Apply": true,
+      "ApplyStain": true,
+      "ApplyCrest": false,
+      "Stain": 0,
+      "Stain2": 0
+    },
+    "LFinger": {
+      "ItemId": 9295,
+      "Crest": false,
+      "Apply": true,
+      "ApplyStain": true,
+      "ApplyCrest": false,
+      "Stain": 0,
+      "Stain2": 0
+    },
+    "Hat": {
+      "Show": true,
+      "Apply": true
+    },
+    "Visor": {
+      "IsToggled": true,
+      "Apply": true
+    },
+    "Weapon": {
+      "Show": true,
+      "Apply": true
+    }
+  },
+  "Bonus": {
+    "Glasses": {
+      "BonusId": 0,
+      "Apply": true
+    }
+  },
+  "Customize": {
+    "ModelId": 0,
+    "Race": {
+      "Value": 5,
+      "Apply": false
+    },
+    "Gender": {
+      "Value": 0,
+      "Apply": true
+    },
+    "BodyType": {
+      "Value": 1,
+      "Apply": true
+    },
+    "Height": {
+      "Value": 100,
+      "Apply": true
+    },
+    "Clan": {
+      "Value": 10,
+      "Apply": true
+    },
+    "Face": {
+      "Value": 3,
+      "Apply": true
+    },
+    "Hairstyle": {
+      "Value": 109,
+      "Apply": true
+    },
+    "Highlights": {
+      "Value": 128,
+      "Apply": true
+    },
+    "SkinColor": {
+      "Value": 7,
+      "Apply": true
+    },
+    "EyeColorRight": {
+      "Value": 171,
+      "Apply": true
+    },
+    "HairColor": {
+      "Value": 7,
+      "Apply": true
+    },
+    "HighlightsColor": {
+      "Value": 7,
+      "Apply": true
+    },
+    "FacialFeature1": {
+      "Value": 1,
+      "Apply": true
+    },
+    "FacialFeature2": {
+      "Value": 2,
+      "Apply": true
+    },
+    "FacialFeature3": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacialFeature4": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacialFeature5": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacialFeature6": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacialFeature7": {
+      "Value": 0,
+      "Apply": true
+    },
+    "LegacyTattoo": {
+      "Value": 0,
+      "Apply": true
+    },
+    "TattooColor": {
+      "Value": 7,
+      "Apply": true
+    },
+    "Eyebrows": {
+      "Value": 0,
+      "Apply": true
+    },
+    "EyeColorLeft": {
+      "Value": 171,
+      "Apply": true
+    },
+    "EyeShape": {
+      "Value": 0,
+      "Apply": true
+    },
+    "SmallIris": {
+      "Value": 0,
+      "Apply": true
+    },
+    "Nose": {
+      "Value": 1,
+      "Apply": true
+    },
+    "Jaw": {
+      "Value": 2,
+      "Apply": true
+    },
+    "Mouth": {
+      "Value": 0,
+      "Apply": true
+    },
+    "Lipstick": {
+      "Value": 0,
+      "Apply": true
+    },
+    "LipColor": {
+      "Value": 0,
+      "Apply": true
+    },
+    "MuscleMass": {
+      "Value": 100,
+      "Apply": true
+    },
+    "TailShape": {
+      "Value": 0,
+      "Apply": true
+    },
+    "BustSize": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacePaint": {
+      "Value": 1,
+      "Apply": true
+    },
+    "FacePaintReversed": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacePaintColor": {
+      "Value": 7,
+      "Apply": true
+    },
+    "Wetness": {
+      "Value": false,
+      "Apply": false
+    }
+  },
+  "Parameters": {
+    "FacePaintUvMultiplier": {
+      "Value": 1.0,
+      "Apply": false
+    },
+    "FacePaintUvOffset": {
+      "Value": 0.0,
+      "Apply": false
+    },
+    "MuscleTone": {
+      "Percentage": 2.5,
+      "Apply": false
+    },
+    "LeftLimbalIntensity": {
+      "Percentage": 0.0,
+      "Apply": false
+    },
+    "RightLimbalIntensity": {
+      "Percentage": 0.0,
+      "Apply": false
+    },
+    "SkinDiffuse": {
+      "Red": 0.34901962,
+      "Green": 0.30980393,
+      "Blue": 0.28235295,
+      "Apply": true
+    },
+    "HairDiffuse": {
+      "Red": 0.07058824,
+      "Green": 0.07058824,
+      "Blue": 0.07058824,
+      "Apply": false
+    },
+    "HairHighlight": {
+      "Red": 0.019607844,
+      "Green": 0.019607844,
+      "Blue": 0.019607844,
+      "Apply": false
+    },
+    "LeftEye": {
+      "Red": 0.26666668,
+      "Green": 0.5411765,
+      "Blue": 0.40392157,
+      "Apply": false
+    },
+    "RightEye": {
+      "Red": 0.26666668,
+      "Green": 0.5411765,
+      "Blue": 0.40392157,
+      "Apply": false
+    },
+    "FeatureColor": {
+      "Red": 0.0,
+      "Green": 0.0,
+      "Blue": 0.0,
+      "Apply": false
+    },
+    "LipDiffuse": {
+      "Red": 0.0,
+      "Green": 0.0,
+      "Blue": 0.0,
+      "Alpha": 0.0,
+      "Apply": false
+    },
+    "DecalColor": {
+      "Red": 0.0,
+      "Green": 0.0,
+      "Blue": 0.0,
+      "Alpha": 0.92941177,
+      "Apply": false
+    }
+  },
+  "Materials": {},
+  "Mods": [],
+  "Links": {
+    "Before": [],
+    "After": []
+  }
+}

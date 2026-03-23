@@ -1,0 +1,372 @@
+﻿{
+  "FileVersion": 2,
+  "Identifier": "ba60bd32-3d96-4235-b6ab-63d0e9d12ee9",
+  "CreationDate": "2025-04-20T13:01:58.7377456+00:00",
+  "LastEdit": "2025-04-20T13:01:58.7377457+00:00",
+  "Name": "Ryne Waterss",
+  "Description": "",
+  "ForcedRedraw": false,
+  "ResetAdvancedDyes": false,
+  "ResetTemporarySettings": false,
+  "Color": "",
+  "QuickDesign": true,
+  "Tags": [],
+  "WriteProtected": false,
+  "Equipment": {
+    "MainHand": {
+      "ItemId": 9241,
+      "Crest": false,
+      "Apply": true,
+      "ApplyStain": true,
+      "ApplyCrest": false,
+      "Stain": 0,
+      "Stain2": 0
+    },
+    "OffHand": {
+      "ItemId": 9241,
+      "Crest": false,
+      "Apply": true,
+      "ApplyStain": true,
+      "ApplyCrest": true,
+      "Stain": 0,
+      "Stain2": 0
+    },
+    "Head": {
+      "ItemId": 10032,
+      "Crest": false,
+      "Apply": true,
+      "ApplyStain": true,
+      "ApplyCrest": true,
+      "Stain": 0,
+      "Stain2": 0
+    },
+    "Body": {
+      "ItemId": 33751,
+      "Crest": false,
+      "Apply": true,
+      "ApplyStain": true,
+      "ApplyCrest": true,
+      "Stain": 0,
+      "Stain2": 0
+    },
+    "Hands": {
+      "ItemId": 10034,
+      "Crest": false,
+      "Apply": true,
+      "ApplyStain": true,
+      "ApplyCrest": false,
+      "Stain": 0,
+      "Stain2": 0
+    },
+    "Legs": {
+      "ItemId": 33752,
+      "Crest": false,
+      "Apply": true,
+      "ApplyStain": true,
+      "ApplyCrest": false,
+      "Stain": 0,
+      "Stain2": 0
+    },
+    "Feet": {
+      "ItemId": 33753,
+      "Crest": false,
+      "Apply": true,
+      "ApplyStain": true,
+      "ApplyCrest": false,
+      "Stain": 0,
+      "Stain2": 0
+    },
+    "Ears": {
+      "ItemId": 9293,
+      "Crest": false,
+      "Apply": true,
+      "ApplyStain": true,
+      "ApplyCrest": false,
+      "Stain": 0,
+      "Stain2": 0
+    },
+    "Neck": {
+      "ItemId": 9292,
+      "Crest": false,
+      "Apply": true,
+      "ApplyStain": true,
+      "ApplyCrest": false,
+      "Stain": 0,
+      "Stain2": 0
+    },
+    "Wrists": {
+      "ItemId": 8693,
+      "Crest": false,
+      "Apply": true,
+      "ApplyStain": true,
+      "ApplyCrest": false,
+      "Stain": 0,
+      "Stain2": 0
+    },
+    "RFinger": {
+      "ItemId": 9295,
+      "Crest": false,
+      "Apply": true,
+      "ApplyStain": true,
+      "ApplyCrest": false,
+      "Stain": 0,
+      "Stain2": 0
+    },
+    "LFinger": {
+      "ItemId": 9295,
+      "Crest": false,
+      "Apply": true,
+      "ApplyStain": true,
+      "ApplyCrest": false,
+      "Stain": 0,
+      "Stain2": 0
+    },
+    "Hat": {
+      "Show": true,
+      "Apply": true
+    },
+    "Visor": {
+      "IsToggled": false,
+      "Apply": true
+    },
+    "Weapon": {
+      "Show": true,
+      "Apply": true
+    }
+  },
+  "Bonus": {
+    "Glasses": {
+      "BonusId": 844424946909184,
+      "Apply": true
+    }
+  },
+  "Customize": {
+    "ModelId": 0,
+    "Race": {
+      "Value": 1,
+      "Apply": false
+    },
+    "Gender": {
+      "Value": 1,
+      "Apply": true
+    },
+    "BodyType": {
+      "Value": 1,
+      "Apply": true
+    },
+    "Height": {
+      "Value": 0,
+      "Apply": true
+    },
+    "Clan": {
+      "Value": 1,
+      "Apply": true
+    },
+    "Face": {
+      "Value": 5,
+      "Apply": true
+    },
+    "Hairstyle": {
+      "Value": 145,
+      "Apply": true
+    },
+    "Highlights": {
+      "Value": 0,
+      "Apply": true
+    },
+    "SkinColor": {
+      "Value": 152,
+      "Apply": true
+    },
+    "EyeColorRight": {
+      "Value": 144,
+      "Apply": true
+    },
+    "HairColor": {
+      "Value": 75,
+      "Apply": true
+    },
+    "HighlightsColor": {
+      "Value": 15,
+      "Apply": true
+    },
+    "FacialFeature1": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacialFeature2": {
+      "Value": 2,
+      "Apply": true
+    },
+    "FacialFeature3": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacialFeature4": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacialFeature5": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacialFeature6": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacialFeature7": {
+      "Value": 0,
+      "Apply": true
+    },
+    "LegacyTattoo": {
+      "Value": 0,
+      "Apply": true
+    },
+    "TattooColor": {
+      "Value": 2,
+      "Apply": true
+    },
+    "Eyebrows": {
+      "Value": 3,
+      "Apply": true
+    },
+    "EyeColorLeft": {
+      "Value": 144,
+      "Apply": true
+    },
+    "EyeShape": {
+      "Value": 3,
+      "Apply": true
+    },
+    "SmallIris": {
+      "Value": 0,
+      "Apply": true
+    },
+    "Nose": {
+      "Value": 0,
+      "Apply": true
+    },
+    "Jaw": {
+      "Value": 0,
+      "Apply": true
+    },
+    "Mouth": {
+      "Value": 0,
+      "Apply": true
+    },
+    "Lipstick": {
+      "Value": 128,
+      "Apply": true
+    },
+    "LipColor": {
+      "Value": 172,
+      "Apply": true
+    },
+    "MuscleMass": {
+      "Value": 0,
+      "Apply": true
+    },
+    "TailShape": {
+      "Value": 0,
+      "Apply": true
+    },
+    "BustSize": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacePaint": {
+      "Value": 2,
+      "Apply": true
+    },
+    "FacePaintReversed": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacePaintColor": {
+      "Value": 169,
+      "Apply": true
+    },
+    "Wetness": {
+      "Value": false,
+      "Apply": false
+    }
+  },
+  "Parameters": {
+    "FacePaintUvMultiplier": {
+      "Value": 1.0,
+      "Apply": false
+    },
+    "FacePaintUvOffset": {
+      "Value": 0.0,
+      "Apply": false
+    },
+    "MuscleTone": {
+      "Percentage": 0.4,
+      "Apply": false
+    },
+    "LeftLimbalIntensity": {
+      "Percentage": 0.0,
+      "Apply": false
+    },
+    "RightLimbalIntensity": {
+      "Percentage": 0.0,
+      "Apply": false
+    },
+    "SkinDiffuse": {
+      "Red": 0.9137255,
+      "Green": 0.88235295,
+      "Blue": 0.85882354,
+      "Apply": false
+    },
+    "HairDiffuse": {
+      "Red": 0.7294118,
+      "Green": 0.42352942,
+      "Blue": 0.32156864,
+      "Apply": false
+    },
+    "HairHighlight": {
+      "Red": 0.7294118,
+      "Green": 0.42352942,
+      "Blue": 0.32156864,
+      "Apply": false
+    },
+    "LeftEye": {
+      "Red": 0.6901961,
+      "Green": 0.73333335,
+      "Blue": 0.8235294,
+      "Apply": false
+    },
+    "RightEye": {
+      "Red": 0.6901961,
+      "Green": 0.73333335,
+      "Blue": 0.8235294,
+      "Apply": false
+    },
+    "FeatureColor": {
+      "Red": 0.6627451,
+      "Green": 0.6627451,
+      "Blue": 0.6627451,
+      "Apply": false
+    },
+    "LipDiffuse": {
+      "Red": 0.3254902,
+      "Green": 0.09411765,
+      "Blue": 0.09411765,
+      "Alpha": 0.2509804,
+      "Apply": false
+    },
+    "DecalColor": {
+      "Red": 0.79950964,
+      "Green": 0.4472136,
+      "Blue": 0.44280744,
+      "Alpha": 0.18039216,
+      "Apply": false
+    }
+  },
+  "Materials": {},
+  "Mods": [],
+  "Links": {
+    "Before": [],
+    "After": []
+  }
+}

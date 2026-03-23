@@ -1,0 +1,248 @@
+﻿{
+  "FileVersion": 1,
+  "Identifier": "5e1d858a-7fde-4460-8168-89c775491889",
+  "CreationDate": "2023-10-13T17:48:43.8072373+00:00",
+  "LastEdit": "2023-10-13T17:48:43.8072379+00:00",
+  "Name": "Biggs",
+  "Description": "",
+  "Tags": [],
+  "WriteProtected": false,
+  "Equipment": {
+    "MainHand": {
+      "ItemId": 324360225231873,
+      "Stain": 0,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "OffHand": {
+      "ItemId": 4294966911,
+      "Stain": 0,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "Head": {
+      "ItemId": 14863,
+      "Stain": 0,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "Body": {
+      "ItemId": 14864,
+      "Stain": 0,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "Hands": {
+      "ItemId": 3708,
+      "Stain": 5,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "Legs": {
+      "ItemId": 3442,
+      "Stain": 6,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "Feet": {
+      "ItemId": 14867,
+      "Stain": 0,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "Ears": {
+      "ItemId": 4294967158,
+      "Stain": 0,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "Neck": {
+      "ItemId": 4294967157,
+      "Stain": 0,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "Wrists": {
+      "ItemId": 4294967156,
+      "Stain": 0,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "RFinger": {
+      "ItemId": 4294967155,
+      "Stain": 0,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "LFinger": {
+      "ItemId": 4294967155,
+      "Stain": 0,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "Hat": {
+      "Show": true,
+      "Apply": true
+    },
+    "Visor": {
+      "IsToggled": false,
+      "Apply": true
+    },
+    "Weapon": {
+      "Show": true,
+      "Apply": true
+    }
+  },
+  "Customize": {
+    "ModelId": 0,
+    "Race": {
+      "Value": 5,
+      "Apply": false
+    },
+    "Gender": {
+      "Value": 0,
+      "Apply": true
+    },
+    "BodyType": {
+      "Value": 1,
+      "Apply": false
+    },
+    "Height": {
+      "Value": 50,
+      "Apply": true
+    },
+    "Clan": {
+      "Value": 9,
+      "Apply": true
+    },
+    "Face": {
+      "Value": 4,
+      "Apply": true
+    },
+    "Hairstyle": {
+      "Value": 5,
+      "Apply": true
+    },
+    "Highlights": {
+      "Value": 128,
+      "Apply": true
+    },
+    "SkinColor": {
+      "Value": 26,
+      "Apply": true
+    },
+    "EyeColorRight": {
+      "Value": 138,
+      "Apply": true
+    },
+    "HairColor": {
+      "Value": 36,
+      "Apply": true
+    },
+    "HighlightsColor": {
+      "Value": 52,
+      "Apply": true
+    },
+    "FacialFeature1": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacialFeature2": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacialFeature3": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacialFeature4": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacialFeature5": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacialFeature6": {
+      "Value": 32,
+      "Apply": true
+    },
+    "FacialFeature7": {
+      "Value": 64,
+      "Apply": true
+    },
+    "LegacyTattoo": {
+      "Value": 0,
+      "Apply": true
+    },
+    "TattooColor": {
+      "Value": 93,
+      "Apply": true
+    },
+    "Eyebrows": {
+      "Value": 0,
+      "Apply": true
+    },
+    "EyeColorLeft": {
+      "Value": 138,
+      "Apply": true
+    },
+    "EyeShape": {
+      "Value": 0,
+      "Apply": true
+    },
+    "SmallIris": {
+      "Value": 0,
+      "Apply": true
+    },
+    "Nose": {
+      "Value": 2,
+      "Apply": true
+    },
+    "Jaw": {
+      "Value": 0,
+      "Apply": true
+    },
+    "Mouth": {
+      "Value": 1,
+      "Apply": true
+    },
+    "Lipstick": {
+      "Value": 0,
+      "Apply": true
+    },
+    "LipColor": {
+      "Value": 0,
+      "Apply": true
+    },
+    "MuscleMass": {
+      "Value": 50,
+      "Apply": true
+    },
+    "TailShape": {
+      "Value": 0,
+      "Apply": false
+    },
+    "BustSize": {
+      "Value": 50,
+      "Apply": false
+    },
+    "FacePaint": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacePaintReversed": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacePaintColor": {
+      "Value": 0,
+      "Apply": true
+    },
+    "Wetness": {
+      "Value": false,
+      "Apply": true
+    }
+  },
+  "Mods": []
+}

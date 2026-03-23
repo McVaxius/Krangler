@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="images\**" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="data\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <Target Name="CopyPluginArtifacts" AfterTargets="Build">
@@ -27,11 +28,14 @@
       <PluginOutput>$(OutputPath)$(AssemblyName)</PluginOutput>
     </PropertyGroup>
     <MakeDir Directories="$(PluginOutput)" />
+    <MakeDir Directories="$(PluginOutput)\data\presets" />
     <ItemGroup>
       <PluginFiles Include="$(TargetPath)" />
       <PluginFiles Include="$(ProjectDir)$(AssemblyName).json" />
       <PluginFiles Include="images\icon.png" />
+      <PresetFiles Include="data\presets\*.json" />
     </ItemGroup>
     <Copy SourceFiles="@(PluginFiles)" DestinationFolder="$(PluginOutput)" />
+    <Copy SourceFiles="@(PresetFiles)" DestinationFolder="$(PluginOutput)\data\presets" />
   </Target>
 </Project>

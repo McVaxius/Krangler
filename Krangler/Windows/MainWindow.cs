@@ -159,7 +159,17 @@ public class MainWindow : Window, IDisposable
         }
         if (ImGui.IsItemHovered())
         {
-            ImGui.SetTooltip("OVERRIDE ALL OPTIONS — Krangle players into special NPC models!\n(Gaius, Nero, Louisoix, etc.)");
+            ImGui.SetTooltip(
+                "OVERRIDE ALL OPTIONS — Apply full Glamourer presets to players!\n" +
+                "Replaces appearance AND equipment (except weapons).\n\n" +
+                $"Presets loaded: {plugin.GlamourerPresetService.PresetCount}\n" +
+                "Import: Drop .json Glamourer preset files into your presets folder.\n" +
+                "(Export presets from Glamourer, then copy the .json files)");
+        }
+        if (superKrangle)
+        {
+            ImGui.SameLine();
+            ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, 1.0f), $"({plugin.GlamourerPresetService.PresetCount} presets)");
         }
 
         ImGui.Spacing();

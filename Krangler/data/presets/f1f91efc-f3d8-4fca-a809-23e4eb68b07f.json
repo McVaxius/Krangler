@@ -1,0 +1,248 @@
+﻿{
+  "FileVersion": 1,
+  "Identifier": "f1f91efc-f3d8-4fca-a809-23e4eb68b07f",
+  "CreationDate": "2023-10-13T16:52:17.4850892+00:00",
+  "LastEdit": "2023-10-13T16:52:17.4850894+00:00",
+  "Name": "Yashtola Matoya (Hyperion)",
+  "Description": "",
+  "Tags": [],
+  "WriteProtected": false,
+  "Equipment": {
+    "MainHand": {
+      "ItemId": 10462,
+      "Stain": 0,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "OffHand": {
+      "ItemId": 8573,
+      "Stain": 0,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "Head": {
+      "ItemId": 30062,
+      "Stain": 0,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "Body": {
+      "ItemId": 41530,
+      "Stain": 6,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "Hands": {
+      "ItemId": 41531,
+      "Stain": 6,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "Legs": {
+      "ItemId": 3303,
+      "Stain": 6,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "Feet": {
+      "ItemId": 41553,
+      "Stain": 6,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "Ears": {
+      "ItemId": 33648,
+      "Stain": 0,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "Neck": {
+      "ItemId": 1546,
+      "Stain": 0,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "Wrists": {
+      "ItemId": 1557,
+      "Stain": 0,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "RFinger": {
+      "ItemId": 1582,
+      "Stain": 0,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "LFinger": {
+      "ItemId": 1582,
+      "Stain": 0,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "Hat": {
+      "Show": true,
+      "Apply": true
+    },
+    "Visor": {
+      "IsToggled": true,
+      "Apply": true
+    },
+    "Weapon": {
+      "Show": false,
+      "Apply": true
+    }
+  },
+  "Customize": {
+    "ModelId": 0,
+    "Race": {
+      "Value": 4,
+      "Apply": false
+    },
+    "Gender": {
+      "Value": 1,
+      "Apply": true
+    },
+    "BodyType": {
+      "Value": 1,
+      "Apply": false
+    },
+    "Height": {
+      "Value": 50,
+      "Apply": true
+    },
+    "Clan": {
+      "Value": 7,
+      "Apply": true
+    },
+    "Face": {
+      "Value": 3,
+      "Apply": true
+    },
+    "Hairstyle": {
+      "Value": 144,
+      "Apply": true
+    },
+    "Highlights": {
+      "Value": 0,
+      "Apply": true
+    },
+    "SkinColor": {
+      "Value": 4,
+      "Apply": true
+    },
+    "EyeColorRight": {
+      "Value": 4,
+      "Apply": true
+    },
+    "HairColor": {
+      "Value": 50,
+      "Apply": true
+    },
+    "HighlightsColor": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacialFeature1": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacialFeature2": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacialFeature3": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacialFeature4": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacialFeature5": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacialFeature6": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacialFeature7": {
+      "Value": 0,
+      "Apply": true
+    },
+    "LegacyTattoo": {
+      "Value": 0,
+      "Apply": true
+    },
+    "TattooColor": {
+      "Value": 116,
+      "Apply": true
+    },
+    "Eyebrows": {
+      "Value": 0,
+      "Apply": true
+    },
+    "EyeColorLeft": {
+      "Value": 4,
+      "Apply": true
+    },
+    "EyeShape": {
+      "Value": 4,
+      "Apply": true
+    },
+    "SmallIris": {
+      "Value": 128,
+      "Apply": true
+    },
+    "Nose": {
+      "Value": 0,
+      "Apply": true
+    },
+    "Jaw": {
+      "Value": 1,
+      "Apply": true
+    },
+    "Mouth": {
+      "Value": 0,
+      "Apply": true
+    },
+    "Lipstick": {
+      "Value": 128,
+      "Apply": true
+    },
+    "LipColor": {
+      "Value": 133,
+      "Apply": true
+    },
+    "MuscleMass": {
+      "Value": 39,
+      "Apply": true
+    },
+    "TailShape": {
+      "Value": 1,
+      "Apply": true
+    },
+    "BustSize": {
+      "Value": 50,
+      "Apply": true
+    },
+    "FacePaint": {
+      "Value": 3,
+      "Apply": true
+    },
+    "FacePaintReversed": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacePaintColor": {
+      "Value": 7,
+      "Apply": true
+    },
+    "Wetness": {
+      "Value": false,
+      "Apply": true
+    }
+  },
+  "Mods": []
+}

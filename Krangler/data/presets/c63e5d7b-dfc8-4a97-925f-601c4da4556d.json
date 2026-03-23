@@ -1,0 +1,248 @@
+﻿{
+  "FileVersion": 1,
+  "Identifier": "c63e5d7b-dfc8-4a97-925f-601c4da4556d",
+  "CreationDate": "2023-10-10T21:03:37.1200069+00:00",
+  "LastEdit": "2023-10-10T21:08:13.6131796+00:00",
+  "Name": "Independent Sutler Roe",
+  "Description": "",
+  "Tags": [],
+  "WriteProtected": false,
+  "Equipment": {
+    "MainHand": {
+      "ItemId": 281474976710656,
+      "Stain": 0,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "OffHand": {
+      "ItemId": 4294966911,
+      "Stain": 0,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "Head": {
+      "ItemId": 2729,
+      "Stain": 12,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "Body": {
+      "ItemId": 283940287938595,
+      "Stain": 0,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "Hands": {
+      "ItemId": 4294967034,
+      "Stain": 0,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "Legs": {
+      "ItemId": 1057,
+      "Stain": 0,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "Feet": {
+      "ItemId": 1382,
+      "Stain": 0,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "Ears": {
+      "ItemId": 4294967158,
+      "Stain": 0,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "Neck": {
+      "ItemId": 4294967157,
+      "Stain": 0,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "Wrists": {
+      "ItemId": 4294967156,
+      "Stain": 0,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "RFinger": {
+      "ItemId": 4294967155,
+      "Stain": 0,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "LFinger": {
+      "ItemId": 4294967155,
+      "Stain": 0,
+      "Apply": true,
+      "ApplyStain": true
+    },
+    "Hat": {
+      "Show": true,
+      "Apply": true
+    },
+    "Visor": {
+      "IsToggled": false,
+      "Apply": true
+    },
+    "Weapon": {
+      "Show": true,
+      "Apply": true
+    }
+  },
+  "Customize": {
+    "ModelId": 0,
+    "Race": {
+      "Value": 5,
+      "Apply": false
+    },
+    "Gender": {
+      "Value": 1,
+      "Apply": true
+    },
+    "BodyType": {
+      "Value": 1,
+      "Apply": false
+    },
+    "Height": {
+      "Value": 100,
+      "Apply": true
+    },
+    "Clan": {
+      "Value": 10,
+      "Apply": true
+    },
+    "Face": {
+      "Value": 3,
+      "Apply": true
+    },
+    "Hairstyle": {
+      "Value": 1,
+      "Apply": true
+    },
+    "Highlights": {
+      "Value": 0,
+      "Apply": true
+    },
+    "SkinColor": {
+      "Value": 13,
+      "Apply": true
+    },
+    "EyeColorRight": {
+      "Value": 135,
+      "Apply": true
+    },
+    "HairColor": {
+      "Value": 39,
+      "Apply": true
+    },
+    "HighlightsColor": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacialFeature1": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacialFeature2": {
+      "Value": 2,
+      "Apply": true
+    },
+    "FacialFeature3": {
+      "Value": 4,
+      "Apply": true
+    },
+    "FacialFeature4": {
+      "Value": 8,
+      "Apply": true
+    },
+    "FacialFeature5": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacialFeature6": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacialFeature7": {
+      "Value": 0,
+      "Apply": true
+    },
+    "LegacyTattoo": {
+      "Value": 0,
+      "Apply": true
+    },
+    "TattooColor": {
+      "Value": 0,
+      "Apply": true
+    },
+    "Eyebrows": {
+      "Value": 0,
+      "Apply": true
+    },
+    "EyeColorLeft": {
+      "Value": 135,
+      "Apply": true
+    },
+    "EyeShape": {
+      "Value": 2,
+      "Apply": true
+    },
+    "SmallIris": {
+      "Value": 128,
+      "Apply": true
+    },
+    "Nose": {
+      "Value": 1,
+      "Apply": true
+    },
+    "Jaw": {
+      "Value": 0,
+      "Apply": true
+    },
+    "Mouth": {
+      "Value": 2,
+      "Apply": true
+    },
+    "Lipstick": {
+      "Value": 0,
+      "Apply": true
+    },
+    "LipColor": {
+      "Value": 30,
+      "Apply": true
+    },
+    "MuscleMass": {
+      "Value": 100,
+      "Apply": true
+    },
+    "TailShape": {
+      "Value": 0,
+      "Apply": false
+    },
+    "BustSize": {
+      "Value": 100,
+      "Apply": true
+    },
+    "FacePaint": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacePaintReversed": {
+      "Value": 0,
+      "Apply": true
+    },
+    "FacePaintColor": {
+      "Value": 0,
+      "Apply": true
+    },
+    "Wetness": {
+      "Value": false,
+      "Apply": true
+    }
+  },
+  "Mods": []
+}

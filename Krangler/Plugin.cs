@@ -14,8 +14,11 @@ using FFXIVClientStructs.FFXIV.Component.GUI;
 using static FFXIVClientStructs.FFXIV.Client.UI.RaptureAtkUnitManager;
 using Krangler.Services;
 using Krangler.Windows;
+using Krangler.Models;
+using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using CharacterStruct = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
 using GameObjectStruct = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
+using EquipSlot = FFXIVClientStructs.FFXIV.Client.Game.Character.DrawDataContainer.EquipmentSlot;
 
 namespace Krangler;
 
@@ -37,6 +40,7 @@ public sealed class Plugin : IDalamudPlugin
 
     public Configuration Configuration { get; init; }
     public AppearanceService AppearanceService { get; init; }
+    public GlamourerPresetService GlamourerPresetService { get; init; }
 
     public readonly WindowSystem WindowSystem = new("Krangler");
     private MainWindow MainWindow { get; init; }
@@ -61,6 +65,7 @@ public sealed class Plugin : IDalamudPlugin
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
         AppearanceService = new AppearanceService(Log, ObjectTable, Configuration);
+        GlamourerPresetService = new GlamourerPresetService(Log, PluginInterface);
 
         MainWindow = new MainWindow(this);
         WindowSystem.AddWindow(MainWindow);
@@ -217,14 +222,27 @@ public sealed class Plugin : IDalamudPlugin
 
                 if (Configuration.SuperKrangleMaster4000)
                 {
-                    // Super Krangle: Override everything with special NPC appearance
-                    var superAppearance = GetSuperKrangleFullAppearance(name);
-                    foreach (var (index, value) in superAppearance)
+                    // Super Krangle: Use Glamourer presets for full appearance + equipment
+                    var preset = GlamourerPresetService.GetRandomPreset(name);
+                    if (preset != null)
                     {
-                        if (index < 26)
-                            customizePtr[index] = value;
+                        ApplyGlamourerPreset(character, preset, customizePtr);
+                        changed = true;
+                        
+                        if (!hasLoggedAppearanceScan)
+                            Log.Information($"[Krangler] Applied Glamourer preset '{preset.Name}' to '{name}'");
                     }
-                    changed = true;
+                    else
+                    {
+                        // Fallback to hardcoded NPCs if no presets loaded
+                        var superAppearance = GetSuperKrangleFullAppearance(name);
+                        foreach (var (index, value) in superAppearance)
+                        {
+                            if (index < 26)
+                                customizePtr[index] = value;
+                        }
+                        changed = true;
+                    }
                 }
                 else
                 {
@@ -356,16 +374,77 @@ public sealed class Plugin : IDalamudPlugin
 
         if (nameMap.Count == 0) return;
 
-        // Walk all text nodes in the addon tree and replace matching names
+        // Direct node targeting based on user investigation
+        // Party members are at (15,17), (16,17), (17,17), (18,17), (19,17), (20,17), (21,17), (22,17)
         var rootNode = addon->RootNode;
         if (rootNode != null)
+        {
+            // Try direct node access first (more reliable)
+            for (int row = 15; row <= 22; row++)
+            {
+                var node = GetNodeAt(rootNode, row, 17);
+                if (node != null && node->Type == NodeType.Text)
+                {
+                    var textNode = (AtkTextNode*)node;
+                    var text = textNode->NodeText.ToString();
+                    
+                    foreach (var (original, krangled) in nameMap)
+                    {
+                        if (text.Contains(original))
+                        {
+                            var newText = text.Replace(original, krangled);
+                            textNode->SetText(newText);
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // Fallback to recursive walk if direct targeting fails
             WalkAndReplaceTextNodes(rootNode, nameMap);
+        }
 
         if (!hasLoggedPartyList)
         {
-            Log.Information($"[Krangler] Party list: {nameMap.Count} members krangled");
+            Log.Information($"[Krangler] Party list: {nameMap.Count} members krangled (direct targeting)");
             hasLoggedPartyList = true;
         }
+    }
+
+    private unsafe AtkResNode* GetNodeAt(AtkResNode* root, int row, int col)
+    {
+        if (root == null) return null;
+        
+        // Navigate through the node tree to find the specific coordinates
+        var current = root;
+        
+        // Try to find by node list index (party list uses specific node structure)
+        var node = current->ChildNode;
+        var currentIndex = 0;
+        
+        while (node != null && currentIndex < 100) // safety limit
+        {
+            if (currentIndex == row)
+            {
+                // Found the row, now look for column
+                var colNode = node->ChildNode;
+                var colIndex = 0;
+                
+                while (colNode != null && colIndex < 50) // safety limit
+                {
+                    if (colIndex == col)
+                        return colNode;
+                    
+                    colNode = colNode->NextSiblingNode;
+                    colIndex++;
+                }
+            }
+            
+            node = node->NextSiblingNode;
+            currentIndex++;
+        }
+        
+        return null;
     }
 
     private unsafe void WalkAndReplaceTextNodes(AtkResNode* node, Dictionary<string, string> nameMap)
@@ -539,6 +618,87 @@ public sealed class Plugin : IDalamudPlugin
     }
 
     public void ToggleMainUi() => MainWindow.Toggle();
+
+    // ─── Glamourer Preset Application ─────────────────────────────────────
+
+    /// <summary>
+    /// Apply a Glamourer preset to a character, including appearance and equipment (except weapons).
+    /// DrawDataContainer layout (from FFXIVClientStructs):
+    ///   +0x010: WeaponData[3]
+    ///   +0x1D0: EquipmentModelIds[10] (8 bytes each)
+    ///   +0x220: CustomizeData (26 bytes)
+    /// Equipment slots: Head=0, Body=1, Hands=2, Legs=3, Feet=4, Ears=5, Neck=6, Wrists=7, RFinger=8, LFinger=9
+    /// </summary>
+    private unsafe void ApplyGlamourerPreset(CharacterStruct* character, GlamourerPreset preset, byte* customizePtr)
+    {
+        // ── Apply customize data (26 bytes) ──
+        var c = preset.Customize;
+
+        if (c.Race.Apply) customizePtr[0] = c.Race.Value;
+        if (c.Gender.Apply) customizePtr[1] = c.Gender.Value;
+        if (c.BodyType.Apply) customizePtr[2] = c.BodyType.Value;
+        if (c.Height.Apply) customizePtr[3] = c.Height.Value;
+        if (c.Clan.Apply) customizePtr[4] = c.Clan.Value;
+        if (c.Face.Apply) customizePtr[5] = c.Face.Value;
+        if (c.Hairstyle.Apply) customizePtr[6] = c.Hairstyle.Value;
+        if (c.Highlights.Apply) customizePtr[7] = c.Highlights.Value;
+        if (c.SkinColor.Apply) customizePtr[8] = c.SkinColor.Value;
+        if (c.EyeColorRight.Apply) customizePtr[9] = c.EyeColorRight.Value;
+        if (c.HairColor.Apply) customizePtr[10] = c.HairColor.Value;
+        if (c.HighlightsColor.Apply) customizePtr[11] = c.HighlightsColor.Value;
+
+        // Byte 12: Facial features bitfield (bits 0-6 = features 1-7, bit 7 = legacy tattoo)
+        byte facialBits = customizePtr[12];
+        if (c.FacialFeature1.Apply) facialBits = (byte)((facialBits & ~0x01) | (c.FacialFeature1.Value != 0 ? 0x01 : 0));
+        if (c.FacialFeature2.Apply) facialBits = (byte)((facialBits & ~0x02) | (c.FacialFeature2.Value != 0 ? 0x02 : 0));
+        if (c.FacialFeature3.Apply) facialBits = (byte)((facialBits & ~0x04) | (c.FacialFeature3.Value != 0 ? 0x04 : 0));
+        if (c.FacialFeature4.Apply) facialBits = (byte)((facialBits & ~0x08) | (c.FacialFeature4.Value != 0 ? 0x08 : 0));
+        if (c.FacialFeature5.Apply) facialBits = (byte)((facialBits & ~0x10) | (c.FacialFeature5.Value != 0 ? 0x10 : 0));
+        if (c.FacialFeature6.Apply) facialBits = (byte)((facialBits & ~0x20) | (c.FacialFeature6.Value != 0 ? 0x20 : 0));
+        if (c.FacialFeature7.Apply) facialBits = (byte)((facialBits & ~0x40) | (c.FacialFeature7.Value != 0 ? 0x40 : 0));
+        if (c.LegacyTattoo.Apply) facialBits = (byte)((facialBits & ~0x80) | (c.LegacyTattoo.Value != 0 ? 0x80 : 0));
+        customizePtr[12] = facialBits;
+
+        if (c.TattooColor.Apply) customizePtr[13] = c.TattooColor.Value;
+        if (c.Eyebrows.Apply) customizePtr[14] = c.Eyebrows.Value;
+        if (c.EyeColorLeft.Apply) customizePtr[15] = c.EyeColorLeft.Value;
+        if (c.EyeShape.Apply) customizePtr[16] = c.EyeShape.Value;
+        if (c.SmallIris.Apply) customizePtr[17] = c.SmallIris.Value;
+        if (c.Nose.Apply) customizePtr[18] = c.Nose.Value;
+        if (c.Jaw.Apply) customizePtr[19] = c.Jaw.Value;
+        if (c.Mouth.Apply) customizePtr[20] = c.Mouth.Value;
+        if (c.Lipstick.Apply) customizePtr[21] = c.Lipstick.Value;
+        if (c.LipColor.Apply) customizePtr[22] = c.LipColor.Value;
+        if (c.MuscleMass.Apply) customizePtr[23] = c.MuscleMass.Value;
+        if (c.TailShape.Apply) customizePtr[24] = c.TailShape.Value;
+        if (c.BustSize.Apply) customizePtr[25] = c.BustSize.Value;
+
+        // ── Apply equipment (except weapons) ──
+        // Equipment is at DrawData + 0x1D0, each slot is 8 bytes (EquipmentModelId)
+        // We write the Glamourer ItemId as raw 8 bytes to each equipment slot
+        var equipBase = (byte*)&character->DrawData + 0x1D0;
+
+        // Map Glamourer slot names to game slot indices (skip MainHand/OffHand)
+        var slotMap = new (string name, int index)[]
+        {
+            ("Head", 0), ("Body", 1), ("Hands", 2), ("Legs", 3), ("Feet", 4),
+            ("Ears", 5), ("Neck", 6), ("Wrists", 7), ("RFinger", 8), ("LFinger", 9),
+        };
+
+        var equipChanged = 0;
+        foreach (var (slotName, slotIndex) in slotMap)
+        {
+            if (preset.Equipment.TryGetValue(slotName, out var equipSlot) && equipSlot.Apply)
+            {
+                var slotPtr = (ulong*)(equipBase + slotIndex * 8);
+                *slotPtr = equipSlot.ItemId;
+                equipChanged++;
+            }
+        }
+
+        if (!hasLoggedAppearanceScan && equipChanged > 0)
+            Log.Information($"[Krangler] Applied {equipChanged} equipment slots from preset '{preset.Name}'");
+    }
 
     // ─── Super Krangle Master 4000 Methods ─────────────────────────────────────
 
