@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Numerics;
+using System.Reflection;
 using Dalamud.Interface.Windowing;
 using Dalamud.Bindings.ImGui;
 
@@ -25,7 +26,8 @@ public class MainWindow : Window, IDisposable
         var config = plugin.Configuration;
 
         // Version header + Ko-fi button
-        ImGui.Text("Krangler v0.0.0.1");
+        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0.0";
+        ImGui.Text($"Krangler v{version}");
         ImGui.SameLine(ImGui.GetWindowWidth() - 120);
         if (ImGui.SmallButton("\u2661 Ko-fi \u2661"))
         {
@@ -83,6 +85,32 @@ public class MainWindow : Window, IDisposable
             if (ImGui.Combo("DTR Mode", ref dtrMode, "Text Only\0Icon + Text\0Icon Only\0"))
             {
                 config.DtrBarMode = dtrMode;
+                config.Save();
+            }
+
+            ImGui.Text("DTR Icons (max 3 characters)");
+            ImGui.SameLine();
+            HelpMarker("Customize the glyphs used for enabled/disabled icon modes.");
+            ImGui.SameLine();
+            if (ImGui.SmallButton("Copy Icon Guide Link"))
+            {
+                ImGui.SetClipboardText("https://na.finalfantasyxiv.com/lodestone/character/22423564/blog/4393835");
+                Plugin.Log.Info("Copied icon guide link to clipboard");
+            }
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip("Copies the Lodestone blog link with suggested glyphs");
+
+            var enabledIcon = config.DtrIconEnabled;
+            if (DrawIconInputs("Enabled", ref enabledIcon, "\uE03C"))
+            {
+                config.DtrIconEnabled = enabledIcon;
+                config.Save();
+            }
+
+            var disabledIcon = config.DtrIconDisabled;
+            if (DrawIconInputs("Disabled", ref disabledIcon, "\uE03D"))
+            {
+                config.DtrIconDisabled = disabledIcon;
                 config.Save();
             }
         }
@@ -184,6 +212,97 @@ public class MainWindow : Window, IDisposable
         else
         {
             ImGui.TextColored(new Vector4(0.7f, 0.7f, 0.7f, 1.0f), "Status: Disabled");
+        }
+    }
+
+    private bool DrawIconInputs(string label, ref string value, string fallback)
+    {
+        var updated = false;
+        var glyph = value;
+        ImGui.SetNextItemWidth(80);
+        if (ImGui.InputText($"{label} Icon", ref glyph, 8))
+        {
+            value = SanitizeIconInput(glyph, fallback);
+            updated = true;
+        }
+        ImGui.SameLine();
+        ImGui.TextDisabled($"Shown when Krangler is {label.ToLowerInvariant()}");
+
+        var code = FormatIconCode(value);
+        ImGui.SetNextItemWidth(160);
+        if (ImGui.InputText($"{label} Icon Code", ref code, 64))
+        {
+            var parsed = ParseIconCode(code, value);
+            value = SanitizeIconInput(parsed, fallback);
+            updated = true;
+        }
+
+        return updated;
+    }
+
+    private static string SanitizeIconInput(string value, string fallback)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return fallback;
+
+        var trimmed = value.Trim();
+        return trimmed.Length > 3 ? trimmed.Substring(0, 3) : trimmed;
+    }
+
+    private static string FormatIconCode(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return string.Empty;
+
+        var sb = new System.Text.StringBuilder();
+        foreach (var rune in value.EnumerateRunes())
+        {
+            if (sb.Length > 0) sb.Append(' ');
+            sb.Append("\\u");
+            sb.Append(rune.Value.ToString("X4", System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        return sb.ToString();
+    }
+
+    private static string ParseIconCode(string input, string fallback)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+            return fallback;
+
+        var parts = input.Split(new[] { ' ', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+        var sb = new System.Text.StringBuilder();
+        foreach (var part in parts)
+        {
+            if (sb.Length >= 3) break;
+
+            var token = part.Trim();
+            if (token.StartsWith("\\u", StringComparison.OrdinalIgnoreCase))
+                token = token[2..];
+            else if (token.StartsWith("u", StringComparison.OrdinalIgnoreCase))
+                token = token[1..];
+            else if (token.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+                token = token[2..];
+
+            if (int.TryParse(token, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out var codepoint))
+            {
+                sb.Append(char.ConvertFromUtf32(codepoint));
+            }
+        }
+
+        return sb.Length == 0 ? fallback : sb.ToString();
+    }
+
+    private static void HelpMarker(string desc)
+    {
+        ImGui.SameLine();
+        ImGui.TextDisabled("(?)");
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.BeginTooltip();
+            ImGui.PushTextWrapPos(ImGui.GetFontSize() * 20.0f);
+            ImGui.TextUnformatted(desc);
+            ImGui.PopTextWrapPos();
+            ImGui.EndTooltip();
         }
     }
 
