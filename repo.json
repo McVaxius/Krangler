@@ -5,7 +5,7 @@
     "Punchline": "Randomize player names, races, genders and appearances for screenshot safety.",
     "Description": "Krangler makes your screenshots safe by randomizing visible player information. Toggle name krangling, gender swaps, race changes, and full appearance randomization independently.",
     "InternalName": "Krangler",
-    "AssemblyVersion": "0.0.0.8",
+    "AssemblyVersion": "0.0.0.9",
     "RepoUrl": "https://github.com/McVaxius/Krangler",
     "ApplicableVersion": "any",
     "Tags": [
