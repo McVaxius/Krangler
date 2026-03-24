@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net10.0-windows</TargetFramework>
     <PlatformTarget>x64</PlatformTarget>
-    <Version>0.0.0.7</Version>
+    <Version>0.0.0.8</Version>
     <PackageProjectUrl>https://github.com/McVaxius</PackageProjectUrl>
     <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
     <IsPackable>false</IsPackable>
@@ -32,6 +32,7 @@
     <ItemGroup>
       <PluginFiles Include="$(TargetPath)" />
       <PluginFiles Include="$(ProjectDir)$(AssemblyName).json" />
+      <PluginFiles Include="images\icon.png" />
       <PresetFiles Include="data\presets\*.json" />
     </ItemGroup>
     <Copy SourceFiles="@(PluginFiles)" DestinationFolder="$(PluginOutput)" />
