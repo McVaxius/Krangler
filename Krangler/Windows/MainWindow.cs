@@ -151,6 +151,7 @@ public class MainWindow : Window, IDisposable
         ImGui.Spacing();
 
         // Super Krangle Master 4000
+        /*
         var superKrangle = config.SuperKrangleMaster4000;
         if (ImGui.Checkbox("Super Krangle Master 4000", ref superKrangle))
         {
@@ -171,6 +172,7 @@ public class MainWindow : Window, IDisposable
             ImGui.SameLine();
             ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, 1.0f), $"({plugin.GlamourerPresetService.PresetCount} presets)");
         }
+        */
 
         ImGui.Spacing();
 
