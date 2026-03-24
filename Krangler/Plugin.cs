@@ -174,6 +174,8 @@ public sealed class Plugin : IDalamudPlugin
             if ((now - lastPartyListScan).TotalSeconds >= 1)
             {
                 lastPartyListScan = now;
+                if (!hasLoggedPartyList)
+                    Log.Information("[Krangler] Running party list scan (KrangleNames or SuperKrangle enabled)");
                 KranglePartyList();
             }
         }
@@ -358,21 +360,53 @@ public sealed class Plugin : IDalamudPlugin
 
     private unsafe void KranglePartyList()
     {
+        Log.Information("[Krangler] PartyList scan started - checking addon visibility");
+        
         var addon = Instance()->GetAddonByName("_PartyList");
-        if (addon == null || !addon->IsVisible) return;
+        if (addon == null)
+        {
+            Log.Information("[Krangler] _PartyList addon not found");
+            return;
+        }
+        
+        if (!addon->IsVisible) 
+        {
+            Log.Information("[Krangler] _PartyList addon found but not visible");
+            return;
+        }
+        
+        Log.Information("[Krangler] _PartyList addon found and visible - scanning party members");
 
         // Build lookup of original party member names -> krangled names
         var nameMap = new Dictionary<string, string>();
+        Log.Information($"[Krangler] PartyList.Length = {PartyList.Length}");
+        
         for (int i = 0; i < PartyList.Length; i++)
         {
             var member = PartyList[i];
-            if (member == null) continue;
+            if (member == null) 
+            {
+                Log.Information($"[Krangler] PartyList member {i} is null");
+                continue;
+            }
             var orig = member.Name.ToString();
-            if (!string.IsNullOrEmpty(orig))
-                nameMap[orig] = KrangleService.KrangleName(orig);
+            if (string.IsNullOrEmpty(orig))
+            {
+                Log.Information($"[Krangler] PartyList member {i} has empty name");
+                continue;
+            }
+            
+            nameMap[orig] = KrangleService.KrangleName(orig);
+            Log.Information($"[Krangler] PartyList member {i}: '{orig}' -> '{nameMap[orig]}'");
         }
 
-        if (nameMap.Count == 0) return;
+        if (nameMap.Count == 0)
+        {
+            Log.Information("[Krangler] No valid party members found with names");
+            return;
+        }
+
+        Log.Information($"[Krangler] Starting text node scan with {nameMap.Count} name mappings");
 
         // Diagnostic: Log party member names once so we know what we're looking for
         if (!hasLoggedPartyList)
@@ -385,9 +419,9 @@ public sealed class Plugin : IDalamudPlugin
         var replacedCount = 0;
         var nodeCount = addon->UldManager.NodeListCount;
 
-        if (!hasLoggedPartyList)
-            Log.Information($"[Krangler] _PartyList addon: {nodeCount} nodes in UldManager NodeList");
+        Log.Information($"[Krangler] _PartyList addon: {nodeCount} nodes in UldManager NodeList");
 
+        var textNodesFound = 0;
         for (var i = 0; i < nodeCount; i++)
         {
             var node = addon->UldManager.NodeList[i];
@@ -396,20 +430,71 @@ public sealed class Plugin : IDalamudPlugin
             // Check direct text nodes
             if (node->Type == NodeType.Text)
             {
+                textNodesFound++;
                 var textNode = (AtkTextNode*)node;
                 var text = textNode->NodeText.ToString();
                 if (string.IsNullOrEmpty(text)) continue;
 
                 // Diagnostic: Log first batch of text node contents once
                 if (!hasLoggedPartyList && text.Length > 1 && text.Length < 60)
-                    Log.Information($"[Krangler] PartyList text node [{i}] id={node->NodeId}: '{text}'");
+                {
+                    var cleanText = StripSeStringPayloads(text);
+                    Log.Information($"[Krangler] PartyList text node [{i}] id={node->NodeId}: raw={text.Length}ch clean='{cleanText}'");
+                }
 
                 foreach (var (original, krangled) in nameMap)
                 {
-                    if (text.Contains(original))
+                    // Strip SeString payloads for matching (0x02...0x03 control bytes)
+                    var cleanText = StripSeStringPayloads(text);
+                    
+                    // Find the first letter in clean text (skip icons/symbols)
+                    var nameStartIndex = -1;
+                    for (int k = 0; k < cleanText.Length; k++)
                     {
+                        if (char.IsLetter(cleanText[k]))
+                        {
+                            nameStartIndex = k;
+                            break;
+                        }
+                    }
+                    
+                    if (nameStartIndex >= 0 && cleanText.Length - nameStartIndex >= 5 && original.Length >= 5)
+                    {
+                        // Extract the actual text that exists in the node
+                        var actualTextInNode = cleanText.Substring(nameStartIndex);
+                        var minLength = Math.Min(5, Math.Min(actualTextInNode.Length, original.Length));
+                        
+                        // Check if the first 5+ characters match
+                        if (actualTextInNode.Substring(0, minLength) == original.Substring(0, minLength))
+                        {
+                            // Create replacement text sized to match what we actually found
+                            var partialLength = actualTextInNode.Length;
+                            var replacementText = krangled.Length >= partialLength ? 
+                                krangled.Substring(0, partialLength) : krangled;
+                            
+                            // Only log detailed matching for text that might contain names (longer than 10 chars)
+                            if (!hasLoggedPartyList && cleanText.Length > 10)
+                                Log.Information($"[Krangler] Matching: original='{original}' found='{actualTextInNode}' replace='{replacementText}'");
+                            
+                            // Replace the actual text we found, not the full original
+                            var newText = text.Replace(actualTextInNode, replacementText);
+                            textNode->SetText(newText);
+                            Log.Information($"[Krangler] REPLACED: '{actualTextInNode}' -> '{replacementText}' in text node");
+                            replacedCount++;
+                            break;
+                        }
+                    }
+                    
+                    // Fallback to full contains match (for cases where full name exists)
+                    if (cleanText.Contains(original))
+                    {
+                        // Only log detailed matching for text that might contain names (longer than 10 chars)
+                        if (!hasLoggedPartyList && cleanText.Length > 10)
+                            Log.Information($"[Krangler] Full Match: original='{original}' replace='{krangled}'");
+                        
                         var newText = text.Replace(original, krangled);
                         textNode->SetText(newText);
+                        Log.Information($"[Krangler] FULL REPLACED: '{original}' -> '{krangled}' in text node");
                         replacedCount++;
                         break;
                     }
@@ -428,20 +513,71 @@ public sealed class Plugin : IDalamudPlugin
                         var subNode = comp->Component->UldManager.NodeList[j];
                         if (subNode == null || subNode->Type != NodeType.Text) continue;
 
+                        textNodesFound++;
                         var textNode = (AtkTextNode*)subNode;
                         var text = textNode->NodeText.ToString();
                         if (string.IsNullOrEmpty(text)) continue;
 
                         // Diagnostic: Log component text nodes once
                         if (!hasLoggedPartyList && text.Length > 1 && text.Length < 60)
-                            Log.Information($"[Krangler] PartyList component [{i}] sub [{j}] id={subNode->NodeId}: '{text}'");
+                        {
+                            var cleanText = StripSeStringPayloads(text);
+                            Log.Information($"[Krangler] PartyList component [{i}] sub [{j}] id={subNode->NodeId}: raw={text.Length}ch clean='{cleanText}'");
+                        }
 
                         foreach (var (original, krangled) in nameMap)
                         {
-                            if (text.Contains(original))
+                            // Strip SeString payloads for matching (0x02...0x03 control bytes)
+                            var cleanText = StripSeStringPayloads(text);
+                            
+                            // Find the first letter in clean text (skip icons/symbols)
+                            var nameStartIndex = -1;
+                            for (int k = 0; k < cleanText.Length; k++)
                             {
+                                if (char.IsLetter(cleanText[k]))
+                                {
+                                    nameStartIndex = k;
+                                    break;
+                                }
+                            }
+                            
+                            if (nameStartIndex >= 0 && cleanText.Length - nameStartIndex >= 5 && original.Length >= 5)
+                            {
+                                // Extract the actual text that exists in the node
+                                var actualTextInNode = cleanText.Substring(nameStartIndex);
+                                var minLength = Math.Min(5, Math.Min(actualTextInNode.Length, original.Length));
+                                
+                                // Check if the first 5+ characters match
+                                if (actualTextInNode.Substring(0, minLength) == original.Substring(0, minLength))
+                                {
+                                    // Create replacement text sized to match what we actually found
+                                    var partialLength = actualTextInNode.Length;
+                                    var replacementText = krangled.Length >= partialLength ? 
+                                        krangled.Substring(0, partialLength) : krangled;
+                                    
+                                    // Only log detailed matching for text that might contain names (longer than 10 chars)
+                                    if (!hasLoggedPartyList && cleanText.Length > 10)
+                                        Log.Information($"[Krangler] Component Matching: original='{original}' found='{actualTextInNode}' replace='{replacementText}'");
+                                    
+                                    // Replace the actual text we found, not the full original
+                                    var newText = text.Replace(actualTextInNode, replacementText);
+                                    textNode->SetText(newText);
+                                    Log.Information($"[Krangler] COMPONENT REPLACED: '{actualTextInNode}' -> '{replacementText}'");
+                                    replacedCount++;
+                                    break;
+                                }
+                            }
+                            
+                            // Fallback to full contains match (for cases where full name exists)
+                            if (cleanText.Contains(original))
+                            {
+                                // Only log detailed matching for text that might contain names (longer than 10 chars)
+                                if (!hasLoggedPartyList && cleanText.Length > 10)
+                                    Log.Information($"[Krangler] Component Full Match: original='{original}' replace='{krangled}'");
+                                
                                 var newText = text.Replace(original, krangled);
                                 textNode->SetText(newText);
+                                Log.Information($"[Krangler] COMPONENT FULL REPLACED: '{original}' -> '{krangled}'");
                                 replacedCount++;
                                 break;
                             }
@@ -453,9 +589,44 @@ public sealed class Plugin : IDalamudPlugin
 
         if (!hasLoggedPartyList)
         {
-            Log.Information($"[Krangler] Party list scan: {nameMap.Count} members, {replacedCount} text nodes replaced");
+            Log.Information($"[Krangler] Party list scan: {nameMap.Count} members, {textNodesFound} text nodes found, {replacedCount} text nodes replaced");
             hasLoggedPartyList = true;
         }
+    }
+
+    /// <summary>
+    /// Strip FFXIV SeString payload bytes from text for plain-text matching.
+    /// SeString payloads: 0x02 [type] [length] [data...] 0x03
+    /// Critical for party list krangling - text nodes contain SeString control bytes.
+    /// </summary>
+    private static string StripSeStringPayloads(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return text;
+        var sb = new System.Text.StringBuilder(text.Length);
+        var i = 0;
+        while (i < text.Length)
+        {
+            var ch = text[i];
+            if (ch == '\x02' && i + 1 < text.Length)
+            {
+                // Skip payload: 0x02 type len data... 0x03
+                // Find the matching 0x03
+                i++; // skip 0x02
+                while (i < text.Length && text[i] != '\x03')
+                    i++;
+                if (i < text.Length) i++; // skip 0x03
+            }
+            else if (ch >= ' ') // skip any other control chars
+            {
+                sb.Append(ch);
+                i++;
+            }
+            else
+            {
+                i++;
+            }
+        }
+        return sb.ToString();
     }
 
     private unsafe void WalkAndReplaceTextNodes(AtkResNode* node, Dictionary<string, string> nameMap)
