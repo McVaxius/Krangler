@@ -4,6 +4,7 @@ using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.Command;
 using Dalamud.Game.Gui.Dtr;
 using Dalamud.Game.Gui.NamePlate;
+using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.IoC;
@@ -34,6 +35,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IGameGui GameGui { get; private set; } = null!;
     [PluginService] internal static INamePlateGui NamePlateGui { get; private set; } = null!;
     [PluginService] internal static IPartyList PartyList { get; private set; } = null!;
+    [PluginService] internal static IChatGui ChatGui { get; private set; } = null!;
     
     private const string CommandName = "/krangler";
     private const string AliasCommandName = "/kr";
@@ -89,6 +91,17 @@ public sealed class Plugin : IDalamudPlugin
 
         // Nameplate hook for name krangling
         NamePlateGui.OnNamePlateUpdate += OnNamePlateUpdate;
+
+        // Chat message hook for chat garbling
+        try 
+        {
+            ChatGui.ChatMessage += OnChatMessage;
+            Log.Information("[Krangler] ChatMessage event subscription successful");
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"[Krangler] Failed to subscribe to ChatMessage event: {ex.Message}");
+        }
 
         // Framework update for DTR bar + appearance + party list
         Framework.Update += OnFrameworkUpdate;
@@ -175,12 +188,61 @@ public sealed class Plugin : IDalamudPlugin
             {
                 lastPartyListScan = now;
                 if (!hasLoggedPartyList)
-                    Log.Information("[Krangler] Running party list scan (KrangleNames or SuperKrangle enabled)");
+                    // Log.Information("[Krangler] Running party list scan (KrangleNames or SuperKrangle enabled)");
                 KranglePartyList();
             }
         }
 
         UpdateDtrBar();
+    }
+
+    // ─── Chat Message Garbling ───────────────────────────────────────
+
+    private void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
+    {
+        // Only process if krangling is enabled and chat garbling is enabled
+        if (!Configuration.Enabled || !Configuration.KrangleNames)
+            return;
+
+        // Process ALL chat channels now (no filtering)
+
+        try
+        {
+            var messageText = message.TextValue;
+            var senderText = sender.TextValue;
+            
+            Log.Information($"[Krangler] Chat intercepted - Type: {type}, Sender: '{senderText}', Message: '{messageText}'");
+            
+            // Garble ALL text in the message and sender
+            var garbledMessage = GenerateGarbledText(messageText.Length);
+            var garbledSender = GenerateGarbledText(senderText.Length);
+
+            Log.Information($"[Krangler] Chat garbled - Sender: '{senderText}' -> '{garbledSender}', Message: '{messageText}' -> '{garbledMessage}'");
+
+            // Apply the garbled text
+            message = new SeString(new List<Payload> { new TextPayload(garbledMessage) });
+            sender = new SeString(new List<Payload> { new TextPayload(garbledSender) });
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"[Krangler] Error in chat message processing: {ex.Message}");
+        }
+    }
+
+    private static string GenerateGarbledText(int length)
+    {
+        if (length <= 0) return string.Empty;
+        
+        var random = new Random();
+        var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
+        var result = new char[length];
+        
+        for (int i = 0; i < length; i++)
+        {
+            result[i] = chars[random.Next(chars.Length)];
+        }
+        
+        return new string(result);
     }
 
     // ─── Direct Appearance Modification ─────────────────────────────────────
@@ -360,7 +422,7 @@ public sealed class Plugin : IDalamudPlugin
 
     private unsafe void KranglePartyList()
     {
-        Log.Information("[Krangler] PartyList scan started - checking addon visibility");
+        // Log.Information("[Krangler] PartyList scan started - checking addon visibility");
         
         var addon = Instance()->GetAddonByName("_PartyList");
         if (addon == null)
@@ -371,15 +433,15 @@ public sealed class Plugin : IDalamudPlugin
         
         if (!addon->IsVisible) 
         {
-            Log.Information("[Krangler] _PartyList addon found but not visible");
+            // Log.Information("[Krangler] _PartyList addon found but not visible");
             return;
         }
         
-        Log.Information("[Krangler] _PartyList addon found and visible - scanning party members");
+        // Log.Information("[Krangler] _PartyList addon found and visible - scanning party members");
 
         // Build lookup of original party member names -> krangled names
         var nameMap = new Dictionary<string, string>();
-        Log.Information($"[Krangler] PartyList.Length = {PartyList.Length}");
+        // Log.Information($"[Krangler] PartyList.Length = {PartyList.Length}");
         
         for (int i = 0; i < PartyList.Length; i++)
         {
@@ -402,7 +464,7 @@ public sealed class Plugin : IDalamudPlugin
 
         if (nameMap.Count == 0)
         {
-            Log.Information("[Krangler] No valid party members found with names");
+            // Log.Information("[Krangler] No valid party members found with names");
             return;
         }
 
@@ -974,6 +1036,14 @@ public sealed class Plugin : IDalamudPlugin
     {
         Framework.Update -= OnFrameworkUpdate;
         NamePlateGui.OnNamePlateUpdate -= OnNamePlateUpdate;
+        try 
+        {
+            ChatGui.ChatMessage -= OnChatMessage;
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"[Krangler] Failed to unsubscribe from ChatMessage event: {ex.Message}");
+        }
 
         PluginInterface.UiBuilder.Draw -= WindowSystem.Draw;
         PluginInterface.UiBuilder.OpenConfigUi -= ToggleMainUi;
