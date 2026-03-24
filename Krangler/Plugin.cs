@@ -443,6 +443,8 @@ public sealed class Plugin : IDalamudPlugin
         var nameMap = new Dictionary<string, string>();
         // Log.Information($"[Krangler] PartyList.Length = {PartyList.Length}");
         
+        // Check if we have party members
+        var hasPartyMembers = false;
         for (int i = 0; i < PartyList.Length; i++)
         {
             var member = PartyList[i];
@@ -458,8 +460,20 @@ public sealed class Plugin : IDalamudPlugin
                 continue;
             }
             
+            hasPartyMembers = true;
             nameMap[orig] = KrangleService.KrangleName(orig);
             Log.Information($"[Krangler] PartyList member {i}: '{orig}' -> '{nameMap[orig]}'");
+        }
+
+        // SOLO PARTY: If no party members, try to krangle the player's own name
+        if (!hasPartyMembers && ObjectTable.LocalPlayer != null)
+        {
+            var playerName = ObjectTable.LocalPlayer.Name.ToString();
+            if (!string.IsNullOrEmpty(playerName))
+            {
+                nameMap[playerName] = KrangleService.KrangleName(playerName);
+                Log.Information($"[Krangler] Solo party: '{playerName}' -> '{nameMap[playerName]}'");
+            }
         }
 
         if (nameMap.Count == 0)
