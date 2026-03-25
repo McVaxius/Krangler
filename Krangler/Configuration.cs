@@ -13,6 +13,7 @@ public class Configuration : IPluginConfiguration
 
     // Feature toggles (all enabled by default)
     public bool KrangleNames { get; set; } = true;
+    public bool KrangleChat { get; set; } = true;
     public bool KrangleGenders { get; set; } = true;
     public bool KrangleRaces { get; set; } = true;
     public bool KrangleAppearance { get; set; } = true;

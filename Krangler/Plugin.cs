@@ -106,6 +106,9 @@ public sealed class Plugin : IDalamudPlugin
         // Framework update for DTR bar + appearance + party list
         Framework.Update += OnFrameworkUpdate;
 
+        // Territory change handler for re-applying krangling
+        ClientState.TerritoryChanged += OnTerritoryChanged;
+
         wasEnabled = Configuration.Enabled;
 
         Log.Information("===Krangler loaded===");
@@ -196,12 +199,30 @@ public sealed class Plugin : IDalamudPlugin
         UpdateDtrBar();
     }
 
+    // ─── Territory Change Handler ───────────────────────────────────────
+
+    private void OnTerritoryChanged(ushort territory)
+    {
+        if (!Configuration.Enabled) return;
+        
+        Log.Information($"[Krangler] Territory changed to {territory}, re-applying krangle mode");
+        
+        // Clear applied tracking so players get re-krangled in new territory
+        AppearanceService.Reset();
+        
+        // Force immediate scan to re-apply krangling
+        lastAppearanceScan = DateTime.MinValue;
+        lastPartyListScan = DateTime.MinValue;
+        hasLoggedAppearanceScan = false;
+        hasLoggedPartyList = false;
+    }
+
     // ─── Chat Message Garbling ───────────────────────────────────────
 
     private void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
     {
         // Only process if krangling is enabled and chat garbling is enabled
-        if (!Configuration.Enabled || !Configuration.KrangleNames)
+        if (!Configuration.Enabled || !Configuration.KrangleChat)
             return;
 
         // Process ALL chat channels now (no filtering)
@@ -1050,6 +1071,7 @@ public sealed class Plugin : IDalamudPlugin
     {
         Framework.Update -= OnFrameworkUpdate;
         NamePlateGui.OnNamePlateUpdate -= OnNamePlateUpdate;
+        ClientState.TerritoryChanged -= OnTerritoryChanged;
         try 
         {
             ChatGui.ChatMessage -= OnChatMessage;

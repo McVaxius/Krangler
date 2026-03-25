@@ -64,7 +64,8 @@ public class AppearanceService
         {
             { 3, (byte)rng.Next(0, 101) },    // Height: 0-100
             { 5, (byte)rng.Next(1, 9) },       // Face: 1-8
-            { 7, (byte)rng.Next(1, 50) },      // Hairstyle: 1-49 (safe range)
+            { 6, (byte)rng.Next(1, 50) },      // Hairstyle: 1-49 (FIXED: was index 7)
+            { 7, (byte)rng.Next(0, 8) },      // Highlights: 0-7 (NEW)
             { 9, (byte)rng.Next(1, 192) },     // Skin Tone: varies
             { 10, (byte)rng.Next(1, 192) },    // Right Eye Color
             { 11, (byte)rng.Next(1, 192) },    // Hair Color

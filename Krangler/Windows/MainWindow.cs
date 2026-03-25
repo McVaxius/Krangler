@@ -138,6 +138,18 @@ public class MainWindow : Window, IDisposable
             ImGui.SetTooltip("Randomize all visible player names and party list names.\nSame player always gets the same fake name per session.");
         }
 
+        // Krangle Chat
+        var krangleChat = config.KrangleChat;
+        if (ImGui.Checkbox("Krangle Chat", ref krangleChat))
+        {
+            config.KrangleChat = krangleChat;
+            config.Save();
+        }
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip("Garble all chat text for screenshot privacy.\nAffects ALL chat channels independently of name krangling.");
+        }
+
         // Krangle Genders
         var krangleGenders = config.KrangleGenders;
         if (ImGui.Checkbox("Krangle Genders", ref krangleGenders))
