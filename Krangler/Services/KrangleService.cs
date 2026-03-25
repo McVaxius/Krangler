@@ -79,12 +79,17 @@ public static class KrangleService
         var key = $"fc:{originalTag}";
         if (Cache.TryGetValue(key, out var cached)) return cached;
 
-        var hash = GetStableHash(originalTag);
-        var rng = new Random(hash);
-        var word = FCWords[rng.Next(FCWords.Length)];
+        // Extract special characters from start and end
+        var start = ExtractLeadingSpecialChars(originalTag);
+        var end = ExtractTrailingSpecialChars(originalTag);
+        var middle = originalTag[start.Length..^end.Length];
 
-        Cache[key] = word;
-        return word;
+        // Krangle only the middle content
+        var krangledMiddle = KrangleMiddleContent(middle, FCWords);
+        var result = start + krangledMiddle + end;
+
+        Cache[key] = result;
+        return result;
     }
 
     public static string KrangleTitle(string originalTitle)
@@ -93,12 +98,17 @@ public static class KrangleService
         var key = $"title:{originalTitle}";
         if (Cache.TryGetValue(key, out var cached)) return cached;
 
-        var hash = GetStableHash(originalTitle);
-        var rng = new Random(hash);
-        var word = TitleWords[rng.Next(TitleWords.Length)];
+        // Extract special characters from start and end
+        var start = ExtractLeadingSpecialChars(originalTitle);
+        var end = ExtractTrailingSpecialChars(originalTitle);
+        var middle = originalTitle[start.Length..^end.Length];
 
-        Cache[key] = word;
-        return word;
+        // Krangle only the middle content
+        var krangledMiddle = KrangleMiddleContent(middle, TitleWords);
+        var result = start + krangledMiddle + end;
+
+        Cache[key] = result;
+        return result;
     }
 
     public static string KrangleServer(string serverName)
@@ -113,6 +123,34 @@ public static class KrangleService
         if (word.Length > 25) word = word[..25];
 
         Cache[key] = word;
+        return word;
+    }
+
+    // Helper methods to preserve special characters in FC tags and titles
+    private static string ExtractLeadingSpecialChars(string input)
+    {
+        var end = 0;
+        while (end < input.Length && !char.IsLetterOrDigit(input[end]))
+            end++;
+        return input[..end];
+    }
+
+    private static string ExtractTrailingSpecialChars(string input)
+    {
+        var start = input.Length;
+        while (start > 0 && !char.IsLetterOrDigit(input[start - 1]))
+            start--;
+        return input[start..];
+    }
+
+    private static string KrangleMiddleContent(string middle, string[] wordPool)
+    {
+        if (string.IsNullOrWhiteSpace(middle)) return middle;
+        
+        var hash = GetStableHash(middle);
+        var rng = new Random(hash);
+        var word = wordPool[rng.Next(wordPool.Length)];
+        
         return word;
     }
 
