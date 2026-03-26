@@ -494,6 +494,11 @@ public sealed class Plugin : IDalamudPlugin
 
     private void EnsureSuperKrangleSlotSelections()
     {
+        while (Configuration.SuperKranglePartySlotSelections.Count > 8)
+        {
+            Configuration.SuperKranglePartySlotSelections.RemoveAt(Configuration.SuperKranglePartySlotSelections.Count - 1);
+        }
+
         while (Configuration.SuperKranglePartySlotSelections.Count < 8)
         {
             Configuration.SuperKranglePartySlotSelections.Add("Use Global");
@@ -1004,8 +1009,17 @@ public sealed class Plugin : IDalamudPlugin
             return false;
 
         var c = preset.Customize;
+        byte? targetRace = null;
+        if (c.Clan.Apply && TryGetRaceForClan(c.Clan.Value, out var clanRace))
+        {
+            targetRace = clanRace;
+        }
+        else if (c.Race.Apply)
+        {
+            targetRace = c.Race.Value;
+        }
 
-        if (c.Race.Apply) customizePtr[0] = c.Race.Value;
+        if (targetRace.HasValue) customizePtr[0] = targetRace.Value;
         if (c.Gender.Apply) customizePtr[1] = c.Gender.Value;
         if (c.BodyType.Apply) customizePtr[2] = c.BodyType.Value;
         if (c.Height.Apply) customizePtr[3] = c.Height.Value;
@@ -1068,6 +1082,24 @@ public sealed class Plugin : IDalamudPlugin
     }
 
     // ─── Super Krangle Master 4000 Methods ─────────────────────────────────────
+
+    private static bool TryGetRaceForClan(byte clan, out byte race)
+    {
+        race = clan switch
+        {
+            1 or 2 => 1,
+            3 or 4 => 2,
+            5 or 6 => 3,
+            7 or 8 => 4,
+            9 or 10 => 5,
+            11 or 12 => 6,
+            13 or 14 => 7,
+            15 or 16 => 8,
+            _ => 0,
+        };
+
+        return race != 0;
+    }
 
     /// <summary>
     /// Get special NPC appearance data for Super Krangle Master 4000 mode.

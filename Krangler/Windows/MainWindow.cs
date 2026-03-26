@@ -26,7 +26,10 @@ public class MainWindow : Window, IDisposable
     {
         var config = plugin.Configuration;
         var presetNames = plugin.GlamourerPresetService.GetPresetNames();
-        EnsureSlotSelections(config);
+        if (EnsureSlotSelections(config))
+        {
+            config.Save();
+        }
 
         var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0.0";
         ImGui.Text($"Krangler v{version}");
@@ -444,12 +447,23 @@ public class MainWindow : Window, IDisposable
         return true;
     }
 
-    private static void EnsureSlotSelections(Configuration config)
+    private static bool EnsureSlotSelections(Configuration config)
     {
+        var changed = false;
+
+        while (config.SuperKranglePartySlotSelections.Count > 8)
+        {
+            config.SuperKranglePartySlotSelections.RemoveAt(config.SuperKranglePartySlotSelections.Count - 1);
+            changed = true;
+        }
+
         while (config.SuperKranglePartySlotSelections.Count < 8)
         {
             config.SuperKranglePartySlotSelections.Add("Use Global");
+            changed = true;
         }
+
+        return changed;
     }
 
     private static string GetPartySlotLabel(int index)
