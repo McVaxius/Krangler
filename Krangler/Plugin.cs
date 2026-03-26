@@ -44,6 +44,7 @@ public sealed class Plugin : IDalamudPlugin
     public Configuration Configuration { get; init; }
     public AppearanceService AppearanceService { get; init; }
     public GlamourerPresetService GlamourerPresetService { get; init; }
+    public GlamourerIpcService GlamourerIpcService { get; init; }
 
     public readonly WindowSystem WindowSystem = new("Krangler");
     private MainWindow MainWindow { get; init; }
@@ -69,6 +70,7 @@ public sealed class Plugin : IDalamudPlugin
 
         AppearanceService = new AppearanceService(Log, ObjectTable, Configuration);
         GlamourerPresetService = new GlamourerPresetService(Log, PluginInterface);
+        GlamourerIpcService = new GlamourerIpcService(Log, PluginInterface);
 
         MainWindow = new MainWindow(this);
         WindowSystem.AddWindow(MainWindow);
@@ -207,9 +209,8 @@ public sealed class Plugin : IDalamudPlugin
         if (!Configuration.Enabled) return;
         
         Log.Information($"[Krangler] Territory changed to {territory}, re-applying krangle mode");
-        
-        // Clear applied tracking so players get re-krangled in new territory
-        AppearanceService.Reset();
+
+        RevertAllAppearances();
         
         // Force immediate scan to re-apply krangling
         lastAppearanceScan = DateTime.MinValue;
@@ -298,18 +299,14 @@ public sealed class Plugin : IDalamudPlugin
                 var character = (CharacterStruct*)obj.Address;
                 if (character == null) continue;
 
-                // Save original customize data for revert
                 var customizePtr = (byte*)&character->DrawData.CustomizeData;
-                var originalBytes = new byte[26];
-                for (int j = 0; j < 26; j++)
-                    originalBytes[j] = customizePtr[j];
-                originalCustomizeData[obj.EntityId] = originalBytes;
 
                 // Generate krangled appearance
                 var (race, tribe, gender) = Configuration.SuperKrangleMaster4000
                     ? GetSuperKrangleAppearance(name)
                     : AppearanceService.GetRandomRaceGender(name);
                 bool changed = false;
+                var usedGlamourerIpc = false;
 
                 if (Configuration.SuperKrangleMaster4000)
                 {
@@ -318,25 +315,37 @@ public sealed class Plugin : IDalamudPlugin
                     var preset = GlamourerPresetService.ResolvePresetSelection(name, selection);
                     if (preset != null)
                     {
-                        var appliedAppearance = ApplyGlamourerPreset(character, preset, customizePtr);
-                        var appliedEquipment = ApplyGlamourerEquipment(character, preset);
-                        changed = appliedAppearance || appliedEquipment > 0;
-
-                        if (appliedAppearance)
+                        if (GlamourerIpcService.TryApplyDesign(name, preset))
                         {
-                            race = customizePtr[0];
-                            tribe = customizePtr[4];
-                            gender = customizePtr[1];
+                            changed = true;
+                            usedGlamourerIpc = true;
+                        }
+                        else
+                        {
+                            SaveOriginalCustomizeIfNeeded(obj.EntityId, customizePtr);
+                            var appliedAppearance = ApplyGlamourerPreset(character, preset, customizePtr);
+                            var appliedEquipment = ApplyGlamourerEquipment(character, preset);
+                            changed = appliedAppearance || appliedEquipment > 0;
+
+                            if (appliedAppearance)
+                            {
+                                race = customizePtr[0];
+                                tribe = customizePtr[4];
+                                gender = customizePtr[1];
+                            }
                         }
 
                         if (!hasLoggedAppearanceScan && changed)
-                            Log.Information($"[Krangler] Applied Super Krangle preset '{preset.Name}' to '{name}'");
+                            Log.Information(usedGlamourerIpc
+                                ? $"[Krangler] Applied Super Krangle preset '{preset.Name}' to '{name}' via Glamourer IPC"
+                                : $"[Krangler] Applied Super Krangle preset '{preset.Name}' to '{name}' via local fallback");
                     }
                     else
                     {
                         // Fallback to hardcoded NPCs if no presets loaded
                         if (Configuration.SuperKrangleApplyAppearance)
                         {
+                            SaveOriginalCustomizeIfNeeded(obj.EntityId, customizePtr);
                             var superAppearance = GetSuperKrangleFullAppearance(name);
                             foreach (var (index, value) in superAppearance)
                             {
@@ -352,6 +361,8 @@ public sealed class Plugin : IDalamudPlugin
                 }
                 else
                 {
+                    SaveOriginalCustomizeIfNeeded(obj.EntityId, customizePtr);
+
                     // Normal krangling options
                     if (Configuration.KrangleRaces)
                     {
@@ -380,15 +391,20 @@ public sealed class Plugin : IDalamudPlugin
 
                 if (changed)
                 {
-                    // Queue a safe staggered redraw so packed customize changes refresh reliably.
-                    redrawQueue.Enqueue(obj.Address);
+                    if (!usedGlamourerIpc)
+                    {
+                        // Queue a safe staggered redraw so packed customize changes refresh reliably.
+                        redrawQueue.Enqueue(obj.Address);
+                    }
 
                     AppearanceService.MarkApplied(obj.EntityId);
                     appliedCount++;
                     processedThisCycle++;
 
                     if (!hasLoggedAppearanceScan)
-                        Log.Information($"[Krangler] Applied appearance to '{name}': race={race}, tribe={tribe}, gender={gender}");
+                        Log.Information(usedGlamourerIpc
+                            ? $"[Krangler] Applied appearance to '{name}' via Glamourer IPC"
+                            : $"[Krangler] Applied appearance to '{name}': race={race}, tribe={tribe}, gender={gender}");
                 }
             }
             catch (Exception ex)
@@ -507,6 +523,8 @@ public sealed class Plugin : IDalamudPlugin
 
     private unsafe void RevertAllAppearances()
     {
+        GlamourerIpcService.RevertAppliedDesigns();
+
         var reverted = 0;
         foreach (var obj in ObjectTable)
         {
@@ -532,6 +550,18 @@ public sealed class Plugin : IDalamudPlugin
 
         originalCustomizeData.Clear();
         AppearanceService.Reset();
+    }
+
+    private unsafe void SaveOriginalCustomizeIfNeeded(uint entityId, byte* customizePtr)
+    {
+        if (originalCustomizeData.ContainsKey(entityId))
+            return;
+
+        var originalBytes = new byte[26];
+        for (var j = 0; j < 26; j++)
+            originalBytes[j] = customizePtr[j];
+
+        originalCustomizeData[entityId] = originalBytes;
     }
 
     // ─── Party List Krangling ───────────────────────────────────────────────

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Numerics;
 using System.Reflection;
 using Dalamud.Bindings.ImGui;
@@ -11,6 +12,7 @@ namespace Krangler.Windows;
 public class MainWindow : Window, IDisposable
 {
     private readonly Plugin plugin;
+    private string presetSearch = string.Empty;
 
     public MainWindow(Plugin plugin)
         : base("Krangler###KranglerMain")
@@ -410,7 +412,7 @@ public class MainWindow : Window, IDisposable
         }
     }
 
-    private static bool DrawPresetSelectionCombo(string label, ref string value, IReadOnlyList<string> presetNames, bool includeUseGlobal)
+    private bool DrawPresetSelectionCombo(string label, ref string value, IReadOnlyList<string> presetNames, bool includeUseGlobal)
     {
         var preview = string.IsNullOrWhiteSpace(value)
             ? (includeUseGlobal ? "Use Global" : "Random")
@@ -419,6 +421,10 @@ public class MainWindow : Window, IDisposable
 
         if (ImGui.BeginCombo(label, preview))
         {
+            ImGui.SetNextItemWidth(-1f);
+            ImGui.InputTextWithHint($"##PresetSearch_{label}", "Search presets...", ref presetSearch, 128);
+            ImGui.Separator();
+
             if (includeUseGlobal)
             {
                 changed |= DrawSelectionOption("Use Global", ref value);
@@ -426,10 +432,18 @@ public class MainWindow : Window, IDisposable
 
             changed |= DrawSelectionOption("Random", ref value);
 
-            foreach (var presetName in presetNames)
+            var filteredPresetNames = string.IsNullOrWhiteSpace(presetSearch)
+                ? presetNames
+                : presetNames.Where(presetName =>
+                    presetName.Contains(presetSearch, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            foreach (var presetName in filteredPresetNames)
             {
                 changed |= DrawSelectionOption(presetName, ref value);
             }
+
+            if (!filteredPresetNames.Any())
+                ImGui.TextDisabled("No presets match the current search.");
 
             ImGui.EndCombo();
         }
