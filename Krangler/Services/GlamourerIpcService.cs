@@ -4,6 +4,7 @@ using System.Linq;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Krangler.Models;
+using Newtonsoft.Json.Linq;
 
 namespace Krangler.Services;
 
@@ -33,6 +34,9 @@ public sealed class GlamourerIpcService
         if (string.IsNullOrWhiteSpace(playerName) || preset == null || !IsAvailable())
             return false;
 
+        if (TryApplyPresetState(playerName, preset))
+            return true;
+
         if (!TryResolveDesignId(preset, out var designId))
             return false;
 
@@ -52,6 +56,32 @@ public sealed class GlamourerIpcService
         catch (Exception ex)
         {
             log.Warning($"[Krangler] Glamourer ApplyDesignName failed for '{playerName}' / '{preset.Name}': {ex.Message}");
+            return false;
+        }
+    }
+
+    private bool TryApplyPresetState(string playerName, GlamourerPreset preset)
+    {
+        if (string.IsNullOrWhiteSpace(preset.RawJson))
+            return false;
+
+        try
+        {
+            var apply = pluginInterface.GetIpcSubscriber<object, string, uint, ulong, int>("Glamourer.ApplyStateName");
+            var state = JObject.Parse(preset.RawJson);
+            var result = apply.InvokeFunc(state, playerName, KranglerKey, ApplyFlags);
+            if (!IsSuccess(result))
+            {
+                log.Warning($"[Krangler] Glamourer ApplyStateName failed for '{playerName}' / '{preset.Name}' with code {result}.");
+                return false;
+            }
+
+            appliedPlayerNames.Add(playerName);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            log.Warning($"[Krangler] Glamourer ApplyStateName failed for '{playerName}' / '{preset.Name}': {ex.Message}");
             return false;
         }
     }

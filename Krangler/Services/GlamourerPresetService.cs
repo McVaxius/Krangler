@@ -55,6 +55,7 @@ public class GlamourerPresetService
                 if (preset != null && !string.IsNullOrEmpty(preset.Name))
                 {
                     preset.Name = preset.Name.Trim();
+                    preset.RawJson = json;
                     presets[preset.Name] = preset;
                     loadedCount++;
                 }

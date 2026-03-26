@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Krangler.Models;
 
@@ -10,6 +11,9 @@ public class GlamourerPreset
     public string Description { get; set; } = "";
     public Dictionary<string, EquipmentSlotData> Equipment { get; set; } = new();
     public CustomizeData Customize { get; set; } = new();
+
+    [JsonIgnore]
+    public string RawJson { get; set; } = "";
 }
 
 public class EquipmentSlotData
