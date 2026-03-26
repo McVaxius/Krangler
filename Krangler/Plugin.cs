@@ -16,10 +16,10 @@ using static FFXIVClientStructs.FFXIV.Client.UI.RaptureAtkUnitManager;
 using Krangler.Services;
 using Krangler.Windows;
 using Krangler.Models;
+using Lumina.Excel.Sheets;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using CharacterStruct = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
 using GameObjectStruct = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
-using EquipSlot = FFXIVClientStructs.FFXIV.Client.Game.Character.DrawDataContainer.EquipmentSlot;
 
 namespace Krangler;
 
@@ -36,6 +36,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static INamePlateGui NamePlateGui { get; private set; } = null!;
     [PluginService] internal static IPartyList PartyList { get; private set; } = null!;
     [PluginService] internal static IChatGui ChatGui { get; private set; } = null!;
+    [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
     
     private const string CommandName = "/krangler";
     private const string AliasCommandName = "/kr";
@@ -60,7 +61,7 @@ public sealed class Plugin : IDalamudPlugin
     // Staggered redraw queue — one character per N frames to avoid crashing the game
     private readonly Queue<nint> redrawQueue = new();
     private int redrawCooldownFrames = 0;
-    private const int RedrawFrameDelay = 2; // frames between each redraw
+    private int currentVisiblePlayerCount;
 
     public Plugin()
     {
@@ -272,6 +273,8 @@ public sealed class Plugin : IDalamudPlugin
     {
         var playerCount = 0;
         var appliedCount = 0;
+        var processedThisCycle = 0;
+        var maxPlayersPerCycle = Math.Max(1, Configuration.SuperKrangleMaxPlayersPerCycle);
 
         foreach (var obj in ObjectTable)
         {
@@ -287,6 +290,9 @@ public sealed class Plugin : IDalamudPlugin
             if (AppearanceService.IsApplied(obj.EntityId))
                 continue;
 
+            if (processedThisCycle >= maxPlayersPerCycle)
+                break;
+
             try
             {
                 var character = (CharacterStruct*)obj.Address;
@@ -300,33 +306,51 @@ public sealed class Plugin : IDalamudPlugin
                 originalCustomizeData[obj.EntityId] = originalBytes;
 
                 // Generate krangled appearance
-                var (race, tribe, gender) = Configuration.SuperKrangleMaster4000 
-                    ? GetSuperKrangleAppearance(name) 
+                var (race, tribe, gender) = Configuration.SuperKrangleMaster4000
+                    ? GetSuperKrangleAppearance(name)
                     : AppearanceService.GetRandomRaceGender(name);
                 bool changed = false;
 
                 if (Configuration.SuperKrangleMaster4000)
                 {
-                    // Super Krangle: Use Glamourer presets for full appearance + equipment
-                    var preset = GlamourerPresetService.GetRandomPreset(name);
+                    // Super Krangle: Use resolved preset selection for appearance + targeted equipment overrides.
+                    var selection = ResolveSuperKrangleSelection(name);
+                    var preset = GlamourerPresetService.ResolvePresetSelection(name, selection);
                     if (preset != null)
                     {
-                        ApplyGlamourerPreset(character, preset, customizePtr);
-                        changed = true;
-                        
-                        if (!hasLoggedAppearanceScan)
-                            Log.Information($"[Krangler] Applied Glamourer preset '{preset.Name}' to '{name}'");
+                        var gameObj = (GameObjectStruct*)obj.Address;
+                        gameObj->DisableDraw();
+                        var appliedAppearance = ApplyGlamourerPreset(character, preset, customizePtr);
+                        var appliedEquipment = ApplyGlamourerEquipment(character, preset);
+                        gameObj->EnableDraw();
+                        changed = appliedAppearance || appliedEquipment > 0;
+
+                        if (appliedAppearance)
+                        {
+                            race = customizePtr[0];
+                            tribe = customizePtr[4];
+                            gender = customizePtr[1];
+                        }
+
+                        if (!hasLoggedAppearanceScan && changed)
+                            Log.Information($"[Krangler] Applied Super Krangle preset '{preset.Name}' to '{name}'");
                     }
                     else
                     {
                         // Fallback to hardcoded NPCs if no presets loaded
-                        var superAppearance = GetSuperKrangleFullAppearance(name);
-                        foreach (var (index, value) in superAppearance)
+                        if (Configuration.SuperKrangleApplyAppearance)
                         {
-                            if (index < 26)
-                                customizePtr[index] = value;
+                            var superAppearance = GetSuperKrangleFullAppearance(name);
+                            foreach (var (index, value) in superAppearance)
+                            {
+                                if (index < 26)
+                                    customizePtr[index] = value;
+                            }
+                            race = customizePtr[0];
+                            tribe = customizePtr[4];
+                            gender = customizePtr[1];
+                            changed = true;
                         }
-                        changed = true;
                     }
                 }
                 else
@@ -359,11 +383,15 @@ public sealed class Plugin : IDalamudPlugin
 
                 if (changed)
                 {
-                    // Queue a safe staggered redraw (one per N frames)
-                    redrawQueue.Enqueue(obj.Address);
+                    if (!Configuration.SuperKrangleMaster4000)
+                    {
+                        // Queue a safe staggered redraw for normal krangling only.
+                        redrawQueue.Enqueue(obj.Address);
+                    }
 
                     AppearanceService.MarkApplied(obj.EntityId);
                     appliedCount++;
+                    processedThisCycle++;
 
                     if (!hasLoggedAppearanceScan)
                         Log.Information($"[Krangler] Applied appearance to '{name}': race={race}, tribe={tribe}, gender={gender}");
@@ -378,8 +406,13 @@ public sealed class Plugin : IDalamudPlugin
 
         if (!hasLoggedAppearanceScan && playerCount > 0)
         {
-            Log.Information($"[Krangler] Appearance scan: {playerCount} players, {appliedCount} modified (direct memory)");
+            currentVisiblePlayerCount = playerCount;
+            Log.Information($"[Krangler] Appearance scan: {playerCount} visible players, {appliedCount} modified, {processedThisCycle}/{maxPlayersPerCycle} processed this cycle");
             hasLoggedAppearanceScan = true;
+        }
+        else
+        {
+            currentVisiblePlayerCount = playerCount;
         }
     }
 
@@ -407,7 +440,70 @@ public sealed class Plugin : IDalamudPlugin
             Log.Warning($"[Krangler] Safe redraw failed: {ex.Message}");
         }
 
-        redrawCooldownFrames = RedrawFrameDelay;
+        redrawCooldownFrames = CalculateRedrawDelayFrames();
+    }
+
+    private int CalculateRedrawDelayFrames()
+    {
+        var baseDelay = Math.Max(1, Configuration.SuperKrangleBaseRedrawDelayFrames);
+        var scaledDelay = baseDelay + Math.Min(18, (currentVisiblePlayerCount / 10) * 2);
+        return Math.Clamp(scaledDelay, 1, 20);
+    }
+
+    private string ResolveSuperKrangleSelection(string playerName)
+    {
+        if (DateTime.UtcNow.Month == 4 &&
+            DateTime.UtcNow.Day == 1 &&
+            GlamourerPresetService.GetPresetByName("Wuk Lamat") != null)
+        {
+            return "Wuk Lamat";
+        }
+
+        var slotSelection = GetPartySlotSelection(playerName);
+        if (!string.IsNullOrWhiteSpace(slotSelection) &&
+            !string.Equals(slotSelection, "Use Global", StringComparison.OrdinalIgnoreCase))
+        {
+            return slotSelection;
+        }
+
+        return string.IsNullOrWhiteSpace(Configuration.SuperKrangleSelection)
+            ? "Random"
+            : Configuration.SuperKrangleSelection;
+    }
+
+    private string? GetPartySlotSelection(string playerName)
+    {
+        EnsureSuperKrangleSlotSelections();
+
+        var localPlayerName = ObjectTable.LocalPlayer?.Name.ToString();
+        if (!string.IsNullOrEmpty(localPlayerName) &&
+            string.Equals(localPlayerName, playerName, StringComparison.OrdinalIgnoreCase))
+        {
+            return Configuration.SuperKranglePartySlotSelections[0];
+        }
+
+        for (var i = 0; i < PartyList.Length && i < Configuration.SuperKranglePartySlotSelections.Count; i++)
+        {
+            var member = PartyList[i];
+            if (member == null)
+                continue;
+
+            var memberName = member.Name.ToString();
+            if (string.Equals(memberName, playerName, StringComparison.OrdinalIgnoreCase))
+            {
+                return Configuration.SuperKranglePartySlotSelections[i];
+            }
+        }
+
+        return null;
+    }
+
+    private void EnsureSuperKrangleSlotSelections()
+    {
+        while (Configuration.SuperKranglePartySlotSelections.Count < 8)
+        {
+            Configuration.SuperKranglePartySlotSelections.Add("Use Global");
+        }
     }
 
     private unsafe void RevertAllAppearances()
@@ -901,16 +997,18 @@ public sealed class Plugin : IDalamudPlugin
     // ─── Glamourer Preset Application ─────────────────────────────────────
 
     /// <summary>
-    /// Apply a Glamourer preset to a character, including appearance and equipment (except weapons).
+    /// Apply the appearance portion of a Glamourer preset to a character.
     /// DrawDataContainer layout (from FFXIVClientStructs):
     ///   +0x010: WeaponData[3]
     ///   +0x1D0: EquipmentModelIds[10] (8 bytes each)
     ///   +0x220: CustomizeData (26 bytes)
-    /// Equipment slots: Head=0, Body=1, Hands=2, Legs=3, Feet=4, Ears=5, Neck=6, Wrists=7, RFinger=8, LFinger=9
     /// </summary>
-    private unsafe void ApplyGlamourerPreset(CharacterStruct* character, GlamourerPreset preset, byte* customizePtr)
+    private unsafe bool ApplyGlamourerPreset(CharacterStruct* character, GlamourerPreset preset, byte* customizePtr)
     {
         // ── Apply customize data (26 bytes) ──
+        if (character == null || customizePtr == null || !Configuration.SuperKrangleApplyAppearance)
+            return false;
+
         var c = preset.Customize;
 
         if (c.Race.Apply) customizePtr[0] = c.Race.Value;
@@ -959,8 +1057,7 @@ public sealed class Plugin : IDalamudPlugin
         // Writing the packed ItemId directly corrupts the model data and crashes on redraw.
         // TODO: Decode Glamourer ItemId → extract (SetId, Variant, Stain) → write correct EquipmentModelId.
         // Alternative: Use LoadEquipment() with properly decoded model IDs.
-        if (!hasLoggedAppearanceScan && preset.Equipment.Count > 0)
-            Log.Information($"[Krangler] Applied appearance from preset '{preset.Name}' (equipment swap pending decode implementation)");
+        return true;
     }
 
     // ─── Super Krangle Master 4000 Methods ─────────────────────────────────────
@@ -969,6 +1066,112 @@ public sealed class Plugin : IDalamudPlugin
     /// Get special NPC appearance data for Super Krangle Master 4000 mode.
     /// Returns (race, tribe, gender) for iconic NPCs like Gaius, Nero, Louisoix, etc.
     /// </summary>
+    private unsafe int ApplyGlamourerEquipment(CharacterStruct* character, GlamourerPreset preset)
+    {
+        if (character == null || preset.Equipment.Count == 0)
+            return 0;
+
+        var appliedCount = 0;
+        fixed (EquipmentModelId* equipmentModelPtr = &character->DrawData.EquipmentModelIds[0])
+        {
+            var equipmentPtr = (byte*)equipmentModelPtr;
+            foreach (var (slotName, slotData) in preset.Equipment)
+            {
+                if (!slotData.Apply || !ShouldApplyEquipmentSlot(slotName))
+                    continue;
+
+                var slotIndex = GetEquipmentSlotIndex(slotName);
+                if (!slotIndex.HasValue)
+                    continue;
+
+                if (!TryDecodeGlamourerItemId(slotData.ItemId, out var setId, out var variant, out var isEmpty))
+                {
+                    if (!hasLoggedAppearanceScan)
+                        Log.Warning($"[Krangler] Could not decode preset slot '{slotName}' item id {slotData.ItemId}");
+                    continue;
+                }
+
+                var byteOffset = slotIndex.Value * 8;
+                *(ushort*)(equipmentPtr + byteOffset) = setId;
+                *(equipmentPtr + byteOffset + 2) = variant;
+
+                if (isEmpty)
+                {
+                    *(equipmentPtr + byteOffset + 3) = 0;
+                    *(equipmentPtr + byteOffset + 4) = 0;
+                }
+                else if (slotData.ApplyStain)
+                {
+                    *(equipmentPtr + byteOffset + 3) = (byte)Math.Min(slotData.Stain, byte.MaxValue);
+                    *(equipmentPtr + byteOffset + 4) = (byte)Math.Min(slotData.Stain2, byte.MaxValue);
+                }
+
+                appliedCount++;
+            }
+        }
+
+        if (!hasLoggedAppearanceScan && appliedCount > 0)
+            Log.Information($"[Krangler] Applied {appliedCount} Super Krangle equipment slot(s) from preset '{preset.Name}'");
+
+        return appliedCount;
+    }
+
+    private bool ShouldApplyEquipmentSlot(string slotName)
+        => slotName.ToLowerInvariant() switch
+        {
+            "head" => Configuration.SuperKrangleApplyHead,
+            "body" => Configuration.SuperKrangleApplyBody,
+            "hands" => Configuration.SuperKrangleApplyHands,
+            "legs" => Configuration.SuperKrangleApplyLegs,
+            "feet" => Configuration.SuperKrangleApplyFeet,
+            _ => false,
+        };
+
+    private static int? GetEquipmentSlotIndex(string slotName)
+        => slotName.ToLowerInvariant() switch
+        {
+            "head" => 0,
+            "body" => 1,
+            "hands" => 2,
+            "legs" => 3,
+            "feet" => 4,
+            _ => null,
+        };
+
+    private bool TryDecodeGlamourerItemId(ulong itemId, out ushort setId, out byte variant, out bool isEmpty)
+    {
+        setId = 0;
+        variant = 0;
+        isEmpty = false;
+
+        if (itemId == 0)
+            return false;
+
+        if (itemId > uint.MaxValue)
+        {
+            setId = (ushort)((itemId >> 32) & 0xFFFF);
+            variant = (byte)((itemId >> 48) & 0xFF);
+            return true;
+        }
+
+        if (itemId >= (ulong)(uint.MaxValue - 512))
+        {
+            isEmpty = true;
+            return true;
+        }
+
+        var itemSheet = DataManager.GetExcelSheet<Item>();
+        if (itemSheet != null && itemSheet.TryGetRow((uint)itemId, out var item))
+        {
+            var modelMain = (ulong)item.ModelMain;
+            setId = (ushort)(modelMain & 0xFFFF);
+            variant = (byte)((modelMain >> 32) & 0xFF);
+            return setId != 0;
+        }
+
+        return false;
+    }
+
     private static (byte race, byte tribe, byte gender) GetSuperKrangleAppearance(string playerName)
     {
         var hash = GetStableHash(playerName + "_super");

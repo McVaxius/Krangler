@@ -1,9 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Numerics;
 using System.Reflection;
-using Dalamud.Interface.Windowing;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface.Windowing;
 
 namespace Krangler.Windows;
 
@@ -17,15 +18,16 @@ public class MainWindow : Window, IDisposable
         this.plugin = plugin;
 
         Flags = ImGuiWindowFlags.NoCollapse;
-        Size = new Vector2(400, 420);
+        Size = new Vector2(520, 760);
         SizeCondition = ImGuiCond.FirstUseEver;
     }
 
     public override void Draw()
     {
         var config = plugin.Configuration;
+        var presetNames = plugin.GlamourerPresetService.GetPresetNames();
+        EnsureSlotSelections(config);
 
-        // Version header + Ko-fi button
         var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0.0";
         ImGui.Text($"Krangler v{version}");
         ImGui.SameLine(ImGui.GetWindowWidth() - 120);
@@ -44,26 +46,20 @@ public class MainWindow : Window, IDisposable
 
         ImGui.Separator();
 
-        // Master enable/disable
         var enabled = config.Enabled;
         if (ImGui.Checkbox("Enable Krangler", ref enabled))
         {
             config.Enabled = enabled;
             if (!enabled)
-            {
-                // Clear caches when disabling
                 Services.KrangleService.ClearCache();
-            }
             config.Save();
         }
         if (ImGui.IsItemHovered())
         {
-            ImGui.SetTooltip("Master toggle — enables/disables all krangling");
+            ImGui.SetTooltip("Master toggle - enables or disables all krangling.");
         }
 
         ImGui.Spacing();
-
-        // DTR Bar section
         ImGui.Text("DTR Bar");
         ImGui.Separator();
 
@@ -75,7 +71,7 @@ public class MainWindow : Window, IDisposable
         }
         if (ImGui.IsItemHovered())
         {
-            ImGui.SetTooltip("Show Krangler status in the server info bar. Click the DTR entry to toggle enable/disable.");
+            ImGui.SetTooltip("Show Krangler status in the server info bar. Click the DTR entry to toggle enable or disable.");
         }
 
         if (config.DtrBarEnabled)
@@ -90,15 +86,17 @@ public class MainWindow : Window, IDisposable
 
             ImGui.Text("DTR Icons (max 3 characters)");
             ImGui.SameLine();
-            HelpMarker("Customize the glyphs used for enabled/disabled icon modes.");
+            HelpMarker("Customize the glyphs used for enabled and disabled icon modes.");
             ImGui.SameLine();
             if (ImGui.SmallButton("Copy Icon Guide Link"))
             {
                 ImGui.SetClipboardText("https://na.finalfantasyxiv.com/lodestone/character/22423564/blog/4393835");
-                Plugin.Log.Info("Copied icon guide link to clipboard");
+                Plugin.Log.Information("Copied icon guide link to clipboard");
             }
             if (ImGui.IsItemHovered())
-                ImGui.SetTooltip("Copies the Lodestone blog link with suggested glyphs");
+            {
+                ImGui.SetTooltip("Copies the Lodestone blog link with suggested glyphs.");
+            }
 
             var enabledIcon = config.DtrIconEnabled;
             if (DrawIconInputs("Enabled", ref enabledIcon, "\uE03C"))
@@ -116,15 +114,12 @@ public class MainWindow : Window, IDisposable
         }
 
         ImGui.Spacing();
-
-        // Feature toggles
         ImGui.Text("Krangling Options");
         ImGui.Separator();
         ImGui.TextColored(new Vector4(0.7f, 0.7f, 0.7f, 1.0f), "Options are processed in the order shown.");
 
         ImGui.Spacing();
 
-        // Krangle Names
         var krangleNames = config.KrangleNames;
         if (ImGui.Checkbox("Krangle Names", ref krangleNames))
         {
@@ -135,10 +130,9 @@ public class MainWindow : Window, IDisposable
         }
         if (ImGui.IsItemHovered())
         {
-            ImGui.SetTooltip("Randomize all visible player names and party list names.\nSame player always gets the same fake name per session.");
+            ImGui.SetTooltip("Randomize visible player names and party list names.");
         }
 
-        // Krangle Chat
         var krangleChat = config.KrangleChat;
         if (ImGui.Checkbox("Krangle Chat", ref krangleChat))
         {
@@ -147,10 +141,9 @@ public class MainWindow : Window, IDisposable
         }
         if (ImGui.IsItemHovered())
         {
-            ImGui.SetTooltip("Garble all chat text for screenshot privacy.\nAffects ALL chat channels independently of name krangling.");
+            ImGui.SetTooltip("Garble chat text for screenshot privacy.");
         }
 
-        // Krangle Genders
         var krangleGenders = config.KrangleGenders;
         if (ImGui.Checkbox("Krangle Genders", ref krangleGenders))
         {
@@ -159,10 +152,9 @@ public class MainWindow : Window, IDisposable
         }
         if (ImGui.IsItemHovered())
         {
-            ImGui.SetTooltip("Randomize genders for all visible player characters.\nDirect memory modification — no external plugins needed.");
+            ImGui.SetTooltip("Randomize genders for visible player characters.");
         }
 
-        // Krangle Races
         var krangleRaces = config.KrangleRaces;
         if (ImGui.Checkbox("Krangle Races", ref krangleRaces))
         {
@@ -171,10 +163,9 @@ public class MainWindow : Window, IDisposable
         }
         if (ImGui.IsItemHovered())
         {
-            ImGui.SetTooltip("Randomize races (including subraces) for all visible player characters.\nDirect memory modification — no external plugins needed.");
+            ImGui.SetTooltip("Randomize races and subraces for visible player characters.");
         }
 
-        // Krangle Appearance
         var krangleAppearance = config.KrangleAppearance;
         if (ImGui.Checkbox("Krangle Appearance", ref krangleAppearance))
         {
@@ -183,15 +174,13 @@ public class MainWindow : Window, IDisposable
         }
         if (ImGui.IsItemHovered())
         {
-            ImGui.SetTooltip("Randomize hair, face, eyes, etc. for all visible player characters.\nDirect memory modification — no external plugins needed.");
+            ImGui.SetTooltip("Randomize hair, face, eyes, and other appearance fields.");
         }
 
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();
 
-        // Super Krangle Master 4000
-        /*
         var superKrangle = config.SuperKrangleMaster4000;
         if (ImGui.Checkbox("Super Krangle Master 4000", ref superKrangle))
         {
@@ -201,22 +190,122 @@ public class MainWindow : Window, IDisposable
         if (ImGui.IsItemHovered())
         {
             ImGui.SetTooltip(
-                "OVERRIDE ALL OPTIONS — Apply full Glamourer presets to players!\n" +
-                "Replaces appearance AND equipment (except weapons).\n\n" +
-                $"Presets loaded: {plugin.GlamourerPresetService.PresetCount}\n" +
-                "Import: Drop .json Glamourer preset files into your presets folder.\n" +
-                "(Export presets from Glamourer, then copy the .json files)");
+                "Use imported Glamourer presets in place of normal appearance krangling.\n" +
+                "Selection can be global, random, or overridden by party slot.\n\n" +
+                $"Presets loaded: {plugin.GlamourerPresetService.PresetCount}");
         }
+
         if (superKrangle)
         {
             ImGui.SameLine();
             ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, 1.0f), $"({plugin.GlamourerPresetService.PresetCount} presets)");
+
+            if (presetNames.Count == 0)
+            {
+                ImGui.TextColored(new Vector4(1.0f, 0.75f, 0.3f, 1.0f), "No preset files are loaded. Built-in NPC looks will be used instead.");
+            }
+
+            var globalSelection = string.IsNullOrWhiteSpace(config.SuperKrangleSelection)
+                ? "Random"
+                : config.SuperKrangleSelection;
+            if (DrawPresetSelectionCombo("Global Preset", ref globalSelection, presetNames, false))
+            {
+                config.SuperKrangleSelection = globalSelection;
+                config.Save();
+            }
+
+            ImGui.Spacing();
+            ImGui.Text("Party Slot Overrides");
+            ImGui.Separator();
+
+            for (var i = 0; i < config.SuperKranglePartySlotSelections.Count; i++)
+            {
+                var slotSelection = string.IsNullOrWhiteSpace(config.SuperKranglePartySlotSelections[i])
+                    ? "Use Global"
+                    : config.SuperKranglePartySlotSelections[i];
+
+                if (DrawPresetSelectionCombo(GetPartySlotLabel(i), ref slotSelection, presetNames, true))
+                {
+                    config.SuperKranglePartySlotSelections[i] = slotSelection;
+                    config.Save();
+                }
+            }
+
+            ImGui.Spacing();
+            ImGui.Text("Apply From Preset");
+            ImGui.Separator();
+
+            var applyAppearance = config.SuperKrangleApplyAppearance;
+            if (ImGui.Checkbox("Appearance", ref applyAppearance))
+            {
+                config.SuperKrangleApplyAppearance = applyAppearance;
+                config.Save();
+            }
+            ImGui.SameLine();
+            var applyHead = config.SuperKrangleApplyHead;
+            if (ImGui.Checkbox("Head", ref applyHead))
+            {
+                config.SuperKrangleApplyHead = applyHead;
+                config.Save();
+            }
+            ImGui.SameLine();
+            var applyBody = config.SuperKrangleApplyBody;
+            if (ImGui.Checkbox("Body", ref applyBody))
+            {
+                config.SuperKrangleApplyBody = applyBody;
+                config.Save();
+            }
+
+            var applyHands = config.SuperKrangleApplyHands;
+            if (ImGui.Checkbox("Hands", ref applyHands))
+            {
+                config.SuperKrangleApplyHands = applyHands;
+                config.Save();
+            }
+            ImGui.SameLine();
+            var applyLegs = config.SuperKrangleApplyLegs;
+            if (ImGui.Checkbox("Legs", ref applyLegs))
+            {
+                config.SuperKrangleApplyLegs = applyLegs;
+                config.Save();
+            }
+            ImGui.SameLine();
+            var applyFeet = config.SuperKrangleApplyFeet;
+            if (ImGui.Checkbox("Feet", ref applyFeet))
+            {
+                config.SuperKrangleApplyFeet = applyFeet;
+                config.Save();
+            }
+
+            ImGui.Spacing();
+            ImGui.Text("Propagation Control");
+            ImGui.Separator();
+
+            var maxPlayersPerCycle = config.SuperKrangleMaxPlayersPerCycle;
+            if (ImGui.SliderInt("Max Players Per Cycle", ref maxPlayersPerCycle, 1, 24))
+            {
+                config.SuperKrangleMaxPlayersPerCycle = maxPlayersPerCycle;
+                config.Save();
+            }
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.SetTooltip("Limit how many visible players are processed during one scan pass.");
+            }
+
+            var redrawDelay = config.SuperKrangleBaseRedrawDelayFrames;
+            if (ImGui.SliderInt("Base Redraw Delay", ref redrawDelay, 1, 10))
+            {
+                config.SuperKrangleBaseRedrawDelayFrames = redrawDelay;
+                config.Save();
+            }
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.SetTooltip("Base frame delay before the next queued redraw. Actual delay scales with crowd size.");
+            }
         }
-        */
 
         ImGui.Spacing();
 
-        // Status summary
         if (config.Enabled)
         {
             ImGui.TextColored(new Vector4(0.0f, 1.0f, 0.0f, 1.0f), "Status: KRANGLING ACTIVE");
@@ -316,6 +405,69 @@ public class MainWindow : Window, IDisposable
             ImGui.PopTextWrapPos();
             ImGui.EndTooltip();
         }
+    }
+
+    private static bool DrawPresetSelectionCombo(string label, ref string value, IReadOnlyList<string> presetNames, bool includeUseGlobal)
+    {
+        var preview = string.IsNullOrWhiteSpace(value)
+            ? (includeUseGlobal ? "Use Global" : "Random")
+            : value;
+        var changed = false;
+
+        if (ImGui.BeginCombo(label, preview))
+        {
+            if (includeUseGlobal)
+            {
+                changed |= DrawSelectionOption("Use Global", ref value);
+            }
+
+            changed |= DrawSelectionOption("Random", ref value);
+
+            foreach (var presetName in presetNames)
+            {
+                changed |= DrawSelectionOption(presetName, ref value);
+            }
+
+            ImGui.EndCombo();
+        }
+
+        return changed;
+    }
+
+    private static bool DrawSelectionOption(string option, ref string value)
+    {
+        var isSelected = string.Equals(value, option, StringComparison.OrdinalIgnoreCase);
+        if (!ImGui.Selectable(option, isSelected))
+            return false;
+
+        value = option;
+        return true;
+    }
+
+    private static void EnsureSlotSelections(Configuration config)
+    {
+        while (config.SuperKranglePartySlotSelections.Count < 8)
+        {
+            config.SuperKranglePartySlotSelections.Add("Use Global");
+        }
+    }
+
+    private static string GetPartySlotLabel(int index)
+    {
+        if (index == 0)
+        {
+            var localName = Plugin.ObjectTable.LocalPlayer?.Name.ToString();
+            return string.IsNullOrWhiteSpace(localName) ? "You" : $"You ({localName})";
+        }
+
+        if (index < Plugin.PartyList.Length)
+        {
+            var memberName = Plugin.PartyList[index]?.Name.ToString();
+            if (!string.IsNullOrWhiteSpace(memberName))
+                return $"Party {index + 1} ({memberName})";
+        }
+
+        return $"Party {index + 1}";
     }
 
     public void Dispose() { }

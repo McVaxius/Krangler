@@ -54,6 +54,7 @@ public class GlamourerPresetService
 
                 if (preset != null && !string.IsNullOrEmpty(preset.Name))
                 {
+                    preset.Name = preset.Name.Trim();
                     presets[preset.Name] = preset;
                     loadedCount++;
                 }
@@ -107,20 +108,49 @@ public class GlamourerPresetService
         }
     }
 
-    public GlamourerPreset? GetRandomPreset(string playerName)
+    public GlamourerPreset? GetPresetForPlayer(string playerName)
     {
         if (presets.Count == 0) return null;
 
         var hash = GetStableHash(playerName);
-        var rng = new Random(hash);
-        var index = rng.Next(presets.Count);
+        var orderedPresets = presets.Values
+            .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var index = Math.Abs(hash) % orderedPresets.Count;
 
-        return presets.ElementAt(index).Value;
+        return orderedPresets[index];
+    }
+
+    public GlamourerPreset? GetPresetByName(string presetName)
+    {
+        if (string.IsNullOrWhiteSpace(presetName))
+            return null;
+
+        var normalizedName = presetName.Trim();
+
+        if (presets.TryGetValue(normalizedName, out var exactMatch))
+            return exactMatch;
+
+        return presets.Values.FirstOrDefault(p =>
+            string.Equals(p.Name, normalizedName, StringComparison.OrdinalIgnoreCase));
+    }
+
+    public GlamourerPreset? ResolvePresetSelection(string playerName, string selection)
+    {
+        if (string.IsNullOrWhiteSpace(selection) ||
+            string.Equals(selection, "Random", StringComparison.OrdinalIgnoreCase))
+        {
+            return GetPresetForPlayer(playerName);
+        }
+
+        return GetPresetByName(selection);
     }
 
     public List<string> GetPresetNames()
     {
-        return presets.Keys.ToList();
+        return presets.Keys
+            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     private static int GetStableHash(string input)

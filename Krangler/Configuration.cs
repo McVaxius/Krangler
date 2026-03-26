@@ -20,6 +20,26 @@ public class Configuration : IPluginConfiguration
 
     // Special mode (disabled by default)
     public bool SuperKrangleMaster4000 { get; set; } = false;
+    public string SuperKrangleSelection { get; set; } = "Random";
+    public System.Collections.Generic.List<string> SuperKranglePartySlotSelections { get; set; } = new()
+    {
+        "Use Global",
+        "Use Global",
+        "Use Global",
+        "Use Global",
+        "Use Global",
+        "Use Global",
+        "Use Global",
+        "Use Global",
+    };
+    public bool SuperKrangleApplyAppearance { get; set; } = true;
+    public bool SuperKrangleApplyHead { get; set; } = true;
+    public bool SuperKrangleApplyBody { get; set; } = true;
+    public bool SuperKrangleApplyHands { get; set; } = true;
+    public bool SuperKrangleApplyLegs { get; set; } = true;
+    public bool SuperKrangleApplyFeet { get; set; } = true;
+    public int SuperKrangleMaxPlayersPerCycle { get; set; } = 8;
+    public int SuperKrangleBaseRedrawDelayFrames { get; set; } = 2;
 
     // DTR bar settings
     public bool DtrBarEnabled { get; set; } = true;
