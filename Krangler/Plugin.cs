@@ -318,11 +318,8 @@ public sealed class Plugin : IDalamudPlugin
                     var preset = GlamourerPresetService.ResolvePresetSelection(name, selection);
                     if (preset != null)
                     {
-                        var gameObj = (GameObjectStruct*)obj.Address;
-                        gameObj->DisableDraw();
                         var appliedAppearance = ApplyGlamourerPreset(character, preset, customizePtr);
                         var appliedEquipment = ApplyGlamourerEquipment(character, preset);
-                        gameObj->EnableDraw();
                         changed = appliedAppearance || appliedEquipment > 0;
 
                         if (appliedAppearance)
@@ -383,11 +380,8 @@ public sealed class Plugin : IDalamudPlugin
 
                 if (changed)
                 {
-                    if (!Configuration.SuperKrangleMaster4000)
-                    {
-                        // Queue a safe staggered redraw for normal krangling only.
-                        redrawQueue.Enqueue(obj.Address);
-                    }
+                    // Queue a safe staggered redraw so packed customize changes refresh reliably.
+                    redrawQueue.Enqueue(obj.Address);
 
                     AppearanceService.MarkApplied(obj.EntityId);
                     appliedCount++;
@@ -1018,7 +1012,8 @@ public sealed class Plugin : IDalamudPlugin
         if (c.Clan.Apply) customizePtr[4] = c.Clan.Value;
         if (c.Face.Apply) customizePtr[5] = c.Face.Value;
         if (c.Hairstyle.Apply) customizePtr[6] = c.Hairstyle.Value;
-        if (c.Highlights.Apply) customizePtr[7] = c.Highlights.Value;
+        if (c.Highlights.Apply)
+            customizePtr[7] = (byte)((customizePtr[7] & 0x7F) | (c.Highlights.Value != 0 ? 0x80 : 0));
         if (c.SkinColor.Apply) customizePtr[8] = c.SkinColor.Value;
         if (c.EyeColorRight.Apply) customizePtr[9] = c.EyeColorRight.Value;
         if (c.HairColor.Apply) customizePtr[10] = c.HairColor.Value;
@@ -1039,16 +1034,28 @@ public sealed class Plugin : IDalamudPlugin
         if (c.TattooColor.Apply) customizePtr[13] = c.TattooColor.Value;
         if (c.Eyebrows.Apply) customizePtr[14] = c.Eyebrows.Value;
         if (c.EyeColorLeft.Apply) customizePtr[15] = c.EyeColorLeft.Value;
-        if (c.EyeShape.Apply) customizePtr[16] = c.EyeShape.Value;
-        if (c.SmallIris.Apply) customizePtr[17] = c.SmallIris.Value;
-        if (c.Nose.Apply) customizePtr[18] = c.Nose.Value;
-        if (c.Jaw.Apply) customizePtr[19] = c.Jaw.Value;
-        if (c.Mouth.Apply) customizePtr[20] = c.Mouth.Value;
-        if (c.Lipstick.Apply) customizePtr[21] = c.Lipstick.Value;
-        if (c.LipColor.Apply) customizePtr[22] = c.LipColor.Value;
-        if (c.MuscleMass.Apply) customizePtr[23] = c.MuscleMass.Value;
-        if (c.TailShape.Apply) customizePtr[24] = c.TailShape.Value;
-        if (c.BustSize.Apply) customizePtr[25] = c.BustSize.Value;
+        if (c.EyeShape.Apply)
+            customizePtr[16] = (byte)((customizePtr[16] & 0x80) | (c.EyeShape.Value & 0x7F));
+        if (c.SmallIris.Apply)
+            customizePtr[16] = (byte)((customizePtr[16] & 0x7F) | (c.SmallIris.Value != 0 ? 0x80 : 0));
+        if (c.Nose.Apply) customizePtr[17] = c.Nose.Value;
+        if (c.Jaw.Apply) customizePtr[18] = c.Jaw.Value;
+        if (c.Mouth.Apply)
+            customizePtr[19] = (byte)((customizePtr[19] & 0x80) | (c.Mouth.Value & 0x7F));
+        if (c.Lipstick.Apply)
+            customizePtr[19] = (byte)((customizePtr[19] & 0x7F) | (c.Lipstick.Value != 0 ? 0x80 : 0));
+        if (c.LipColor.Apply) customizePtr[20] = c.LipColor.Value;
+        if (c.MuscleMass.Apply) customizePtr[21] = c.MuscleMass.Value;
+        if (c.TailShape.Apply) customizePtr[22] = c.TailShape.Value;
+        if (c.BustSize.Apply) customizePtr[23] = c.BustSize.Value;
+        if (c.FacePaint.Apply)
+            customizePtr[24] = (byte)((customizePtr[24] & 0x80) | (c.FacePaint.Value & 0x7F));
+        if (c.FacePaintReversed.Apply)
+            customizePtr[24] = (byte)((customizePtr[24] & 0x7F) | (c.FacePaintReversed.Value != 0 ? 0x80 : 0));
+        if (c.FacePaintColor.Apply) customizePtr[25] = c.FacePaintColor.Value;
+
+        if (c.ModelId != 0 && !hasLoggedAppearanceScan)
+            Log.Warning($"[Krangler] Preset '{preset.Name}' requests non-human ModelId {c.ModelId}, which still requires a game-level model swap path.");
 
         // ── Equipment modification DISABLED ──
         // CRASH FIX: Glamourer's packed ItemId (ulong) is NOT the raw EquipmentModelId format.
