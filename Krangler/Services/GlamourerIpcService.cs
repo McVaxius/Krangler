@@ -11,7 +11,7 @@ namespace Krangler.Services;
 public sealed class GlamourerIpcService
 {
     private const uint KranglerKey = 0x4B524E47;
-    private const ulong ApplyFlags = 0x06; // Equipment | Customization
+    private const int ApplyFlags = 0x06; // Equipment | Customization
 
     private readonly IPluginLog log;
     private readonly IDalamudPluginInterface pluginInterface;
@@ -29,20 +29,58 @@ public sealed class GlamourerIpcService
         this.pluginInterface = pluginInterface;
     }
 
-    public bool TryApplyDesign(string playerName, GlamourerPreset preset)
+    public bool TryApplyDesign(int objectIndex, string playerName, GlamourerPreset preset)
     {
         if (string.IsNullOrWhiteSpace(playerName) || preset == null || !IsAvailable())
             return false;
 
-        if (TryApplyPresetState(playerName, preset))
+        if (TryApplyPresetState(objectIndex, playerName, preset))
             return true;
 
         if (!TryResolveDesignId(preset, out var designId))
             return false;
 
+        if (TryApplyResolvedDesign(objectIndex, playerName, preset, designId))
+            return true;
+
+        return false;
+    }
+
+    private bool TryApplyResolvedDesign(int objectIndex, string playerName, GlamourerPreset preset, Guid designId)
+    {
+        if (TryApplyResolvedDesignByIndex(objectIndex, playerName, preset, designId))
+            return true;
+
+        return TryApplyResolvedDesignByName(playerName, preset, designId);
+    }
+
+    private bool TryApplyResolvedDesignByIndex(int objectIndex, string playerName, GlamourerPreset preset, Guid designId)
+    {
         try
         {
-            var apply = pluginInterface.GetIpcSubscriber<Guid, string, uint, ulong, int>("Glamourer.ApplyDesignName");
+            var apply = pluginInterface.GetIpcSubscriber<Guid, int, uint, int, int>("Glamourer.ApplyDesign");
+            var result = apply.InvokeFunc(designId, objectIndex, KranglerKey, ApplyFlags);
+            if (!IsSuccess(result))
+            {
+                log.Warning($"[Krangler] Glamourer ApplyDesign failed for index {objectIndex} / '{playerName}' / '{preset.Name}' with code {result}.");
+                return false;
+            }
+
+            appliedPlayerNames.Add(playerName);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            log.Warning($"[Krangler] Glamourer ApplyDesign failed for index {objectIndex} / '{playerName}' / '{preset.Name}': {ex.Message}");
+            return false;
+        }
+    }
+
+    private bool TryApplyResolvedDesignByName(string playerName, GlamourerPreset preset, Guid designId)
+    {
+        try
+        {
+            var apply = pluginInterface.GetIpcSubscriber<Guid, string, uint, int, int>("Glamourer.ApplyDesignName");
             var result = apply.InvokeFunc(designId, playerName, KranglerKey, ApplyFlags);
             if (!IsSuccess(result))
             {
@@ -60,14 +98,45 @@ public sealed class GlamourerIpcService
         }
     }
 
-    private bool TryApplyPresetState(string playerName, GlamourerPreset preset)
+    private bool TryApplyPresetState(int objectIndex, string playerName, GlamourerPreset preset)
     {
         if (string.IsNullOrWhiteSpace(preset.RawJson))
             return false;
 
+        if (TryApplyPresetStateByIndex(objectIndex, playerName, preset))
+            return true;
+
+        return TryApplyPresetStateByName(playerName, preset);
+    }
+
+    private bool TryApplyPresetStateByIndex(int objectIndex, string playerName, GlamourerPreset preset)
+    {
         try
         {
-            var apply = pluginInterface.GetIpcSubscriber<object, string, uint, ulong, int>("Glamourer.ApplyStateName");
+            var apply = pluginInterface.GetIpcSubscriber<object, int, uint, int, int>("Glamourer.ApplyState");
+            var state = JObject.Parse(preset.RawJson);
+            var result = apply.InvokeFunc(state, objectIndex, KranglerKey, ApplyFlags);
+            if (!IsSuccess(result))
+            {
+                log.Warning($"[Krangler] Glamourer ApplyState failed for index {objectIndex} / '{playerName}' / '{preset.Name}' with code {result}.");
+                return false;
+            }
+
+            appliedPlayerNames.Add(playerName);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            log.Warning($"[Krangler] Glamourer ApplyState failed for index {objectIndex} / '{playerName}' / '{preset.Name}': {ex.Message}");
+            return false;
+        }
+    }
+
+    private bool TryApplyPresetStateByName(string playerName, GlamourerPreset preset)
+    {
+        try
+        {
+            var apply = pluginInterface.GetIpcSubscriber<object, string, uint, int, int>("Glamourer.ApplyStateName");
             var state = JObject.Parse(preset.RawJson);
             var result = apply.InvokeFunc(state, playerName, KranglerKey, ApplyFlags);
             if (!IsSuccess(result))
@@ -99,7 +168,7 @@ public sealed class GlamourerIpcService
 
         try
         {
-            var revert = pluginInterface.GetIpcSubscriber<string, uint, ulong, int>("Glamourer.RevertStateName");
+            var revert = pluginInterface.GetIpcSubscriber<string, uint, int, int>("Glamourer.RevertStateName");
             foreach (var playerName in appliedPlayerNames.ToArray())
             {
                 try

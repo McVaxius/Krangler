@@ -277,8 +277,9 @@ public sealed class Plugin : IDalamudPlugin
         var processedThisCycle = 0;
         var maxPlayersPerCycle = Math.Max(1, Configuration.SuperKrangleMaxPlayersPerCycle);
 
-        foreach (var obj in ObjectTable)
+        for (var objectIndex = 0; objectIndex < ObjectTable.Length; objectIndex++)
         {
+            var obj = ObjectTable[objectIndex];
             if (obj == null || obj.ObjectKind != ObjectKind.Player)
                 continue;
 
@@ -315,30 +316,20 @@ public sealed class Plugin : IDalamudPlugin
                     var preset = GlamourerPresetService.ResolvePresetSelection(name, selection);
                     if (preset != null)
                     {
-                        if (GlamourerIpcService.TryApplyDesign(name, preset))
-                        {
-                            changed = true;
-                            usedGlamourerIpc = true;
-                        }
-                        else
-                        {
-                            SaveOriginalCustomizeIfNeeded(obj.EntityId, customizePtr);
-                            var appliedAppearance = ApplyGlamourerPreset(character, preset, customizePtr);
-                            var appliedEquipment = ApplyGlamourerEquipment(character, preset);
-                            changed = appliedAppearance || appliedEquipment > 0;
+                        SaveOriginalCustomizeIfNeeded(obj.EntityId, customizePtr);
+                        var appliedAppearance = ApplyGlamourerPreset(character, preset, customizePtr);
+                        var appliedEquipment = ApplyGlamourerEquipment(character, preset);
+                        changed = appliedAppearance || appliedEquipment > 0;
 
-                            if (appliedAppearance)
-                            {
-                                race = customizePtr[0];
-                                tribe = customizePtr[4];
-                                gender = customizePtr[1];
-                            }
+                        if (appliedAppearance)
+                        {
+                            race = customizePtr[0];
+                            tribe = customizePtr[4];
+                            gender = customizePtr[1];
                         }
 
                         if (!hasLoggedAppearanceScan && changed)
-                            Log.Information(usedGlamourerIpc
-                                ? $"[Krangler] Applied Super Krangle preset '{preset.Name}' to '{name}' via Glamourer IPC"
-                                : $"[Krangler] Applied Super Krangle preset '{preset.Name}' to '{name}' via local fallback");
+                            Log.Information($"[Krangler] Applied Super Krangle preset '{preset.Name}' to '{name}' via local fallback");
                     }
                     else
                     {
@@ -402,9 +393,7 @@ public sealed class Plugin : IDalamudPlugin
                     processedThisCycle++;
 
                     if (!hasLoggedAppearanceScan)
-                        Log.Information(usedGlamourerIpc
-                            ? $"[Krangler] Applied appearance to '{name}' via Glamourer IPC"
-                            : $"[Krangler] Applied appearance to '{name}': race={race}, tribe={tribe}, gender={gender}");
+                        Log.Information($"[Krangler] Applied appearance to '{name}': race={race}, tribe={tribe}, gender={gender}");
                 }
             }
             catch (Exception ex)
