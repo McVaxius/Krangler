@@ -282,6 +282,20 @@ public class MainWindow : Window, IDisposable
                 config.Save();
             }
 
+            var applyAccessories = config.SuperKrangleApplyAccessories;
+            if (ImGui.Checkbox("Accessories", ref applyAccessories))
+            {
+                config.SuperKrangleApplyAccessories = applyAccessories;
+                config.Save();
+            }
+            ImGui.SameLine();
+            var applyWeapons = config.SuperKrangleApplyWeapons;
+            if (ImGui.Checkbox("Weapons", ref applyWeapons))
+            {
+                config.SuperKrangleApplyWeapons = applyWeapons;
+                config.Save();
+            }
+
             ImGui.Spacing();
             ImGui.Text("Propagation Control");
             ImGui.Separator();

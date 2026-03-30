@@ -38,6 +38,8 @@ public class Configuration : IPluginConfiguration
     public bool SuperKrangleApplyHands { get; set; } = true;
     public bool SuperKrangleApplyLegs { get; set; } = true;
     public bool SuperKrangleApplyFeet { get; set; } = true;
+    public bool SuperKrangleApplyAccessories { get; set; } = false;
+    public bool SuperKrangleApplyWeapons { get; set; } = false;
     public int SuperKrangleMaxPlayersPerCycle { get; set; } = 8;
     public int SuperKrangleBaseRedrawDelayFrames { get; set; } = 2;
 

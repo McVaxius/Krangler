@@ -289,7 +289,25 @@ public sealed class Plugin : IDalamudPlugin
 
     private unsafe CharacterBaseStruct* CreateCharacterBaseDetour(uint modelId, GameCustomizeData* customize, EquipmentModelId* equipment, byte unk)
     {
-        var createdCharacterBase = createCharacterBaseHook!.Original(modelId, customize, equipment, unk);
+        var createModelId = modelId;
+        if (Configuration.Enabled &&
+            Configuration.SuperKrangleMaster4000 &&
+            !isRevertingAppearances &&
+            customize != null &&
+            equipment != null)
+        {
+            try
+            {
+                TryApplyPresetToCreateBuffers(ref createModelId, customize, equipment);
+            }
+            catch (Exception ex)
+            {
+                if (!hasLoggedAppearanceScan)
+                    Log.Warning($"[Krangler] CharacterBase.Create pre-apply failed: {ex.Message}");
+            }
+        }
+
+        var createdCharacterBase = createCharacterBaseHook!.Original(createModelId, customize, equipment, unk);
         if (!Configuration.Enabled ||
             !Configuration.SuperKrangleMaster4000 ||
             isRevertingAppearances ||
@@ -365,6 +383,71 @@ public sealed class Plugin : IDalamudPlugin
             Log.Information($"[Krangler] Re-applied preset '{preset.Name}' during CharacterBase.Create for '{playerName}'");
 
         return true;
+    }
+
+    private unsafe bool TryApplyPresetToCreateBuffers(ref uint modelId, GameCustomizeData* customize, EquipmentModelId* equipment)
+    {
+        if (!TryFindPlayerCharacterByCreateBuffers(customize, equipment, out var entityId, out var playerName, out var character))
+            return false;
+
+        var selection = ResolveSuperKrangleSelection(playerName);
+        var preset = GlamourerPresetService.ResolvePresetSelection(playerName, selection);
+        if (preset == null)
+            return true;
+
+        SaveOriginalAppearanceIfNeeded(entityId, character);
+
+        var appliedAppearance = ApplyCustomizeData(customize, preset);
+        var appliedEquipment = ApplyEquipmentData(equipment, preset, null);
+        var appliedModelId = false;
+        if (Configuration.SuperKrangleApplyAppearance && preset.Customize.ModelId > 0)
+        {
+            modelId = (uint)preset.Customize.ModelId;
+            appliedModelId = true;
+        }
+
+        if ((appliedAppearance || appliedEquipment > 0 || appliedModelId) && !hasLoggedAppearanceScan)
+            Log.Information($"[Krangler] Pre-applied preset '{preset.Name}' during CharacterBase.Create for '{playerName}': modelId={modelId}, equipmentSlots={appliedEquipment}");
+
+        return true;
+    }
+
+    private unsafe bool TryFindPlayerCharacterByCreateBuffers(GameCustomizeData* customize, EquipmentModelId* equipment, out uint entityId, out string playerName, out CharacterStruct* character)
+    {
+        entityId = 0;
+        playerName = string.Empty;
+        character = null;
+
+        if (customize == null && equipment == null)
+            return false;
+
+        for (var objectIndex = 0; objectIndex < ObjectTable.Length; objectIndex++)
+        {
+            var obj = ObjectTable[objectIndex];
+            if (obj == null || obj.ObjectKind != ObjectKind.Player || obj.Address == 0)
+                continue;
+
+            var candidate = (CharacterStruct*)obj.Address;
+            if (candidate == null)
+                continue;
+
+            var customizeMatches = customize != null && (GameCustomizeData*)&candidate->DrawData.CustomizeData == customize;
+            var equipmentMatches = false;
+            fixed (EquipmentModelId* candidateEquipment = &candidate->DrawData.EquipmentModelIds[0])
+            {
+                equipmentMatches = equipment != null && candidateEquipment == equipment;
+            }
+
+            if (!customizeMatches && !equipmentMatches)
+                continue;
+
+            entityId = obj.EntityId;
+            playerName = obj.Name.ToString();
+            character = candidate;
+            return !string.IsNullOrWhiteSpace(playerName);
+        }
+
+        return false;
     }
 
     private unsafe bool TryFindPlayerCharacterByDrawObject(nint drawObjectAddress, out uint entityId, out string playerName, out CharacterStruct* character)
@@ -1211,6 +1294,11 @@ public sealed class Plugin : IDalamudPlugin
         var appliedWeapons = ApplyGlamourerWeapons(character, preset);
         var appliedBonus = ApplyGlamourerBonusItems(character, preset);
         var appliedMetaState = ApplyGlamourerMetaState(character, preset);
+        
+        // Refresh equipment after applying it to ensure it's properly loaded
+        if (appliedEquipment > 0)
+            RefreshCharacterEquipment(character);
+        
         var changed = appliedAppearance || appliedEquipment > 0 || appliedWeapons > 0 || appliedBonus || appliedMetaState;
 
         if (logRefreshResult && !hasLoggedAppearanceScan && appliedAppearance)
@@ -1219,13 +1307,12 @@ public sealed class Plugin : IDalamudPlugin
         return changed;
     }
 
-    private unsafe bool ApplyGlamourerPreset(CharacterStruct* character, GlamourerPreset preset, byte* customizePtr)
+    private unsafe bool ApplyCustomizeData(GameCustomizeData* customizeData, GlamourerPreset preset)
     {
-        // ── Apply customize data (26 bytes) ──
-        if (character == null || customizePtr == null || !Configuration.SuperKrangleApplyAppearance)
+        if (customizeData == null || !Configuration.SuperKrangleApplyAppearance)
             return false;
 
-        ref var customize = ref character->DrawData.CustomizeData;
+        ref var customize = ref *customizeData;
         var c = preset.Customize;
         byte? targetRace = null;
         if (c.Clan.Apply && TryGetRaceForClan(c.Clan.Value, out var clanRace))
@@ -1274,8 +1361,19 @@ public sealed class Plugin : IDalamudPlugin
         if (c.FacePaintReversed.Apply) customize.FacePaintReversed = c.FacePaintReversed.Value != 0;
         if (c.FacePaintColor.Apply) customize.FacePaintColor = c.FacePaintColor.Value;
 
-        if (c.ModelId != 0 && !hasLoggedAppearanceScan)
-            Log.Warning($"[Krangler] Preset '{preset.Name}' requests non-human ModelId {c.ModelId}, which still requires a game-level model swap path.");
+        return true;
+    }
+
+    private unsafe bool ApplyGlamourerPreset(CharacterStruct* character, GlamourerPreset preset, byte* customizePtr)
+    {
+        // ── Apply customize data (26 bytes) ──
+        if (character == null || customizePtr == null || !Configuration.SuperKrangleApplyAppearance)
+            return false;
+
+        var applied = ApplyCustomizeData((GameCustomizeData*)customizePtr, preset);
+
+        if (preset.Customize.ModelId != 0 && !hasLoggedAppearanceScan)
+            Log.Warning($"[Krangler] Preset '{preset.Name}' requests CharacterBase.Create modelId override {preset.Customize.ModelId}; post-create apply cannot change it.");
 
         // ── Equipment modification DISABLED ──
         // CRASH FIX: Glamourer's packed ItemId (ulong) is NOT the raw EquipmentModelId format.
@@ -1284,7 +1382,7 @@ public sealed class Plugin : IDalamudPlugin
         // Writing the packed ItemId directly corrupts the model data and crashes on redraw.
         // TODO: Decode Glamourer ItemId → extract (SetId, Variant, Stain) → write correct EquipmentModelId.
         // Alternative: Use LoadEquipment() with properly decoded model IDs.
-        return true;
+        return applied;
     }
 
     // ─── Super Krangle Master 4000 Methods ─────────────────────────────────────
@@ -1316,50 +1414,13 @@ public sealed class Plugin : IDalamudPlugin
         if (character == null || preset.Equipment.Count == 0)
             return 0;
 
-        var appliedCount = 0;
+        if (!hasLoggedAppearanceScan)
+            Log.Information($"[Krangler] Processing preset '{preset.Name}' with {preset.Equipment.Count} equipment entries");
+
+        int appliedCount;
         fixed (EquipmentModelId* equipmentModelPtr = &character->DrawData.EquipmentModelIds[0])
         {
-            foreach (var (slotName, slotData) in preset.Equipment)
-            {
-                if (!slotData.Apply || !ShouldApplyEquipmentSlot(slotName))
-                    continue;
-
-                var slotIndex = GetEquipmentSlotIndex(slotName);
-                if (!slotIndex.HasValue)
-                    continue;
-
-                if (!TryDecodeGlamourerItemId(slotName, slotData.ItemId, out var setId, out var variant, out var isEmpty))
-                {
-                    if (!hasLoggedAppearanceScan)
-                        Log.Warning($"[Krangler] Could not decode preset slot '{slotName}' item id {slotData.ItemId}");
-                    continue;
-                }
-
-                var modelId = equipmentModelPtr + slotIndex.Value;
-                modelId->Id = setId;
-                modelId->Variant = variant;
-
-                if (isEmpty)
-                {
-                    modelId->Stain0 = 0;
-                    modelId->Stain1 = 0;
-
-                    if (!hasLoggedAppearanceScan)
-                        Log.Information($"[Krangler] Preset slot '{slotName}' uses empty-slot marker itemId={slotData.ItemId}");
-                }
-                else if (slotData.ApplyStain)
-                {
-                    modelId->Stain0 = (byte)Math.Min(slotData.Stain, byte.MaxValue);
-                    modelId->Stain1 = (byte)Math.Min(slotData.Stain2, byte.MaxValue);
-                }
-
-                character->DrawData.LoadEquipment((DrawDataContainerStruct.EquipmentSlot)slotIndex.Value, modelId, true);
-
-                if (!hasLoggedAppearanceScan)
-                    Log.Information($"[Krangler] Applied preset slot '{slotName}': itemId={slotData.ItemId}, setId={setId}, variant={variant}, stains={modelId->Stain0}/{modelId->Stain1}");
-
-                appliedCount++;
-            }
+            appliedCount = ApplyEquipmentData(equipmentModelPtr, preset, character);
         }
 
         if (!hasLoggedAppearanceScan && appliedCount > 0)
@@ -1368,9 +1429,81 @@ public sealed class Plugin : IDalamudPlugin
         return appliedCount;
     }
 
+    private unsafe int ApplyEquipmentData(EquipmentModelId* equipmentModelPtr, GlamourerPreset preset, CharacterStruct* character)
+    {
+        if (equipmentModelPtr == null || preset.Equipment.Count == 0)
+            return 0;
+
+        var appliedCount = 0;
+        var preserveExistingCoreArmor = ShouldPreserveExistingCoreArmor(preset);
+
+        if (preserveExistingCoreArmor && !hasLoggedAppearanceScan)
+            Log.Information($"[Krangler] Preset '{preset.Name}' uses deprecated special-NPC core armor encoding. Preserving existing Head/Body/Hands/Legs/Feet while still applying accessories, weapons, bonus items, and meta state.");
+
+        foreach (var (slotName, slotData) in preset.Equipment)
+        {
+            var isCoreArmorSlot = IsCoreArmorSlot(slotName);
+            if (!slotData.Apply || !ShouldApplyEquipmentSlot(slotName) || (preserveExistingCoreArmor && isCoreArmorSlot))
+            {
+                if (!hasLoggedAppearanceScan && !slotData.Apply)
+                    Log.Information($"[Krangler] Skipping preset slot '{slotName}' - Apply flag is false");
+                if (!hasLoggedAppearanceScan && !ShouldApplyEquipmentSlot(slotName))
+                    Log.Information($"[Krangler] Skipping preset slot '{slotName}' - ShouldApplyEquipmentSlot returned false");
+                if (!hasLoggedAppearanceScan && preserveExistingCoreArmor && isCoreArmorSlot)
+                    Log.Information($"[Krangler] Skipping preset slot '{slotName}' for '{preset.Name}' - preserving existing equipped armor for deprecated special-NPC armor path");
+                continue;
+            }
+
+            var slotIndex = GetEquipmentSlotIndex(slotName);
+            if (!slotIndex.HasValue)
+            {
+                if (!hasLoggedAppearanceScan)
+                    Log.Warning($"[Krangler] Could not get slot index for '{slotName}'");
+                continue;
+            }
+
+            if (!TryDecodeGlamourerItemId(slotName, slotData.ItemId, out var setId, out var variant, out var isEmpty))
+            {
+                if (!hasLoggedAppearanceScan)
+                    Log.Warning($"[Krangler] Could not decode preset slot '{slotName}' item id {slotData.ItemId}");
+                continue;
+            }
+
+            var modelId = equipmentModelPtr + slotIndex.Value;
+            var oldSetId = modelId->Id;
+            var oldVariant = modelId->Variant;
+            modelId->Id = setId;
+            modelId->Variant = variant;
+
+            if (isEmpty)
+            {
+                modelId->Stain0 = 0;
+                modelId->Stain1 = 0;
+
+                if (!hasLoggedAppearanceScan)
+                    Log.Information($"[Krangler] Preset slot '{slotName}' uses empty-slot marker itemId={slotData.ItemId}");
+            }
+            else if (slotData.ApplyStain)
+            {
+                modelId->Stain0 = (byte)Math.Min(slotData.Stain, byte.MaxValue);
+                modelId->Stain1 = (byte)Math.Min(slotData.Stain2, byte.MaxValue);
+            }
+
+            if (character != null)
+                ApplyNativeEquipmentSlot(character, slotIndex.Value, modelId);
+
+            if (!hasLoggedAppearanceScan)
+                Log.Information($"[Krangler] Applied preset slot '{slotName}': itemId={slotData.ItemId}, setId={setId}, variant={variant}, stains={modelId->Stain0}/{modelId->Stain1} (was setId={oldSetId}, variant={oldVariant})");
+
+            appliedCount++;
+        }
+
+        return appliedCount;
+    }
+
     private unsafe int ApplyGlamourerWeapons(CharacterStruct* character, GlamourerPreset preset)
     {
-        if (character == null || preset.Equipment.Count == 0)
+        if (character == null || preset.Equipment.Count == 0 || !Configuration.SuperKrangleApplyWeapons)
             return 0;
 
         var appliedCount = 0;
@@ -1484,13 +1617,11 @@ public sealed class Plugin : IDalamudPlugin
 
     private unsafe bool RefreshCharacterCustomize(CharacterStruct* character)
     {
-        if (character == null || character->DrawObject == null)
+        var characterBase = GetCharacterBaseDrawObject(character);
+        if (characterBase == null)
             return false;
 
-        if (character->DrawObject->GetObjectType() != SceneObjectType.CharacterBase)
-            return false;
-
-        var human = (HumanStruct*)character->DrawObject;
+        var human = (HumanStruct*)characterBase;
         return human->UpdateDrawData((byte*)&character->DrawData.CustomizeData, true);
     }
 
@@ -1502,8 +1633,32 @@ public sealed class Plugin : IDalamudPlugin
         fixed (EquipmentModelId* equipmentModelPtr = &character->DrawData.EquipmentModelIds[0])
         {
             for (var i = 0; i < EquipmentSlotCount; i++)
-                character->DrawData.LoadEquipment((DrawDataContainerStruct.EquipmentSlot)i, equipmentModelPtr + i, true);
+                ApplyNativeEquipmentSlot(character, i, equipmentModelPtr + i);
         }
+    }
+
+    private unsafe CharacterBaseStruct* GetCharacterBaseDrawObject(CharacterStruct* character)
+    {
+        if (character == null || character->DrawObject == null)
+            return null;
+
+        return character->DrawObject->GetObjectType() == SceneObjectType.CharacterBase
+            ? (CharacterBaseStruct*)character->DrawObject
+            : null;
+    }
+
+    private unsafe void ApplyNativeEquipmentSlot(CharacterStruct* character, int slotIndex, EquipmentModelId* modelId)
+    {
+        if (character == null || modelId == null)
+            return;
+
+        character->DrawData.LoadEquipment((DrawDataContainerStruct.EquipmentSlot)slotIndex, modelId, true);
+
+        var characterBase = GetCharacterBaseDrawObject(character);
+        if (characterBase == null)
+            return;
+
+        characterBase->SetEquipmentSlotModel((uint)slotIndex, modelId);
     }
 
     private static unsafe void RestoreDrawMetaState(CharacterStruct* character, OriginalAppearanceData originalData)
@@ -1543,13 +1698,49 @@ public sealed class Plugin : IDalamudPlugin
             "hands" => Configuration.SuperKrangleApplyHands,
             "legs" => Configuration.SuperKrangleApplyLegs,
             "feet" => Configuration.SuperKrangleApplyFeet,
-            "ears" => true,
-            "neck" => true,
-            "wrists" => true,
-            "rfinger" => true,
-            "lfinger" => true,
+            "ears" => Configuration.SuperKrangleApplyAccessories,
+            "neck" => Configuration.SuperKrangleApplyAccessories,
+            "wrists" => Configuration.SuperKrangleApplyAccessories,
+            "rfinger" => Configuration.SuperKrangleApplyAccessories,
+            "lfinger" => Configuration.SuperKrangleApplyAccessories,
             _ => false,
         };
+
+    private static bool IsCoreArmorSlot(string slotName)
+        => slotName.ToLowerInvariant() switch
+        {
+            "head" => true,
+            "body" => true,
+            "hands" => true,
+            "legs" => true,
+            "feet" => true,
+            _ => false,
+        };
+
+    private static bool ShouldPreserveExistingCoreArmor(GlamourerPreset preset)
+    {
+        foreach (var (slotName, slotData) in preset.Equipment)
+        {
+            if (!slotData.Apply || !IsCoreArmorSlot(slotName))
+                continue;
+
+            if (UsesDeprecatedSpecialNpcArmorEncoding(slotName, slotData.ItemId))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool UsesDeprecatedSpecialNpcArmorEncoding(string slotName, ulong itemId)
+    {
+        if (!IsCoreArmorSlot(slotName))
+            return false;
+
+        if (TryDecodePackedArmorItemId(itemId, out _, out _))
+            return true;
+
+        return TryDecodeSpecialArmorItemId(slotName, itemId, out _, out _, out _);
+    }
 
     private static int? GetEquipmentSlotIndex(string slotName)
         => slotName.ToLowerInvariant() switch
