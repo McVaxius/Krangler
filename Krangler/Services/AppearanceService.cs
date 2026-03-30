@@ -12,7 +12,7 @@ public class AppearanceService
     private readonly Configuration configuration;
 
     // Track which players we've already applied appearance changes to
-    private readonly HashSet<uint> appliedPlayers = new();
+    private readonly HashSet<ulong> appliedPlayers = new();
 
     // Valid race/tribe combinations: Race ID -> (Tribe1, Tribe2)
     private static readonly Dictionary<byte, (byte, byte)> RaceTribeMap = new()
@@ -83,12 +83,12 @@ public class AppearanceService
     /// <summary>
     /// Check if we've already applied appearance changes to this player.
     /// </summary>
-    public bool IsApplied(uint entityId) => appliedPlayers.Contains(entityId);
+    public bool IsApplied(ulong entityId) => appliedPlayers.Contains(entityId);
 
     /// <summary>
     /// Mark a player as having had appearance changes applied.
     /// </summary>
-    public void MarkApplied(uint entityId) => appliedPlayers.Add(entityId);
+    public void MarkApplied(ulong entityId) => appliedPlayers.Add(entityId);
 
     /// <summary>
     /// Clear tracking state when plugin is disabled.

@@ -17,10 +17,16 @@ public class Configuration : IPluginConfiguration
     public bool KrangleGenders { get; set; } = true;
     public bool KrangleRaces { get; set; } = true;
     public bool KrangleAppearance { get; set; } = true;
+    public bool KrangleChocobos { get; set; } = false;
+    public bool KrangleMinions { get; set; } = false;
 
     // Special mode (disabled by default)
     public bool SuperKrangleMaster4000 { get; set; } = false;
     public string SuperKrangleSelection { get; set; } = "Random";
+    public bool SuperKrangleChocobos { get; set; } = false;
+    public string SuperKrangleChocoboSelection { get; set; } = "Random";
+    public bool SuperKrangleMinions { get; set; } = false;
+    public string SuperKrangleMinionSelection { get; set; } = "Random";
     public System.Collections.Generic.List<string> SuperKranglePartySlotSelections { get; set; } = new()
     {
         "Use Global",

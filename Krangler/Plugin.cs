@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.Command;
 using Dalamud.Game.Gui.Dtr;
@@ -25,7 +26,7 @@ using DrawDataContainerStruct = FFXIVClientStructs.FFXIV.Client.Game.Character.D
 using GameCustomizeData = FFXIVClientStructs.FFXIV.Client.Game.Character.CustomizeData;
 using GameObjectStruct = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
 using HumanStruct = FFXIVClientStructs.FFXIV.Client.Graphics.Scene.Human;
-using SceneObjectType = FFXIVClientStructs.FFXIV.Client.Graphics.Scene.ObjectType;
+using BattleNpcSubKind = FFXIVClientStructs.FFXIV.Client.Game.Object.BattleNpcSubKind;
 
 namespace Krangler;
 
@@ -107,8 +108,8 @@ public sealed class Plugin : IDalamudPlugin
         public int RemainingAttempts { get; }
     }
 
-    // Track original customize data for revert, keyed by EntityId
-    private readonly Dictionary<uint, OriginalAppearanceData> originalAppearanceData = new();
+    // Track original customize data for revert, keyed by GameObjectId
+    private readonly Dictionary<ulong, OriginalAppearanceData> originalAppearanceData = new();
     // Staged local redraw queue modeled after Penumbra's local redraw sequencing.
     private readonly Queue<PendingRedrawEntry> redrawQueue = new();
     private readonly HashSet<nint> pendingRedrawAddresses = new();
@@ -367,10 +368,10 @@ public sealed class Plugin : IDalamudPlugin
 
     private unsafe bool TryReapplyPresetToCreatedCharacterBase(nint characterBaseAddress)
     {
-        if (!TryFindPlayerCharacterByDrawObject(characterBaseAddress, out var entityId, out var playerName, out var character))
+        if (!TryFindPlayerCharacterByDrawObject(characterBaseAddress, out var objectKey, out var playerName, out var character))
             return false;
 
-        if (!AppearanceService.IsApplied(entityId) && !originalAppearanceData.ContainsKey(entityId))
+        if (!AppearanceService.IsApplied(objectKey) && !originalAppearanceData.ContainsKey(objectKey))
             return true;
 
         var selection = ResolveSuperKrangleSelection(playerName);
@@ -378,7 +379,7 @@ public sealed class Plugin : IDalamudPlugin
         if (preset == null)
             return true;
 
-        SaveOriginalAppearanceIfNeeded(entityId, character);
+        SaveOriginalAppearanceIfNeeded(objectKey, character);
         if (ApplySuperKranglePreset(character, preset, false) && !hasLoggedAppearanceScan)
             Log.Information($"[Krangler] Re-applied preset '{preset.Name}' during CharacterBase.Create for '{playerName}'");
 
@@ -387,7 +388,7 @@ public sealed class Plugin : IDalamudPlugin
 
     private unsafe bool TryApplyPresetToCreateBuffers(ref uint modelId, GameCustomizeData* customize, EquipmentModelId* equipment)
     {
-        if (!TryFindPlayerCharacterByCreateBuffers(customize, equipment, out var entityId, out var playerName, out var character))
+        if (!TryFindPlayerCharacterByCreateBuffers(customize, equipment, out var objectKey, out var playerName, out var character))
             return false;
 
         var selection = ResolveSuperKrangleSelection(playerName);
@@ -395,7 +396,7 @@ public sealed class Plugin : IDalamudPlugin
         if (preset == null)
             return true;
 
-        SaveOriginalAppearanceIfNeeded(entityId, character);
+        SaveOriginalAppearanceIfNeeded(objectKey, character);
 
         var appliedAppearance = ApplyCustomizeData(customize, preset);
         var appliedEquipment = ApplyEquipmentData(equipment, preset, null);
@@ -412,9 +413,9 @@ public sealed class Plugin : IDalamudPlugin
         return true;
     }
 
-    private unsafe bool TryFindPlayerCharacterByCreateBuffers(GameCustomizeData* customize, EquipmentModelId* equipment, out uint entityId, out string playerName, out CharacterStruct* character)
+    private unsafe bool TryFindPlayerCharacterByCreateBuffers(GameCustomizeData* customize, EquipmentModelId* equipment, out ulong objectKey, out string playerName, out CharacterStruct* character)
     {
-        entityId = 0;
+        objectKey = 0;
         playerName = string.Empty;
         character = null;
 
@@ -441,7 +442,7 @@ public sealed class Plugin : IDalamudPlugin
             if (!customizeMatches && !equipmentMatches)
                 continue;
 
-            entityId = obj.EntityId;
+            objectKey = obj.GameObjectId;
             playerName = obj.Name.ToString();
             character = candidate;
             return !string.IsNullOrWhiteSpace(playerName);
@@ -450,9 +451,9 @@ public sealed class Plugin : IDalamudPlugin
         return false;
     }
 
-    private unsafe bool TryFindPlayerCharacterByDrawObject(nint drawObjectAddress, out uint entityId, out string playerName, out CharacterStruct* character)
+    private unsafe bool TryFindPlayerCharacterByDrawObject(nint drawObjectAddress, out ulong objectKey, out string playerName, out CharacterStruct* character)
     {
-        entityId = 0;
+        objectKey = 0;
         playerName = string.Empty;
         character = null;
 
@@ -469,7 +470,7 @@ public sealed class Plugin : IDalamudPlugin
             if (candidate == null || (nint)candidate->DrawObject != drawObjectAddress)
                 continue;
 
-            entityId = obj.EntityId;
+            objectKey = obj.GameObjectId;
             playerName = obj.Name.ToString();
             character = candidate;
             return !string.IsNullOrWhiteSpace(playerName);
@@ -527,19 +528,29 @@ public sealed class Plugin : IDalamudPlugin
         for (var objectIndex = 0; objectIndex < ObjectTable.Length; objectIndex++)
         {
             var obj = ObjectTable[objectIndex];
-            if (obj == null || obj.ObjectKind != ObjectKind.Player)
+            if (obj == null)
                 continue;
 
-            playerCount++;
             var name = obj.Name.ToString();
             if (string.IsNullOrEmpty(name))
                 continue;
 
-            if (AppearanceService.IsApplied(obj.EntityId))
+            var objectKey = obj.GameObjectId;
+            if (AppearanceService.IsApplied(objectKey))
                 continue;
 
             if (processedThisCycle >= maxPlayersPerCycle)
                 break;
+
+            var isPlayer = obj.ObjectKind == ObjectKind.Player;
+            var isChocobo = obj.ObjectKind == ObjectKind.BattleNpc && obj.Name.ToString().Contains("Companion", StringComparison.OrdinalIgnoreCase);
+            var isMinion = obj.ObjectKind == ObjectKind.Companion;
+
+            if (!isPlayer && !isChocobo && !isMinion)
+                continue;
+
+            if (isPlayer)
+                playerCount++;
 
             try
             {
@@ -554,11 +565,11 @@ public sealed class Plugin : IDalamudPlugin
 
                 if (Configuration.SuperKrangleMaster4000)
                 {
-                    var selection = ResolveSuperKrangleSelection(name);
+                    var selection = ResolveSuperKrangleSelection(name, isChocobo, isMinion);
                     var preset = GlamourerPresetService.ResolvePresetSelection(name, selection);
                     if (preset != null)
                     {
-                        SaveOriginalAppearanceIfNeeded(obj.EntityId, character);
+                        SaveOriginalAppearanceIfNeeded(objectKey, character);
                         changed = ApplySuperKranglePreset(character, preset, true);
 
                         if (changed)
@@ -569,11 +580,11 @@ public sealed class Plugin : IDalamudPlugin
                         }
 
                         if (!hasLoggedAppearanceScan && changed)
-                            Log.Information($"[Krangler] Applied Super Krangle preset '{preset.Name}' to '{name}' via local path");
+                            Log.Information($"[Krangler] Applied Super Krangle preset '{preset.Name}' to '{name}' ({(isChocobo ? "chocobo" : isMinion ? "minion" : "player")}) via local path");
                     }
                     else if (Configuration.SuperKrangleApplyAppearance)
                     {
-                        SaveOriginalAppearanceIfNeeded(obj.EntityId, character);
+                        SaveOriginalAppearanceIfNeeded(objectKey, character);
                         var superAppearance = GetSuperKrangleFullAppearance(name);
                         foreach (var (index, value) in superAppearance)
                         {
@@ -594,7 +605,13 @@ public sealed class Plugin : IDalamudPlugin
                 }
                 else
                 {
-                    SaveOriginalAppearanceIfNeeded(obj.EntityId, character);
+                    var shouldKrangle = (isPlayer && Configuration.KrangleAppearance) ||
+                                     (isChocobo && Configuration.KrangleChocobos) ||
+                                     (isMinion && Configuration.KrangleMinions);
+
+                    if (shouldKrangle)
+                    {
+                        SaveOriginalAppearanceIfNeeded(objectKey, character);
 
                     if (Configuration.KrangleRaces)
                     {
@@ -621,16 +638,17 @@ public sealed class Plugin : IDalamudPlugin
                         changed = true;
                     }
                 }
+                }
 
                 if (changed)
                 {
                     QueuePenumbraStyleRedraw(obj.Address);
-                    AppearanceService.MarkApplied(obj.EntityId);
+                AppearanceService.MarkApplied(objectKey);
                     appliedCount++;
                     processedThisCycle++;
 
                     if (!hasLoggedAppearanceScan)
-                        Log.Information($"[Krangler] Applied appearance to '{name}': race={race}, tribe={tribe}, gender={gender}");
+                        Log.Information($"[Krangler] Applied appearance to '{name}' ({(isChocobo ? "chocobo" : isMinion ? "minion" : "player")}): race={race}, tribe={tribe}, gender={gender}");
                 }
             }
             catch (Exception ex)
@@ -785,9 +803,9 @@ public sealed class Plugin : IDalamudPlugin
         }
     }
 
-    private unsafe void SaveOriginalAppearanceIfNeeded(uint entityId, CharacterStruct* character)
+    private unsafe void SaveOriginalAppearanceIfNeeded(ulong objectKey, CharacterStruct* character)
     {
-        if (character == null || originalAppearanceData.ContainsKey(entityId))
+        if (character == null || originalAppearanceData.ContainsKey(objectKey))
             return;
 
         var originalData = new OriginalAppearanceData();
@@ -811,7 +829,7 @@ public sealed class Plugin : IDalamudPlugin
         originalData.IsVisorToggled = character->DrawData.IsVisorToggled;
         originalData.VieraEarsHidden = character->DrawData.VieraEarsHidden;
 
-        originalAppearanceData[entityId] = originalData;
+        originalAppearanceData[objectKey] = originalData;
     }
 
     // ─── Party List Krangling ───────────────────────────────────────────────
@@ -1642,7 +1660,7 @@ public sealed class Plugin : IDalamudPlugin
         if (character == null || character->DrawObject == null)
             return null;
 
-        return character->DrawObject->GetObjectType() == SceneObjectType.CharacterBase
+        return character->DrawObject->GetObjectType() == FFXIVClientStructs.FFXIV.Client.Graphics.Scene.ObjectType.CharacterBase
             ? (CharacterBaseStruct*)character->DrawObject
             : null;
     }
@@ -1942,8 +1960,23 @@ public sealed class Plugin : IDalamudPlugin
         return slotId != 0;
     }
 
-    private string ResolveSuperKrangleSelection(string playerName)
+    private string ResolveSuperKrangleSelection(string playerName, bool isChocobo = false, bool isMinion = false)
     {
+        if (isChocobo)
+        {
+            return string.IsNullOrWhiteSpace(Configuration.SuperKrangleChocoboSelection)
+                ? "Random"
+                : Configuration.SuperKrangleChocoboSelection;
+        }
+
+        if (isMinion)
+        {
+            return string.IsNullOrWhiteSpace(Configuration.SuperKrangleMinionSelection)
+                ? "Random"
+                : Configuration.SuperKrangleMinionSelection;
+        }
+
+        // Player: Check party slot overrides first
         var defaultSelection = string.IsNullOrWhiteSpace(Configuration.SuperKrangleSelection)
             ? "Random"
             : Configuration.SuperKrangleSelection;

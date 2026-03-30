@@ -182,6 +182,28 @@ public class MainWindow : Window, IDisposable
             ImGui.SetTooltip("Randomize hair, face, eyes, and other appearance fields.");
         }
 
+        var krangleChocobos = config.KrangleChocobos;
+        if (ImGui.Checkbox("Krangle Chocobos", ref krangleChocobos))
+        {
+            config.KrangleChocobos = krangleChocobos;
+            config.Save();
+        }
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip("Randomize visible chocobo companions into a full random player race, subrace, gender, and appearance.");
+        }
+
+        var krangleMinions = config.KrangleMinions;
+        if (ImGui.Checkbox("Krangle Minions", ref krangleMinions))
+        {
+            config.KrangleMinions = krangleMinions;
+            config.Save();
+        }
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip("Randomize visible minions into a full random player race, subrace, gender, and appearance.");
+        }
+
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();
@@ -217,6 +239,56 @@ public class MainWindow : Window, IDisposable
             {
                 config.SuperKrangleSelection = globalSelection;
                 config.Save();
+            }
+
+            ImGui.Spacing();
+            ImGui.Text("Companion Preset Targets");
+            ImGui.Separator();
+
+            var superKrangleChocobos = config.SuperKrangleChocobos;
+            if (ImGui.Checkbox("Chocobos", ref superKrangleChocobos))
+            {
+                config.SuperKrangleChocobos = superKrangleChocobos;
+                config.Save();
+            }
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.SetTooltip("Apply the selected preset or random preset to visible chocobo companions.");
+            }
+
+            if (superKrangleChocobos)
+            {
+                var chocoboSelection = string.IsNullOrWhiteSpace(config.SuperKrangleChocoboSelection)
+                    ? "Random"
+                    : config.SuperKrangleChocoboSelection;
+                if (DrawPresetSelectionCombo("Chocobo Preset", ref chocoboSelection, presetNames, false))
+                {
+                    config.SuperKrangleChocoboSelection = chocoboSelection;
+                    config.Save();
+                }
+            }
+
+            var superKrangleMinions = config.SuperKrangleMinions;
+            if (ImGui.Checkbox("Minions", ref superKrangleMinions))
+            {
+                config.SuperKrangleMinions = superKrangleMinions;
+                config.Save();
+            }
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.SetTooltip("Apply the selected preset or random preset to visible minions.");
+            }
+
+            if (superKrangleMinions)
+            {
+                var minionSelection = string.IsNullOrWhiteSpace(config.SuperKrangleMinionSelection)
+                    ? "Random"
+                    : config.SuperKrangleMinionSelection;
+                if (DrawPresetSelectionCombo("Minion Preset", ref minionSelection, presetNames, false))
+                {
+                    config.SuperKrangleMinionSelection = minionSelection;
+                    config.Save();
+                }
             }
 
             ImGui.Spacing();
