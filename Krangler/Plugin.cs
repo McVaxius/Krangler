@@ -63,6 +63,8 @@ public sealed class Plugin : IDalamudPlugin
     private DateTime lastPartyListScan = DateTime.MinValue;
     private bool hasLoggedAppearanceScan;
     private bool hasLoggedPartyList;
+    private bool hasLoggedEventActivation;
+    private DateTime lastEventFlagReset = DateTime.MinValue;
     private const int CustomizeByteCount = 26;
     private const int EquipmentSlotByteCount = 8;
     private const int EquipmentSlotCount = 10;
@@ -110,6 +112,20 @@ public sealed class Plugin : IDalamudPlugin
 
     // Track original customize data for revert, keyed by GameObjectId
     private readonly Dictionary<ulong, OriginalAppearanceData> originalAppearanceData = new();
+
+    // Runtime override for event-based activation
+    private bool IsSuperKrangleEventActive => GetDateBasedForcedPreset() == "Wuk Lamat";
+    private bool SuperKrangleMaster4000_Active => Configuration.SuperKrangleMaster4000 || IsSuperKrangleEventActive;
+
+    private void ResetEventFlags()
+    {
+        var today = DateTime.Today;
+        if (today != lastEventFlagReset)
+        {
+            hasLoggedEventActivation = false;
+            lastEventFlagReset = today;
+        }
+    }
     // Staged local redraw queue modeled after Penumbra's local redraw sequencing.
     private readonly Queue<PendingRedrawEntry> redrawQueue = new();
     private readonly HashSet<nint> pendingRedrawAddresses = new();
@@ -214,8 +230,10 @@ public sealed class Plugin : IDalamudPlugin
         }
     }
 
-    private void OnFrameworkUpdate(IFramework fw)
+    private void Framework_OnUpdate(IFramework framework)
     {
+        ResetEventFlags();
+        
         // Process staggered redraws — one character per N frames
         ProcessRedrawQueue();
         ProcessCreatedCharacterBaseQueue();
@@ -243,9 +261,9 @@ public sealed class Plugin : IDalamudPlugin
             UpdateDtrBar();
             return;
         }
-
+        
         // Appearance krangling via direct memory (throttled to every 5 seconds)
-        if (Configuration.KrangleGenders || Configuration.KrangleRaces || Configuration.KrangleAppearance || Configuration.SuperKrangleMaster4000)
+        if (Configuration.KrangleGenders || Configuration.KrangleRaces || Configuration.KrangleAppearance || SuperKrangleMaster4000_Active)
         {
             var now = DateTime.UtcNow;
             if ((now - lastAppearanceScan).TotalSeconds >= 5)
@@ -256,14 +274,12 @@ public sealed class Plugin : IDalamudPlugin
         }
 
         // Party list krangling (throttled to every 1 second)
-        if (Configuration.KrangleNames || Configuration.SuperKrangleMaster4000)
+        if (Configuration.KrangleNames || SuperKrangleMaster4000_Active)
         {
             var now = DateTime.UtcNow;
             if ((now - lastPartyListScan).TotalSeconds >= 1)
             {
                 lastPartyListScan = now;
-                if (!hasLoggedPartyList)
-                    // Log.Information("[Krangler] Running party list scan (KrangleNames or SuperKrangle enabled)");
                 KranglePartyList();
             }
         }
@@ -292,7 +308,7 @@ public sealed class Plugin : IDalamudPlugin
     {
         var createModelId = modelId;
         if (Configuration.Enabled &&
-            Configuration.SuperKrangleMaster4000 &&
+            SuperKrangleMaster4000_Active &&
             !isRevertingAppearances &&
             customize != null &&
             equipment != null)
@@ -310,7 +326,7 @@ public sealed class Plugin : IDalamudPlugin
 
         var createdCharacterBase = createCharacterBaseHook!.Original(createModelId, customize, equipment, unk);
         if (!Configuration.Enabled ||
-            !Configuration.SuperKrangleMaster4000 ||
+            !SuperKrangleMaster4000_Active ||
             isRevertingAppearances ||
             createdCharacterBase == null ||
             createdCharacterBase->GetModelType() != CharacterBaseStruct.ModelType.Human)
@@ -524,6 +540,13 @@ public sealed class Plugin : IDalamudPlugin
         var appliedCount = 0;
         var processedThisCycle = 0;
         var maxPlayersPerCycle = Math.Max(1, Configuration.SuperKrangleMaxPlayersPerCycle);
+
+        // Event activation notification
+        if (IsSuperKrangleEventActive && !Configuration.SuperKrangleMaster4000 && !hasLoggedEventActivation)
+        {
+            Log.Information("[Krangler] EVENT ACTIVATED: Super Krangle Master 4000 auto-enabled for Wuk Lamat event (March 31 - April 2)");
+            hasLoggedEventActivation = true;
+        }
 
         for (var objectIndex = 0; objectIndex < ObjectTable.Length; objectIndex++)
         {
@@ -1960,8 +1983,48 @@ public sealed class Plugin : IDalamudPlugin
         return slotId != 0;
     }
 
+    private string GetDateBasedForcedPreset()
+    {
+        var today = DateTime.Today;
+        var year = today.Year;
+        var month = today.Month;
+        var day = today.Day;
+
+        // SPECIAL EVENT: March 31 through April 2
+        if ((month == 3 && day >= 31) || (month == 4 && day <= 2))
+            return "Wuk Lamat";
+
+        // Fanfest 2024 dates (when Wuk Lamat was revealed)
+        if (year == 2024 && month == 3 && (day == 15 || day == 16 || day == 17))
+            return "Wuk Lamat";
+
+        // Dawntrail launch date (June 27, 2024)
+        if (year == 2024 && month == 6 && day == 27)
+            return "Wuk Lamat";
+
+        // Wuk Lamat's birthday (if known) - using character reveal anniversary
+        if (month == 3 && day == 15) // Annual anniversary of Fanfest reveal
+            return "Wuk Lamat";
+
+        // Special events - can add more dates as needed
+        // Example: New Year's celebration
+        if (month == 1 && day == 1)
+            return "Wuk Lamat";
+
+        return string.Empty;
+    }
+
     private string ResolveSuperKrangleSelection(string playerName, bool isChocobo = false, bool isMinion = false)
     {
+        // SPECIAL EVENT: Force Wuk Lamat preset on specific dates
+        var forcedPreset = GetDateBasedForcedPreset();
+        if (!string.IsNullOrEmpty(forcedPreset))
+        {
+            if (!hasLoggedAppearanceScan)
+                Log.Information($"[Krangler] Date-based override forcing preset: {forcedPreset}");
+            return forcedPreset;
+        }
+
         if (isChocobo)
         {
             return string.IsNullOrWhiteSpace(Configuration.SuperKrangleChocoboSelection)
