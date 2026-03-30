@@ -7,6 +7,7 @@ using Dalamud.Game.Gui.NamePlate;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
+using Dalamud.Hooking;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
@@ -19,7 +20,12 @@ using Krangler.Models;
 using Lumina.Excel.Sheets;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using CharacterStruct = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
+using CharacterBaseStruct = FFXIVClientStructs.FFXIV.Client.Graphics.Scene.CharacterBase;
+using DrawDataContainerStruct = FFXIVClientStructs.FFXIV.Client.Game.Character.DrawDataContainer;
+using GameCustomizeData = FFXIVClientStructs.FFXIV.Client.Game.Character.CustomizeData;
 using GameObjectStruct = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
+using HumanStruct = FFXIVClientStructs.FFXIV.Client.Graphics.Scene.Human;
+using SceneObjectType = FFXIVClientStructs.FFXIV.Client.Graphics.Scene.ObjectType;
 
 namespace Krangler;
 
@@ -33,6 +39,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IDtrBar DtrBar { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
     [PluginService] internal static IGameGui GameGui { get; private set; } = null!;
+    [PluginService] internal static IGameInteropProvider GameInterop { get; private set; } = null!;
     [PluginService] internal static INamePlateGui NamePlateGui { get; private set; } = null!;
     [PluginService] internal static IPartyList PartyList { get; private set; } = null!;
     [PluginService] internal static IChatGui ChatGui { get; private set; } = null!;
@@ -44,7 +51,6 @@ public sealed class Plugin : IDalamudPlugin
     public Configuration Configuration { get; init; }
     public AppearanceService AppearanceService { get; init; }
     public GlamourerPresetService GlamourerPresetService { get; init; }
-    public GlamourerIpcService GlamourerIpcService { get; init; }
 
     public readonly WindowSystem WindowSystem = new("Krangler");
     private MainWindow MainWindow { get; init; }
@@ -56,13 +62,65 @@ public sealed class Plugin : IDalamudPlugin
     private DateTime lastPartyListScan = DateTime.MinValue;
     private bool hasLoggedAppearanceScan;
     private bool hasLoggedPartyList;
+    private const int CustomizeByteCount = 26;
+    private const int EquipmentSlotByteCount = 8;
+    private const int EquipmentSlotCount = 10;
+    private const int EquipmentByteCount = EquipmentSlotByteCount * EquipmentSlotCount;
+    private const uint InvisibilityDrawStateFlag = 0x00000002;
+    private const ushort SmallClothesNpcModelId = 9903;
+
+    private sealed class OriginalAppearanceData
+    {
+        public byte[] CustomizeData { get; } = new byte[CustomizeByteCount];
+        public byte[] EquipmentData { get; } = new byte[EquipmentByteCount];
+        public WeaponModelId MainHandWeapon { get; set; }
+        public WeaponModelId OffHandWeapon { get; set; }
+        public ushort Glasses0 { get; set; }
+        public ushort Glasses1 { get; set; }
+        public bool IsHatHidden { get; set; }
+        public bool IsWeaponHidden { get; set; }
+        public bool IsVisorToggled { get; set; }
+        public bool VieraEarsHidden { get; set; }
+    }
+
+    private readonly struct PendingRedrawEntry
+    {
+        public PendingRedrawEntry(nint address, bool makeVisible)
+        {
+            Address = address;
+            MakeVisible = makeVisible;
+        }
+
+        public nint Address { get; }
+        public bool MakeVisible { get; }
+    }
+
+    private readonly struct PendingCreatedCharacterBaseEntry
+    {
+        public PendingCreatedCharacterBaseEntry(nint address, int remainingAttempts)
+        {
+            Address = address;
+            RemainingAttempts = remainingAttempts;
+        }
+
+        public nint Address { get; }
+        public int RemainingAttempts { get; }
+    }
 
     // Track original customize data for revert, keyed by EntityId
-    private readonly Dictionary<uint, byte[]> originalCustomizeData = new();
-    // Staggered redraw queue — one character per N frames to avoid crashing the game
-    private readonly Queue<nint> redrawQueue = new();
+    private readonly Dictionary<uint, OriginalAppearanceData> originalAppearanceData = new();
+    // Staged local redraw queue modeled after Penumbra's local redraw sequencing.
+    private readonly Queue<PendingRedrawEntry> redrawQueue = new();
+    private readonly HashSet<nint> pendingRedrawAddresses = new();
+    private readonly Queue<PendingCreatedCharacterBaseEntry> pendingCreatedCharacterBaseQueue = new();
+    private readonly HashSet<nint> pendingCreatedCharacterBaseAddresses = new();
+    private Hook<CreateCharacterBaseDelegate>? createCharacterBaseHook;
     private int redrawCooldownFrames = 0;
     private int currentVisiblePlayerCount;
+    private bool isRevertingAppearances;
+    private const int CharacterBaseReapplyAttempts = 5;
+
+    private unsafe delegate CharacterBaseStruct* CreateCharacterBaseDelegate(uint modelId, GameCustomizeData* customize, EquipmentModelId* equipment, byte unk);
 
     public Plugin()
     {
@@ -70,7 +128,6 @@ public sealed class Plugin : IDalamudPlugin
 
         AppearanceService = new AppearanceService(Log, ObjectTable, Configuration);
         GlamourerPresetService = new GlamourerPresetService(Log, PluginInterface);
-        GlamourerIpcService = new GlamourerIpcService(Log, PluginInterface);
 
         MainWindow = new MainWindow(this);
         WindowSystem.AddWindow(MainWindow);
@@ -95,7 +152,6 @@ public sealed class Plugin : IDalamudPlugin
         // Nameplate hook for name krangling
         NamePlateGui.OnNamePlateUpdate += OnNamePlateUpdate;
 
-        // Chat message hook for chat garbling
         try 
         {
             ChatGui.ChatMessage += OnChatMessage;
@@ -111,6 +167,19 @@ public sealed class Plugin : IDalamudPlugin
 
         // Territory change handler for re-applying krangling
         ClientState.TerritoryChanged += OnTerritoryChanged;
+
+        try
+        {
+            unsafe
+            {
+                createCharacterBaseHook = GameInterop.HookFromAddress<CreateCharacterBaseDelegate>((nint)CharacterBaseStruct.MemberFunctionPointers.Create, CreateCharacterBaseDetour);
+            }
+            createCharacterBaseHook.Enable();
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"[Krangler] Failed to initialize CharacterBase.Create hook: {ex.Message}");
+        }
 
         wasEnabled = Configuration.Enabled;
 
@@ -148,6 +217,7 @@ public sealed class Plugin : IDalamudPlugin
     {
         // Process staggered redraws — one character per N frames
         ProcessRedrawQueue();
+        ProcessCreatedCharacterBaseQueue();
 
         // Track enable/disable transitions for logging
         if (Configuration.Enabled != wasEnabled)
@@ -162,8 +232,6 @@ public sealed class Plugin : IDalamudPlugin
             else
             {
                 Log.Information("[Krangler] Krangling deactivated");
-                KrangleService.ClearCache();
-                AppearanceService.Reset();
                 RevertAllAppearances();
             }
             wasEnabled = Configuration.Enabled;
@@ -219,30 +287,128 @@ public sealed class Plugin : IDalamudPlugin
         hasLoggedPartyList = false;
     }
 
+    private unsafe CharacterBaseStruct* CreateCharacterBaseDetour(uint modelId, GameCustomizeData* customize, EquipmentModelId* equipment, byte unk)
+    {
+        var createdCharacterBase = createCharacterBaseHook!.Original(modelId, customize, equipment, unk);
+        if (!Configuration.Enabled ||
+            !Configuration.SuperKrangleMaster4000 ||
+            isRevertingAppearances ||
+            createdCharacterBase == null ||
+            createdCharacterBase->GetModelType() != CharacterBaseStruct.ModelType.Human)
+        {
+            return createdCharacterBase;
+        }
+
+        try
+        {
+            if (!TryReapplyPresetToCreatedCharacterBase((nint)createdCharacterBase))
+                QueueCreatedCharacterBaseReapply((nint)createdCharacterBase);
+        }
+        catch (Exception ex)
+        {
+            if (!hasLoggedAppearanceScan)
+                Log.Warning($"[Krangler] CharacterBase.Create reapply failed: {ex.Message}");
+        }
+
+        return createdCharacterBase;
+    }
+
+    private void QueueCreatedCharacterBaseReapply(nint address)
+    {
+        if (address == 0 || !pendingCreatedCharacterBaseAddresses.Add(address))
+            return;
+
+        pendingCreatedCharacterBaseQueue.Enqueue(new PendingCreatedCharacterBaseEntry(address, CharacterBaseReapplyAttempts));
+    }
+
+    private unsafe void ProcessCreatedCharacterBaseQueue()
+    {
+        if (pendingCreatedCharacterBaseQueue.Count == 0)
+            return;
+
+        var pendingCount = pendingCreatedCharacterBaseQueue.Count;
+        for (var i = 0; i < pendingCount; i++)
+        {
+            var pending = pendingCreatedCharacterBaseQueue.Dequeue();
+            if (TryReapplyPresetToCreatedCharacterBase(pending.Address))
+            {
+                pendingCreatedCharacterBaseAddresses.Remove(pending.Address);
+                continue;
+            }
+
+            if (pending.RemainingAttempts > 1)
+            {
+                pendingCreatedCharacterBaseQueue.Enqueue(new PendingCreatedCharacterBaseEntry(pending.Address, pending.RemainingAttempts - 1));
+            }
+            else
+            {
+                pendingCreatedCharacterBaseAddresses.Remove(pending.Address);
+            }
+        }
+    }
+
+    private unsafe bool TryReapplyPresetToCreatedCharacterBase(nint characterBaseAddress)
+    {
+        if (!TryFindPlayerCharacterByDrawObject(characterBaseAddress, out var entityId, out var playerName, out var character))
+            return false;
+
+        if (!AppearanceService.IsApplied(entityId) && !originalAppearanceData.ContainsKey(entityId))
+            return true;
+
+        var selection = ResolveSuperKrangleSelection(playerName);
+        var preset = GlamourerPresetService.ResolvePresetSelection(playerName, selection);
+        if (preset == null)
+            return true;
+
+        SaveOriginalAppearanceIfNeeded(entityId, character);
+        if (ApplySuperKranglePreset(character, preset, false) && !hasLoggedAppearanceScan)
+            Log.Information($"[Krangler] Re-applied preset '{preset.Name}' during CharacterBase.Create for '{playerName}'");
+
+        return true;
+    }
+
+    private unsafe bool TryFindPlayerCharacterByDrawObject(nint drawObjectAddress, out uint entityId, out string playerName, out CharacterStruct* character)
+    {
+        entityId = 0;
+        playerName = string.Empty;
+        character = null;
+
+        if (drawObjectAddress == 0)
+            return false;
+
+        for (var objectIndex = 0; objectIndex < ObjectTable.Length; objectIndex++)
+        {
+            var obj = ObjectTable[objectIndex];
+            if (obj == null || obj.ObjectKind != ObjectKind.Player || obj.Address == 0)
+                continue;
+
+            var candidate = (CharacterStruct*)obj.Address;
+            if (candidate == null || (nint)candidate->DrawObject != drawObjectAddress)
+                continue;
+
+            entityId = obj.EntityId;
+            playerName = obj.Name.ToString();
+            character = candidate;
+            return !string.IsNullOrWhiteSpace(playerName);
+        }
+
+        return false;
+    }
+
     // ─── Chat Message Garbling ───────────────────────────────────────
 
     private void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
     {
-        // Only process if krangling is enabled and chat garbling is enabled
         if (!Configuration.Enabled || !Configuration.KrangleChat)
             return;
-
-        // Process ALL chat channels now (no filtering)
 
         try
         {
             var messageText = message.TextValue;
             var senderText = sender.TextValue;
-            
-            Log.Information($"[Krangler] Chat intercepted - Type: {type}, Sender: '{senderText}', Message: '{messageText}'");
-            
-            // Garble ALL text in the message and sender
             var garbledMessage = GenerateGarbledText(messageText.Length);
             var garbledSender = GenerateGarbledText(senderText.Length);
 
-            Log.Information($"[Krangler] Chat garbled - Sender: '{senderText}' -> '{garbledSender}', Message: '{messageText}' -> '{garbledMessage}'");
-
-            // Apply the garbled text
             message = new SeString(new List<Payload> { new TextPayload(garbledMessage) });
             sender = new SeString(new List<Payload> { new TextPayload(garbledSender) });
         }
@@ -255,20 +421,18 @@ public sealed class Plugin : IDalamudPlugin
     private static string GenerateGarbledText(int length)
     {
         if (length <= 0) return string.Empty;
-        
+
         var random = new Random();
         var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
         var result = new char[length];
-        
+
         for (int i = 0; i < length; i++)
         {
             result[i] = chars[random.Next(chars.Length)];
         }
-        
+
         return new string(result);
     }
-
-    // ─── Direct Appearance Modification ─────────────────────────────────────
 
     private unsafe void ScanAndKrangleAppearances()
     {
@@ -288,7 +452,6 @@ public sealed class Plugin : IDalamudPlugin
             if (string.IsNullOrEmpty(name))
                 continue;
 
-            // Skip if already applied
             if (AppearanceService.IsApplied(obj.EntityId))
                 continue;
 
@@ -299,29 +462,23 @@ public sealed class Plugin : IDalamudPlugin
             {
                 var character = (CharacterStruct*)obj.Address;
                 if (character == null) continue;
-
                 var customizePtr = (byte*)&character->DrawData.CustomizeData;
 
-                // Generate krangled appearance
                 var (race, tribe, gender) = Configuration.SuperKrangleMaster4000
                     ? GetSuperKrangleAppearance(name)
                     : AppearanceService.GetRandomRaceGender(name);
                 bool changed = false;
-                var usedGlamourerIpc = false;
 
                 if (Configuration.SuperKrangleMaster4000)
                 {
-                    // Super Krangle: Use resolved preset selection for appearance + targeted equipment overrides.
                     var selection = ResolveSuperKrangleSelection(name);
                     var preset = GlamourerPresetService.ResolvePresetSelection(name, selection);
                     if (preset != null)
                     {
-                        SaveOriginalCustomizeIfNeeded(obj.EntityId, customizePtr);
-                        var appliedAppearance = ApplyGlamourerPreset(character, preset, customizePtr);
-                        var appliedEquipment = ApplyGlamourerEquipment(character, preset);
-                        changed = appliedAppearance || appliedEquipment > 0;
+                        SaveOriginalAppearanceIfNeeded(obj.EntityId, character);
+                        changed = ApplySuperKranglePreset(character, preset, true);
 
-                        if (appliedAppearance)
+                        if (changed)
                         {
                             race = customizePtr[0];
                             tribe = customizePtr[4];
@@ -329,42 +486,43 @@ public sealed class Plugin : IDalamudPlugin
                         }
 
                         if (!hasLoggedAppearanceScan && changed)
-                            Log.Information($"[Krangler] Applied Super Krangle preset '{preset.Name}' to '{name}' via local fallback");
+                            Log.Information($"[Krangler] Applied Super Krangle preset '{preset.Name}' to '{name}' via local path");
                     }
-                    else
+                    else if (Configuration.SuperKrangleApplyAppearance)
                     {
-                        // Fallback to hardcoded NPCs if no presets loaded
-                        if (Configuration.SuperKrangleApplyAppearance)
+                        SaveOriginalAppearanceIfNeeded(obj.EntityId, character);
+                        var superAppearance = GetSuperKrangleFullAppearance(name);
+                        foreach (var (index, value) in superAppearance)
                         {
-                            SaveOriginalCustomizeIfNeeded(obj.EntityId, customizePtr);
-                            var superAppearance = GetSuperKrangleFullAppearance(name);
-                            foreach (var (index, value) in superAppearance)
-                            {
-                                if (index < 26)
-                                    customizePtr[index] = value;
-                            }
-                            race = customizePtr[0];
-                            tribe = customizePtr[4];
-                            gender = customizePtr[1];
-                            changed = true;
+                            if (index < CustomizeByteCount)
+                                customizePtr[index] = value;
                         }
+
+                        var refreshedAppearance = RefreshCharacterCustomize(character);
+
+                        race = customizePtr[0];
+                        tribe = customizePtr[4];
+                        gender = customizePtr[1];
+                        changed = true;
+
+                        if (!hasLoggedAppearanceScan)
+                            Log.Information($"[Krangler] Native customize refresh for fallback Super Krangle appearance returned {refreshedAppearance}");
                     }
                 }
                 else
                 {
-                    SaveOriginalCustomizeIfNeeded(obj.EntityId, customizePtr);
+                    SaveOriginalAppearanceIfNeeded(obj.EntityId, character);
 
-                    // Normal krangling options
                     if (Configuration.KrangleRaces)
                     {
-                        customizePtr[0] = race;   // Race
-                        customizePtr[4] = tribe;  // Tribe
+                        customizePtr[0] = race;
+                        customizePtr[4] = tribe;
                         changed = true;
                     }
 
                     if (Configuration.KrangleGenders)
                     {
-                        customizePtr[1] = gender; // Sex
+                        customizePtr[1] = gender;
                         changed = true;
                     }
 
@@ -373,21 +531,17 @@ public sealed class Plugin : IDalamudPlugin
                         var appearance = AppearanceService.GetRandomAppearance(name, race, gender);
                         foreach (var (index, value) in appearance)
                         {
-                            if (index < 26)
+                            if (index < CustomizeByteCount)
                                 customizePtr[index] = value;
                         }
+
                         changed = true;
                     }
                 }
 
                 if (changed)
                 {
-                    if (!usedGlamourerIpc)
-                    {
-                        // Queue a safe staggered redraw so packed customize changes refresh reliably.
-                        redrawQueue.Enqueue(obj.Address);
-                    }
-
+                    QueuePenumbraStyleRedraw(obj.Address);
                     AppearanceService.MarkApplied(obj.EntityId);
                     appliedCount++;
                     processedThisCycle++;
@@ -425,18 +579,31 @@ public sealed class Plugin : IDalamudPlugin
 
         if (redrawQueue.Count == 0) return;
 
-        var address = redrawQueue.Dequeue();
+        var pendingRedraw = redrawQueue.Dequeue();
         try
         {
-            var gameObj = (GameObjectStruct*)address;
-            // Safe redraw: DisableDraw/EnableDraw only affects rendering,
-            // does NOT change ObjectKind so the game won't crash processing the object
-            gameObj->DisableDraw();
-            gameObj->EnableDraw();
+            var gameObj = (GameObjectStruct*)pendingRedraw.Address;
+            if (gameObj == null)
+            {
+                pendingRedrawAddresses.Remove(pendingRedraw.Address);
+                return;
+            }
+
+            if (pendingRedraw.MakeVisible)
+            {
+                WriteActorVisible(gameObj);
+                pendingRedrawAddresses.Remove(pendingRedraw.Address);
+            }
+            else
+            {
+                WriteActorInvisible(gameObj);
+                redrawQueue.Enqueue(new PendingRedrawEntry(pendingRedraw.Address, true));
+            }
         }
         catch (Exception ex)
         {
-            Log.Warning($"[Krangler] Safe redraw failed: {ex.Message}");
+            pendingRedrawAddresses.Remove(pendingRedraw.Address);
+            Log.Warning($"[Krangler] Local redraw failed: {ex.Message}");
         }
 
         redrawCooldownFrames = CalculateRedrawDelayFrames();
@@ -449,108 +616,119 @@ public sealed class Plugin : IDalamudPlugin
         return Math.Clamp(scaledDelay, 1, 20);
     }
 
-    private string ResolveSuperKrangleSelection(string playerName)
+    private void QueuePenumbraStyleRedraw(nint address)
     {
-        if (DateTime.UtcNow.Month == 4 &&
-            DateTime.UtcNow.Day == 1 &&
-            GlamourerPresetService.GetPresetByName("Wuk Lamat") != null)
-        {
-            return "Wuk Lamat";
-        }
+        if (address == 0 || !pendingRedrawAddresses.Add(address))
+            return;
 
-        var slotSelection = GetPartySlotSelection(playerName);
-        if (!string.IsNullOrWhiteSpace(slotSelection) &&
-            !string.Equals(slotSelection, "Use Global", StringComparison.OrdinalIgnoreCase))
-        {
-            return slotSelection;
-        }
-
-        return string.IsNullOrWhiteSpace(Configuration.SuperKrangleSelection)
-            ? "Random"
-            : Configuration.SuperKrangleSelection;
+        redrawQueue.Enqueue(new PendingRedrawEntry(address, false));
     }
 
-    private string? GetPartySlotSelection(string playerName)
+    private void ClearPendingRedraws()
     {
-        EnsureSuperKrangleSlotSelections();
-
-        var localPlayerName = ObjectTable.LocalPlayer?.Name.ToString();
-        if (!string.IsNullOrEmpty(localPlayerName) &&
-            string.Equals(localPlayerName, playerName, StringComparison.OrdinalIgnoreCase))
-        {
-            return Configuration.SuperKranglePartySlotSelections[0];
-        }
-
-        for (var i = 0; i < PartyList.Length && i < Configuration.SuperKranglePartySlotSelections.Count; i++)
-        {
-            var member = PartyList[i];
-            if (member == null)
-                continue;
-
-            var memberName = member.Name.ToString();
-            if (string.Equals(memberName, playerName, StringComparison.OrdinalIgnoreCase))
-            {
-                return Configuration.SuperKranglePartySlotSelections[i];
-            }
-        }
-
-        return null;
+        redrawQueue.Clear();
+        pendingRedrawAddresses.Clear();
+        redrawCooldownFrames = 0;
     }
 
-    private void EnsureSuperKrangleSlotSelections()
+    private void ClearPendingCreatedCharacterBaseReapplies()
     {
-        while (Configuration.SuperKranglePartySlotSelections.Count > 8)
-        {
-            Configuration.SuperKranglePartySlotSelections.RemoveAt(Configuration.SuperKranglePartySlotSelections.Count - 1);
-        }
+        pendingCreatedCharacterBaseQueue.Clear();
+        pendingCreatedCharacterBaseAddresses.Clear();
+    }
 
-        while (Configuration.SuperKranglePartySlotSelections.Count < 8)
-        {
-            Configuration.SuperKranglePartySlotSelections.Add("Use Global");
-        }
+    private static unsafe void WriteActorInvisible(GameObjectStruct* gameObj)
+    {
+        var renderFlags = (uint*)&gameObj->RenderFlags;
+        *renderFlags |= InvisibilityDrawStateFlag;
+    }
+
+    private static unsafe void WriteActorVisible(GameObjectStruct* gameObj)
+    {
+        var renderFlags = (uint*)&gameObj->RenderFlags;
+        *renderFlags &= ~InvisibilityDrawStateFlag;
     }
 
     private unsafe void RevertAllAppearances()
     {
-        GlamourerIpcService.RevertAppliedDesigns();
-
+        isRevertingAppearances = true;
+        ClearPendingRedraws();
+        ClearPendingCreatedCharacterBaseReapplies();
         var reverted = 0;
-        foreach (var obj in ObjectTable)
+        try
         {
-            if (obj == null) continue;
-            if (!originalCustomizeData.TryGetValue(obj.EntityId, out var originalBytes)) continue;
-
-            try
+            foreach (var obj in ObjectTable)
             {
-                var character = (CharacterStruct*)obj.Address;
-                var customizePtr = (byte*)&character->DrawData.CustomizeData;
-                for (int j = 0; j < 26; j++)
-                    customizePtr[j] = originalBytes[j];
+                if (obj == null) continue;
+                if (!originalAppearanceData.TryGetValue(obj.EntityId, out var originalData)) continue;
 
-                // Queue safe staggered redraw
-                redrawQueue.Enqueue(obj.Address);
-                reverted++;
+                try
+                {
+                    var character = (CharacterStruct*)obj.Address;
+                    if (character == null)
+                        continue;
+
+                    var customizePtr = (byte*)&character->DrawData.CustomizeData;
+                    for (var j = 0; j < CustomizeByteCount; j++)
+                        customizePtr[j] = originalData.CustomizeData[j];
+
+                    fixed (EquipmentModelId* equipmentModelPtr = &character->DrawData.EquipmentModelIds[0])
+                    {
+                        var equipmentPtr = (byte*)equipmentModelPtr;
+                        for (var j = 0; j < EquipmentByteCount; j++)
+                            equipmentPtr[j] = originalData.EquipmentData[j];
+                    }
+
+                    RestoreWeaponData(character, originalData);
+                    RestoreBonusItems(character, originalData);
+                    RestoreDrawMetaState(character, originalData);
+                    RefreshCharacterCustomize(character);
+                    RefreshCharacterEquipment(character);
+
+                    QueuePenumbraStyleRedraw(obj.Address);
+                    reverted++;
+                }
+                catch { /* best effort revert */ }
             }
-            catch { /* best effort revert */ }
         }
+        finally
+        {
+            if (reverted > 0)
+                Log.Information($"[Krangler] Reverted {reverted} appearance changes");
 
-        if (reverted > 0)
-            Log.Information($"[Krangler] Reverted {reverted} appearance changes");
-
-        originalCustomizeData.Clear();
-        AppearanceService.Reset();
+            originalAppearanceData.Clear();
+            AppearanceService.Reset();
+            isRevertingAppearances = false;
+        }
     }
 
-    private unsafe void SaveOriginalCustomizeIfNeeded(uint entityId, byte* customizePtr)
+    private unsafe void SaveOriginalAppearanceIfNeeded(uint entityId, CharacterStruct* character)
     {
-        if (originalCustomizeData.ContainsKey(entityId))
+        if (character == null || originalAppearanceData.ContainsKey(entityId))
             return;
 
-        var originalBytes = new byte[26];
-        for (var j = 0; j < 26; j++)
-            originalBytes[j] = customizePtr[j];
+        var originalData = new OriginalAppearanceData();
+        var customizePtr = (byte*)&character->DrawData.CustomizeData;
+        for (var j = 0; j < CustomizeByteCount; j++)
+            originalData.CustomizeData[j] = customizePtr[j];
 
-        originalCustomizeData[entityId] = originalBytes;
+        fixed (EquipmentModelId* equipmentModelPtr = &character->DrawData.EquipmentModelIds[0])
+        {
+            var equipmentPtr = (byte*)equipmentModelPtr;
+            for (var j = 0; j < EquipmentByteCount; j++)
+                originalData.EquipmentData[j] = equipmentPtr[j];
+        }
+
+        originalData.MainHandWeapon = character->DrawData.Weapon(DrawDataContainerStruct.WeaponSlot.MainHand).ModelId;
+        originalData.OffHandWeapon = character->DrawData.Weapon(DrawDataContainerStruct.WeaponSlot.OffHand).ModelId;
+        originalData.Glasses0 = character->DrawData.GlassesIds[0];
+        originalData.Glasses1 = character->DrawData.GlassesIds[1];
+        originalData.IsHatHidden = character->DrawData.IsHatHidden;
+        originalData.IsWeaponHidden = character->DrawData.IsWeaponHidden;
+        originalData.IsVisorToggled = character->DrawData.IsVisorToggled;
+        originalData.VieraEarsHidden = character->DrawData.VieraEarsHidden;
+
+        originalAppearanceData[entityId] = originalData;
     }
 
     // ─── Party List Krangling ───────────────────────────────────────────────
@@ -1021,12 +1199,33 @@ public sealed class Plugin : IDalamudPlugin
     ///   +0x1D0: EquipmentModelIds[10] (8 bytes each)
     ///   +0x220: CustomizeData (26 bytes)
     /// </summary>
+    private unsafe bool ApplySuperKranglePreset(CharacterStruct* character, GlamourerPreset preset, bool logRefreshResult)
+    {
+        if (character == null)
+            return false;
+
+        var customizePtr = (byte*)&character->DrawData.CustomizeData;
+        var appliedAppearance = ApplyGlamourerPreset(character, preset, customizePtr);
+        var refreshedAppearance = appliedAppearance && RefreshCharacterCustomize(character);
+        var appliedEquipment = ApplyGlamourerEquipment(character, preset);
+        var appliedWeapons = ApplyGlamourerWeapons(character, preset);
+        var appliedBonus = ApplyGlamourerBonusItems(character, preset);
+        var appliedMetaState = ApplyGlamourerMetaState(character, preset);
+        var changed = appliedAppearance || appliedEquipment > 0 || appliedWeapons > 0 || appliedBonus || appliedMetaState;
+
+        if (logRefreshResult && !hasLoggedAppearanceScan && appliedAppearance)
+            Log.Information($"[Krangler] Native customize refresh for preset '{preset.Name}' returned {refreshedAppearance}");
+
+        return changed;
+    }
+
     private unsafe bool ApplyGlamourerPreset(CharacterStruct* character, GlamourerPreset preset, byte* customizePtr)
     {
         // ── Apply customize data (26 bytes) ──
         if (character == null || customizePtr == null || !Configuration.SuperKrangleApplyAppearance)
             return false;
 
+        ref var customize = ref character->DrawData.CustomizeData;
         var c = preset.Customize;
         byte? targetRace = null;
         if (c.Clan.Apply && TryGetRaceForClan(c.Clan.Value, out var clanRace))
@@ -1038,54 +1237,42 @@ public sealed class Plugin : IDalamudPlugin
             targetRace = c.Race.Value;
         }
 
-        if (targetRace.HasValue) customizePtr[0] = targetRace.Value;
-        if (c.Gender.Apply) customizePtr[1] = c.Gender.Value;
-        if (c.BodyType.Apply) customizePtr[2] = c.BodyType.Value;
-        if (c.Height.Apply) customizePtr[3] = c.Height.Value;
-        if (c.Clan.Apply) customizePtr[4] = c.Clan.Value;
-        if (c.Face.Apply) customizePtr[5] = c.Face.Value;
-        if (c.Hairstyle.Apply) customizePtr[6] = c.Hairstyle.Value;
-        if (c.Highlights.Apply)
-            customizePtr[7] = (byte)((customizePtr[7] & 0x7F) | (c.Highlights.Value != 0 ? 0x80 : 0));
-        if (c.SkinColor.Apply) customizePtr[8] = c.SkinColor.Value;
-        if (c.EyeColorRight.Apply) customizePtr[9] = c.EyeColorRight.Value;
-        if (c.HairColor.Apply) customizePtr[10] = c.HairColor.Value;
-        if (c.HighlightsColor.Apply) customizePtr[11] = c.HighlightsColor.Value;
-
-        // Byte 12: Facial features bitfield (bits 0-6 = features 1-7, bit 7 = legacy tattoo)
-        byte facialBits = customizePtr[12];
-        if (c.FacialFeature1.Apply) facialBits = (byte)((facialBits & ~0x01) | (c.FacialFeature1.Value != 0 ? 0x01 : 0));
-        if (c.FacialFeature2.Apply) facialBits = (byte)((facialBits & ~0x02) | (c.FacialFeature2.Value != 0 ? 0x02 : 0));
-        if (c.FacialFeature3.Apply) facialBits = (byte)((facialBits & ~0x04) | (c.FacialFeature3.Value != 0 ? 0x04 : 0));
-        if (c.FacialFeature4.Apply) facialBits = (byte)((facialBits & ~0x08) | (c.FacialFeature4.Value != 0 ? 0x08 : 0));
-        if (c.FacialFeature5.Apply) facialBits = (byte)((facialBits & ~0x10) | (c.FacialFeature5.Value != 0 ? 0x10 : 0));
-        if (c.FacialFeature6.Apply) facialBits = (byte)((facialBits & ~0x20) | (c.FacialFeature6.Value != 0 ? 0x20 : 0));
-        if (c.FacialFeature7.Apply) facialBits = (byte)((facialBits & ~0x40) | (c.FacialFeature7.Value != 0 ? 0x40 : 0));
-        if (c.LegacyTattoo.Apply) facialBits = (byte)((facialBits & ~0x80) | (c.LegacyTattoo.Value != 0 ? 0x80 : 0));
-        customizePtr[12] = facialBits;
-
-        if (c.TattooColor.Apply) customizePtr[13] = c.TattooColor.Value;
-        if (c.Eyebrows.Apply) customizePtr[14] = c.Eyebrows.Value;
-        if (c.EyeColorLeft.Apply) customizePtr[15] = c.EyeColorLeft.Value;
-        if (c.EyeShape.Apply)
-            customizePtr[16] = (byte)((customizePtr[16] & 0x80) | (c.EyeShape.Value & 0x7F));
-        if (c.SmallIris.Apply)
-            customizePtr[16] = (byte)((customizePtr[16] & 0x7F) | (c.SmallIris.Value != 0 ? 0x80 : 0));
-        if (c.Nose.Apply) customizePtr[17] = c.Nose.Value;
-        if (c.Jaw.Apply) customizePtr[18] = c.Jaw.Value;
-        if (c.Mouth.Apply)
-            customizePtr[19] = (byte)((customizePtr[19] & 0x80) | (c.Mouth.Value & 0x7F));
-        if (c.Lipstick.Apply)
-            customizePtr[19] = (byte)((customizePtr[19] & 0x7F) | (c.Lipstick.Value != 0 ? 0x80 : 0));
-        if (c.LipColor.Apply) customizePtr[20] = c.LipColor.Value;
-        if (c.MuscleMass.Apply) customizePtr[21] = c.MuscleMass.Value;
-        if (c.TailShape.Apply) customizePtr[22] = c.TailShape.Value;
-        if (c.BustSize.Apply) customizePtr[23] = c.BustSize.Value;
-        if (c.FacePaint.Apply)
-            customizePtr[24] = (byte)((customizePtr[24] & 0x80) | (c.FacePaint.Value & 0x7F));
-        if (c.FacePaintReversed.Apply)
-            customizePtr[24] = (byte)((customizePtr[24] & 0x7F) | (c.FacePaintReversed.Value != 0 ? 0x80 : 0));
-        if (c.FacePaintColor.Apply) customizePtr[25] = c.FacePaintColor.Value;
+        if (targetRace.HasValue) customize.Race = targetRace.Value;
+        if (c.Gender.Apply) customize.Sex = c.Gender.Value;
+        if (c.BodyType.Apply) customize.BodyType = c.BodyType.Value;
+        if (c.Height.Apply) customize.Height = c.Height.Value;
+        if (c.Clan.Apply) customize.Tribe = c.Clan.Value;
+        if (c.Face.Apply) customize.Face = c.Face.Value;
+        if (c.Hairstyle.Apply) customize.Hairstyle = c.Hairstyle.Value;
+        if (c.Highlights.Apply) customize.Highlights = c.Highlights.Value != 0;
+        if (c.SkinColor.Apply) customize.SkinColor = c.SkinColor.Value;
+        if (c.EyeColorRight.Apply) customize.EyeColorRight = c.EyeColorRight.Value;
+        if (c.HairColor.Apply) customize.HairColor = c.HairColor.Value;
+        if (c.HighlightsColor.Apply) customize.HighlightsColor = c.HighlightsColor.Value;
+        if (c.FacialFeature1.Apply) customize.FacialFeature1 = c.FacialFeature1.Value != 0;
+        if (c.FacialFeature2.Apply) customize.FacialFeature2 = c.FacialFeature2.Value != 0;
+        if (c.FacialFeature3.Apply) customize.FacialFeature3 = c.FacialFeature3.Value != 0;
+        if (c.FacialFeature4.Apply) customize.FacialFeature4 = c.FacialFeature4.Value != 0;
+        if (c.FacialFeature5.Apply) customize.FacialFeature5 = c.FacialFeature5.Value != 0;
+        if (c.FacialFeature6.Apply) customize.FacialFeature6 = c.FacialFeature6.Value != 0;
+        if (c.FacialFeature7.Apply) customize.FacialFeature7 = c.FacialFeature7.Value != 0;
+        if (c.LegacyTattoo.Apply) customize.LegacyTattoo = c.LegacyTattoo.Value != 0;
+        if (c.TattooColor.Apply) customize.TattooColor = c.TattooColor.Value;
+        if (c.Eyebrows.Apply) customize.Eyebrows = c.Eyebrows.Value;
+        if (c.EyeColorLeft.Apply) customize.EyeColorLeft = c.EyeColorLeft.Value;
+        if (c.EyeShape.Apply) customize.EyeShape = c.EyeShape.Value;
+        if (c.SmallIris.Apply) customize.SmallIris = c.SmallIris.Value != 0;
+        if (c.Nose.Apply) customize.Nose = c.Nose.Value;
+        if (c.Jaw.Apply) customize.Jaw = c.Jaw.Value;
+        if (c.Mouth.Apply) customize.Mouth = c.Mouth.Value;
+        if (c.Lipstick.Apply) customize.Lipstick = c.Lipstick.Value != 0;
+        if (c.LipColor.Apply) customize.LipColorFurPattern = c.LipColor.Value;
+        if (c.MuscleMass.Apply) customize.MuscleMass = c.MuscleMass.Value;
+        if (c.TailShape.Apply) customize.TailShape = c.TailShape.Value;
+        if (c.BustSize.Apply) customize.BustSize = c.BustSize.Value;
+        if (c.FacePaint.Apply) customize.FacePaint = c.FacePaint.Value;
+        if (c.FacePaintReversed.Apply) customize.FacePaintReversed = c.FacePaintReversed.Value != 0;
+        if (c.FacePaintColor.Apply) customize.FacePaintColor = c.FacePaintColor.Value;
 
         if (c.ModelId != 0 && !hasLoggedAppearanceScan)
             Log.Warning($"[Krangler] Preset '{preset.Name}' requests non-human ModelId {c.ModelId}, which still requires a game-level model swap path.");
@@ -1132,7 +1319,6 @@ public sealed class Plugin : IDalamudPlugin
         var appliedCount = 0;
         fixed (EquipmentModelId* equipmentModelPtr = &character->DrawData.EquipmentModelIds[0])
         {
-            var equipmentPtr = (byte*)equipmentModelPtr;
             foreach (var (slotName, slotData) in preset.Equipment)
             {
                 if (!slotData.Apply || !ShouldApplyEquipmentSlot(slotName))
@@ -1142,27 +1328,35 @@ public sealed class Plugin : IDalamudPlugin
                 if (!slotIndex.HasValue)
                     continue;
 
-                if (!TryDecodeGlamourerItemId(slotData.ItemId, out var setId, out var variant, out var isEmpty))
+                if (!TryDecodeGlamourerItemId(slotName, slotData.ItemId, out var setId, out var variant, out var isEmpty))
                 {
                     if (!hasLoggedAppearanceScan)
                         Log.Warning($"[Krangler] Could not decode preset slot '{slotName}' item id {slotData.ItemId}");
                     continue;
                 }
 
-                var byteOffset = slotIndex.Value * 8;
-                *(ushort*)(equipmentPtr + byteOffset) = setId;
-                *(equipmentPtr + byteOffset + 2) = variant;
+                var modelId = equipmentModelPtr + slotIndex.Value;
+                modelId->Id = setId;
+                modelId->Variant = variant;
 
                 if (isEmpty)
                 {
-                    *(equipmentPtr + byteOffset + 3) = 0;
-                    *(equipmentPtr + byteOffset + 4) = 0;
+                    modelId->Stain0 = 0;
+                    modelId->Stain1 = 0;
+
+                    if (!hasLoggedAppearanceScan)
+                        Log.Information($"[Krangler] Preset slot '{slotName}' uses empty-slot marker itemId={slotData.ItemId}");
                 }
                 else if (slotData.ApplyStain)
                 {
-                    *(equipmentPtr + byteOffset + 3) = (byte)Math.Min(slotData.Stain, byte.MaxValue);
-                    *(equipmentPtr + byteOffset + 4) = (byte)Math.Min(slotData.Stain2, byte.MaxValue);
+                    modelId->Stain0 = (byte)Math.Min(slotData.Stain, byte.MaxValue);
+                    modelId->Stain1 = (byte)Math.Min(slotData.Stain2, byte.MaxValue);
                 }
+
+                character->DrawData.LoadEquipment((DrawDataContainerStruct.EquipmentSlot)slotIndex.Value, modelId, true);
+
+                if (!hasLoggedAppearanceScan)
+                    Log.Information($"[Krangler] Applied preset slot '{slotName}': itemId={slotData.ItemId}, setId={setId}, variant={variant}, stains={modelId->Stain0}/{modelId->Stain1}");
 
                 appliedCount++;
             }
@@ -1174,6 +1368,173 @@ public sealed class Plugin : IDalamudPlugin
         return appliedCount;
     }
 
+    private unsafe int ApplyGlamourerWeapons(CharacterStruct* character, GlamourerPreset preset)
+    {
+        if (character == null || preset.Equipment.Count == 0)
+            return 0;
+
+        var appliedCount = 0;
+
+        if (preset.Equipment.TryGetValue("MainHand", out var mainHandData) && mainHandData.Apply)
+        {
+            if (TryDecodeGlamourerWeaponItemId(mainHandData.ItemId, out var mainHandWeapon, out var mainHandEmpty))
+            {
+                if (mainHandEmpty)
+                {
+                    mainHandWeapon.Stain0 = 0;
+                    mainHandWeapon.Stain1 = 0;
+                }
+                else if (mainHandData.ApplyStain)
+                {
+                    mainHandWeapon.Stain0 = (byte)Math.Min(mainHandData.Stain, byte.MaxValue);
+                    mainHandWeapon.Stain1 = (byte)Math.Min(mainHandData.Stain2, byte.MaxValue);
+                }
+
+                character->DrawData.LoadWeapon(DrawDataContainerStruct.WeaponSlot.MainHand, mainHandWeapon, 1, 0, 1, 0);
+                appliedCount++;
+
+                if (!hasLoggedAppearanceScan)
+                    Log.Information($"[Krangler] Applied preset weapon 'MainHand': itemId={mainHandData.ItemId}, id={mainHandWeapon.Id}, type={mainHandWeapon.Type}, variant={mainHandWeapon.Variant}, stains={mainHandWeapon.Stain0}/{mainHandWeapon.Stain1}");
+            }
+            else if (!hasLoggedAppearanceScan)
+            {
+                Log.Warning($"[Krangler] Could not decode preset weapon 'MainHand' item id {mainHandData.ItemId}");
+            }
+        }
+
+        if (preset.Equipment.TryGetValue("OffHand", out var offHandData) && offHandData.Apply)
+        {
+            if (TryDecodeGlamourerWeaponItemId(offHandData.ItemId, out var offHandWeapon, out var offHandEmpty))
+            {
+                if (offHandEmpty)
+                {
+                    offHandWeapon.Stain0 = 0;
+                    offHandWeapon.Stain1 = 0;
+                }
+                else if (offHandData.ApplyStain)
+                {
+                    offHandWeapon.Stain0 = (byte)Math.Min(offHandData.Stain, byte.MaxValue);
+                    offHandWeapon.Stain1 = (byte)Math.Min(offHandData.Stain2, byte.MaxValue);
+                }
+
+                character->DrawData.LoadWeapon(DrawDataContainerStruct.WeaponSlot.OffHand, offHandWeapon, 1, 0, 1, 0);
+                appliedCount++;
+
+                if (!hasLoggedAppearanceScan)
+                    Log.Information($"[Krangler] Applied preset weapon 'OffHand': itemId={offHandData.ItemId}, id={offHandWeapon.Id}, type={offHandWeapon.Type}, variant={offHandWeapon.Variant}, stains={offHandWeapon.Stain0}/{offHandWeapon.Stain1}");
+            }
+            else if (!hasLoggedAppearanceScan)
+            {
+                Log.Warning($"[Krangler] Could not decode preset weapon 'OffHand' item id {offHandData.ItemId}");
+            }
+        }
+
+        return appliedCount;
+    }
+
+    private unsafe bool ApplyGlamourerBonusItems(CharacterStruct* character, GlamourerPreset preset)
+    {
+        if (character == null || preset.Bonus.Count == 0)
+            return false;
+
+        var applied = false;
+
+        if (preset.Bonus.TryGetValue("Glasses", out var glassesData) && glassesData.Apply)
+        {
+            character->DrawData.SetGlasses(0, (ushort)Math.Min(glassesData.BonusId, ushort.MaxValue));
+            applied = true;
+        }
+
+        if (!hasLoggedAppearanceScan && applied)
+            Log.Information($"[Krangler] Applied preset bonus items '{preset.Name}': glasses={character->DrawData.GlassesIds[0]}");
+
+        return applied;
+    }
+
+    private unsafe bool ApplyGlamourerMetaState(CharacterStruct* character, GlamourerPreset preset)
+    {
+        if (character == null || preset.Equipment.Count == 0)
+            return false;
+
+        var applied = false;
+
+        if (preset.Equipment.TryGetValue("Hat", out var hatData) && hatData.Apply)
+        {
+            character->DrawData.HideHeadgear(0, !hatData.Show);
+            applied = true;
+        }
+
+        if (preset.Equipment.TryGetValue("Weapon", out var weaponData) && weaponData.Apply)
+        {
+            character->DrawData.HideWeapons(!weaponData.Show);
+            applied = true;
+        }
+
+        if (preset.Equipment.TryGetValue("Visor", out var visorData) && visorData.Apply)
+        {
+            character->DrawData.SetVisor(visorData.IsToggled);
+            applied = true;
+        }
+
+        if (!hasLoggedAppearanceScan && applied)
+            Log.Information($"[Krangler] Applied preset meta state '{preset.Name}': hatHidden={character->DrawData.IsHatHidden}, weaponHidden={character->DrawData.IsWeaponHidden}, visorToggled={character->DrawData.IsVisorToggled}");
+
+        return applied;
+    }
+
+    private unsafe bool RefreshCharacterCustomize(CharacterStruct* character)
+    {
+        if (character == null || character->DrawObject == null)
+            return false;
+
+        if (character->DrawObject->GetObjectType() != SceneObjectType.CharacterBase)
+            return false;
+
+        var human = (HumanStruct*)character->DrawObject;
+        return human->UpdateDrawData((byte*)&character->DrawData.CustomizeData, true);
+    }
+
+    private unsafe void RefreshCharacterEquipment(CharacterStruct* character)
+    {
+        if (character == null)
+            return;
+
+        fixed (EquipmentModelId* equipmentModelPtr = &character->DrawData.EquipmentModelIds[0])
+        {
+            for (var i = 0; i < EquipmentSlotCount; i++)
+                character->DrawData.LoadEquipment((DrawDataContainerStruct.EquipmentSlot)i, equipmentModelPtr + i, true);
+        }
+    }
+
+    private static unsafe void RestoreDrawMetaState(CharacterStruct* character, OriginalAppearanceData originalData)
+    {
+        if (character == null)
+            return;
+
+        character->DrawData.HideHeadgear(0, originalData.IsHatHidden);
+        character->DrawData.HideWeapons(originalData.IsWeaponHidden);
+        character->DrawData.SetVisor(originalData.IsVisorToggled);
+        character->DrawData.HideVieraEars(originalData.VieraEarsHidden);
+    }
+
+    private static unsafe void RestoreWeaponData(CharacterStruct* character, OriginalAppearanceData originalData)
+    {
+        if (character == null)
+            return;
+
+        character->DrawData.LoadWeapon(DrawDataContainerStruct.WeaponSlot.MainHand, originalData.MainHandWeapon, 1, 0, 1, 0);
+        character->DrawData.LoadWeapon(DrawDataContainerStruct.WeaponSlot.OffHand, originalData.OffHandWeapon, 1, 0, 1, 0);
+    }
+
+    private static unsafe void RestoreBonusItems(CharacterStruct* character, OriginalAppearanceData originalData)
+    {
+        if (character == null)
+            return;
+
+        character->DrawData.SetGlasses(0, originalData.Glasses0);
+        character->DrawData.SetGlasses(1, originalData.Glasses1);
+    }
+
     private bool ShouldApplyEquipmentSlot(string slotName)
         => slotName.ToLowerInvariant() switch
         {
@@ -1182,6 +1543,11 @@ public sealed class Plugin : IDalamudPlugin
             "hands" => Configuration.SuperKrangleApplyHands,
             "legs" => Configuration.SuperKrangleApplyLegs,
             "feet" => Configuration.SuperKrangleApplyFeet,
+            "ears" => true,
+            "neck" => true,
+            "wrists" => true,
+            "rfinger" => true,
+            "lfinger" => true,
             _ => false,
         };
 
@@ -1193,10 +1559,15 @@ public sealed class Plugin : IDalamudPlugin
             "hands" => 2,
             "legs" => 3,
             "feet" => 4,
+            "ears" => 5,
+            "neck" => 6,
+            "wrists" => 7,
+            "rfinger" => 8,
+            "lfinger" => 9,
             _ => null,
         };
 
-    private bool TryDecodeGlamourerItemId(ulong itemId, out ushort setId, out byte variant, out bool isEmpty)
+    private bool TryDecodeGlamourerItemId(string slotName, ulong itemId, out ushort setId, out byte variant, out bool isEmpty)
     {
         setId = 0;
         variant = 0;
@@ -1205,12 +1576,11 @@ public sealed class Plugin : IDalamudPlugin
         if (itemId == 0)
             return false;
 
-        if (itemId > uint.MaxValue)
-        {
-            setId = (ushort)((itemId >> 32) & 0xFFFF);
-            variant = (byte)((itemId >> 48) & 0xFF);
+        if (TryDecodePackedArmorItemId(itemId, out setId, out variant))
             return true;
-        }
+
+        if (TryDecodeSpecialArmorItemId(slotName, itemId, out setId, out variant, out isEmpty))
+            return true;
 
         if (itemId >= (ulong)(uint.MaxValue - 512))
         {
@@ -1218,16 +1588,217 @@ public sealed class Plugin : IDalamudPlugin
             return true;
         }
 
-        var itemSheet = DataManager.GetExcelSheet<Item>();
-        if (itemSheet != null && itemSheet.TryGetRow((uint)itemId, out var item))
+        return TryDecodeStandardItemId(itemId, out setId, out variant);
+    }
+
+    private bool TryDecodeGlamourerWeaponItemId(ulong itemId, out WeaponModelId weaponModelId, out bool isEmpty)
+    {
+        weaponModelId = default;
+        isEmpty = false;
+
+        if (itemId >= (ulong)(uint.MaxValue - 512))
         {
-            var modelMain = (ulong)item.ModelMain;
-            setId = (ushort)(modelMain & 0xFFFF);
-            variant = (byte)((modelMain >> 32) & 0xFF);
-            return setId != 0;
+            isEmpty = true;
+            return true;
+        }
+
+        if (itemId <= uint.MaxValue)
+            return TryDecodeStandardWeaponItemId(itemId, out weaponModelId, out isEmpty);
+
+        return TryDecodePackedWeaponItemId(itemId, out weaponModelId, out isEmpty);
+    }
+
+    private static bool TryDecodePackedArmorItemId(ulong itemId, out ushort setId, out byte variant)
+    {
+        setId = 0;
+        variant = 0;
+
+        if (itemId <= uint.MaxValue)
+            return false;
+
+        setId = (ushort)((itemId >> 32) & 0xFFFF);
+        variant = (byte)((itemId >> 48) & 0xFF);
+        return setId != 0;
+    }
+
+    private static bool TryDecodePackedWeaponItemId(ulong itemId, out WeaponModelId weaponModelId, out bool isEmpty)
+    {
+        weaponModelId = default;
+        isEmpty = false;
+
+        if ((itemId >> 48) == 0)
+            return false;
+
+        weaponModelId.Id = (ushort)(itemId & 0xFFFF);
+        weaponModelId.Type = (ushort)((itemId >> 16) & 0xFFFF);
+        weaponModelId.Variant = (ushort)((itemId >> 32) & 0xFFFF);
+        isEmpty = weaponModelId.Id == 0 && weaponModelId.Type == 0 && weaponModelId.Variant == 0;
+        return true;
+    }
+
+    private bool TryDecodeStandardItemId(ulong itemId, out ushort setId, out byte variant)
+    {
+        setId = 0;
+        variant = 0;
+
+        if (itemId > uint.MaxValue)
+            return false;
+
+        var itemSheet = DataManager.GetExcelSheet<Item>();
+        if (itemSheet == null || !itemSheet.TryGetRow((uint)itemId, out var item))
+            return false;
+
+        var modelMain = (ulong)item.ModelMain;
+        setId = (ushort)(modelMain & 0xFFFF);
+        variant = (byte)((modelMain >> 32) & 0xFF);
+        return setId != 0;
+    }
+
+    private bool TryDecodeStandardWeaponItemId(ulong itemId, out WeaponModelId weaponModelId, out bool isEmpty)
+    {
+        weaponModelId = default;
+        isEmpty = false;
+
+        var itemSheet = DataManager.GetExcelSheet<Item>();
+        if (itemSheet == null || !itemSheet.TryGetRow((uint)itemId, out var item))
+            return false;
+
+        var modelMain = (ulong)item.ModelMain;
+        weaponModelId.Id = (ushort)(modelMain & 0xFFFF);
+        weaponModelId.Type = (ushort)((modelMain >> 16) & 0xFFFF);
+        weaponModelId.Variant = (ushort)((modelMain >> 32) & 0xFFFF);
+        isEmpty = weaponModelId.Id == 0 && weaponModelId.Type == 0 && weaponModelId.Variant == 0;
+        return weaponModelId.Id != 0 || weaponModelId.Type != 0 || weaponModelId.Variant != 0;
+    }
+
+    private static bool TryDecodeSpecialArmorItemId(string slotName, ulong itemId, out ushort setId, out byte variant, out bool isEmpty)
+    {
+        setId = 0;
+        variant = 0;
+        isEmpty = false;
+
+        if (!TryGetSpecialArmorSlotValue(slotName, out var slotValue))
+            return false;
+
+        var nothingId = (ulong)(uint.MaxValue - 128u - slotValue);
+        if (itemId == nothingId)
+        {
+            isEmpty = true;
+            return true;
+        }
+
+        var smallClothesId = (ulong)(uint.MaxValue - 256u - slotValue);
+        if (itemId == smallClothesId)
+        {
+            setId = SmallClothesNpcModelId;
+            variant = 1;
+            return true;
         }
 
         return false;
+    }
+
+    private static bool TryGetSpecialArmorSlotValue(string slotName, out uint slotValue)
+    {
+        switch (slotName.ToLowerInvariant())
+        {
+            case "head":
+                slotValue = 3;
+                return true;
+            case "body":
+                slotValue = 4;
+                return true;
+            case "hands":
+                slotValue = 5;
+                return true;
+            case "legs":
+                slotValue = 7;
+                return true;
+            case "feet":
+                slotValue = 8;
+                return true;
+            case "ears":
+                slotValue = 9;
+                return true;
+            case "neck":
+                slotValue = 10;
+                return true;
+            case "wrists":
+                slotValue = 11;
+                return true;
+            case "rfinger":
+            case "lfinger":
+                slotValue = 12;
+                return true;
+            default:
+                slotValue = 0;
+                return false;
+        }
+    }
+
+    private static bool TryGetPackedEquipmentSlotId(string slotName, out byte slotId)
+    {
+        slotId = slotName.ToLowerInvariant() switch
+        {
+            "head" => 1,
+            "body" => 2,
+            "hands" => 3,
+            "legs" => 4,
+            "feet" => 5,
+            _ => 0,
+        };
+
+        return slotId != 0;
+    }
+
+    private string ResolveSuperKrangleSelection(string playerName)
+    {
+        var defaultSelection = string.IsNullOrWhiteSpace(Configuration.SuperKrangleSelection)
+            ? "Random"
+            : Configuration.SuperKrangleSelection;
+
+        var selectionIndex = GetPartySlotSelectionIndex(playerName);
+        if (!selectionIndex.HasValue ||
+            selectionIndex.Value < 0 ||
+            selectionIndex.Value >= Configuration.SuperKranglePartySlotSelections.Count)
+        {
+            return defaultSelection;
+        }
+
+        var slotSelection = Configuration.SuperKranglePartySlotSelections[selectionIndex.Value];
+        if (string.IsNullOrWhiteSpace(slotSelection) ||
+            string.Equals(slotSelection, "Use Global", StringComparison.OrdinalIgnoreCase))
+        {
+            return defaultSelection;
+        }
+
+        return slotSelection;
+    }
+
+    private int? GetPartySlotSelectionIndex(string playerName)
+    {
+        if (string.IsNullOrWhiteSpace(playerName))
+            return null;
+
+        var localName = ObjectTable.LocalPlayer?.Name.ToString();
+        if (!string.IsNullOrWhiteSpace(localName) &&
+            string.Equals(localName, playerName, StringComparison.OrdinalIgnoreCase))
+        {
+            return 0;
+        }
+
+        var maxSlots = Math.Min(Configuration.SuperKranglePartySlotSelections.Count, PartyList.Length);
+        for (var i = 1; i < maxSlots; i++)
+        {
+            var memberName = PartyList[i]?.Name.ToString();
+            if (!string.IsNullOrWhiteSpace(memberName) &&
+                string.Equals(memberName, playerName, StringComparison.OrdinalIgnoreCase))
+            {
+                return i;
+            }
+        }
+
+        return null;
     }
 
     private static (byte race, byte tribe, byte gender) GetSuperKrangleAppearance(string playerName)
@@ -1330,6 +1901,8 @@ public sealed class Plugin : IDalamudPlugin
 
     public void Dispose()
     {
+        createCharacterBaseHook?.Disable();
+        createCharacterBaseHook?.Dispose();
         Framework.Update -= OnFrameworkUpdate;
         NamePlateGui.OnNamePlateUpdate -= OnNamePlateUpdate;
         ClientState.TerritoryChanged -= OnTerritoryChanged;

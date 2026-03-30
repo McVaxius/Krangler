@@ -15,11 +15,10 @@
   <ItemGroup>
     <Compile Remove="backups\**" />
     <Compile Remove="**\backups\**" />
+    <Compile Remove="IPC\GlamourerIPC.cs" />
+    <Compile Remove="Services\GlamourerIpcService.cs" />
     <None Remove="backups\**" />
     <None Remove="**\backups\**" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
   <ItemGroup>
     <None Include="images\**" CopyToOutputDirectory="PreserveNewest" />
