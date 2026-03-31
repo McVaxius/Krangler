@@ -13,6 +13,8 @@ public class MainWindow : Window, IDisposable
 {
     private readonly Plugin plugin;
     private string presetSearch = string.Empty;
+    private Vector2? queuedPosition;
+    private bool queuedRandomVisibleJump;
 
     public MainWindow(Plugin plugin)
         : base("Krangler###KranglerMain")
@@ -26,6 +28,8 @@ public class MainWindow : Window, IDisposable
 
     public override void Draw()
     {
+        ApplyQueuedWindowPlacement();
+
         var config = plugin.Configuration;
         var presetNames = plugin.GlamourerPresetService.GetPresetNames();
         if (EnsureSlotSelections(config))
@@ -138,6 +142,29 @@ public class MainWindow : Window, IDisposable
             ImGui.SetTooltip("Randomize visible player names and party list names.");
         }
 
+        var skipSelfKrangling = config.SkipSelfKrangling;
+        if (ImGui.Checkbox("Do Not Krangle Self", ref skipSelfKrangling))
+        {
+            plugin.SetSkipSelfKrangling(skipSelfKrangling);
+        }
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip("Keep your own character's appearance stable and optionally use a fixed self display name instead of a randomized one.");
+        }
+
+        if (config.SkipSelfKrangling)
+        {
+            var customSelfDisplayName = config.CustomSelfDisplayName ?? string.Empty;
+            if (ImGui.InputText("Custom Self Display Name", ref customSelfDisplayName, 64))
+            {
+                plugin.SetCustomSelfDisplayName(customSelfDisplayName);
+            }
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.SetTooltip("Optional fixed name to use for your own character. Leave blank to keep your real name.");
+            }
+        }
+
         var krangleChat = config.KrangleChat;
         if (ImGui.Checkbox("Krangle Chat", ref krangleChat))
         {
@@ -180,6 +207,17 @@ public class MainWindow : Window, IDisposable
         if (ImGui.IsItemHovered())
         {
             ImGui.SetTooltip("Randomize hair, face, eyes, and other appearance fields.");
+        }
+
+        var krangleNpcs = config.KrangleNpcs;
+        if (ImGui.Checkbox("Krangle NPCs", ref krangleNpcs))
+        {
+            config.KrangleNpcs = krangleNpcs;
+            config.Save();
+        }
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip("Randomize visible human battle and event NPCs into full random player race, subrace, gender, and appearance.");
         }
 
         var krangleChocobos = config.KrangleChocobos;
@@ -239,6 +277,33 @@ public class MainWindow : Window, IDisposable
             {
                 config.SuperKrangleSelection = globalSelection;
                 config.Save();
+            }
+
+            ImGui.Spacing();
+            ImGui.Text("Non-Player Preset Targets");
+            ImGui.Separator();
+
+            var superKrangleNpcs = config.SuperKrangleNpcs;
+            if (ImGui.Checkbox("NPCs", ref superKrangleNpcs))
+            {
+                config.SuperKrangleNpcs = superKrangleNpcs;
+                config.Save();
+            }
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.SetTooltip("Apply the selected preset or random preset to visible human battle and event NPCs. The Wuk Lamat date event will still force NPCs during the event window.");
+            }
+
+            if (superKrangleNpcs)
+            {
+                var npcSelection = string.IsNullOrWhiteSpace(config.SuperKrangleNpcSelection)
+                    ? "Random"
+                    : config.SuperKrangleNpcSelection;
+                if (DrawPresetSelectionCombo("NPC Preset", ref npcSelection, presetNames, false))
+                {
+                    config.SuperKrangleNpcSelection = npcSelection;
+                    config.Save();
+                }
             }
 
             ImGui.Spacing();
@@ -405,6 +470,79 @@ public class MainWindow : Window, IDisposable
         {
             ImGui.TextColored(new Vector4(0.7f, 0.7f, 0.7f, 1.0f), "Status: Disabled");
         }
+
+        if (plugin.ShowDebugOptions)
+        {
+            ImGui.Spacing();
+            ImGui.Text("Debug");
+            ImGui.Separator();
+
+            var disableEventOverride = config.DisableDateBasedSuperKrangleEvent;
+            if (ImGui.Checkbox("Disable date-based Wuk Lamat auto-event", ref disableEventOverride))
+                plugin.SetDateBasedSuperKrangleEventSuppressed(disableEventOverride);
+
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.SetTooltip("Suppress the March 31 through April 2 Wuk Lamat auto-event so normal Super Krangle testing is possible.");
+            }
+
+            if (plugin.IsDateBasedSuperKrangleWindowActive)
+            {
+                var message = plugin.IsDateBasedSuperKrangleEventCurrentlyForced
+                    ? "The date-based Wuk Lamat override is currently active."
+                    : "The date-based Wuk Lamat override is currently suppressed by debug settings.";
+                ImGui.TextColored(new Vector4(1.0f, 0.85f, 0.35f, 1.0f), message);
+            }
+        }
+    }
+
+    public void QueueResetToOrigin()
+    {
+        queuedPosition = new Vector2(1f, 1f);
+        queuedRandomVisibleJump = false;
+    }
+
+    public void QueueRandomVisibleJump()
+    {
+        queuedPosition = null;
+        queuedRandomVisibleJump = true;
+    }
+
+    private void ApplyQueuedWindowPlacement()
+    {
+        if (!queuedPosition.HasValue && !queuedRandomVisibleJump)
+            return;
+
+        var targetPosition = queuedPosition ?? BuildRandomVisiblePosition();
+        ImGui.SetWindowPos(targetPosition, ImGuiCond.Always);
+
+        queuedPosition = null;
+        queuedRandomVisibleJump = false;
+    }
+
+    private Vector2 BuildRandomVisiblePosition()
+    {
+        var viewport = ImGui.GetMainViewport();
+        var workPos = viewport.WorkPos;
+        var workSize = viewport.WorkSize;
+        var windowSize = ImGui.GetWindowSize();
+
+        var fallbackSize = Size ?? new Vector2(520f, 760f);
+        var width = windowSize.X > 0f ? windowSize.X : fallbackSize.X;
+        var height = windowSize.Y > 0f ? windowSize.Y : fallbackSize.Y;
+        var margin = 24f;
+
+        var minX = workPos.X + margin;
+        var minY = workPos.Y + margin;
+        var maxX = MathF.Max(minX, workPos.X + workSize.X - width - margin);
+        var maxY = MathF.Max(minY, workPos.Y + workSize.Y - height - margin);
+
+        if (maxX <= minX || maxY <= minY)
+            return new Vector2(1f, 1f);
+
+        var x = minX + (Random.Shared.NextSingle() * (maxX - minX));
+        var y = minY + (Random.Shared.NextSingle() * (maxY - minY));
+        return new Vector2(x, y);
     }
 
     private bool DrawIconInputs(string label, ref string value, string fallback)

@@ -91,6 +91,11 @@ public class AppearanceService
     public void MarkApplied(ulong entityId) => appliedPlayers.Add(entityId);
 
     /// <summary>
+    /// Remove tracking for a single player after an in-place revert.
+    /// </summary>
+    public void ClearApplied(ulong entityId) => appliedPlayers.Remove(entityId);
+
+    /// <summary>
     /// Clear tracking state when plugin is disabled.
     /// </summary>
     public void Reset()

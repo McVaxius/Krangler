@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
+using Dalamud.Game.Addon.Lifecycle;
+using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.Enums;
+using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Command;
 using Dalamud.Game.Gui.Dtr;
 using Dalamud.Game.Gui.NamePlate;
@@ -36,6 +39,8 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
     [PluginService] internal static IClientState ClientState { get; private set; } = null!;
     [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
+    [PluginService] internal static ITargetManager TargetManager { get; private set; } = null!;
+    [PluginService] internal static IAddonLifecycle AddonLifecycle { get; private set; } = null!;
     [PluginService] internal static IFramework Framework { get; private set; } = null!;
     [PluginService] internal static IDtrBar DtrBar { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
@@ -45,6 +50,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IPartyList PartyList { get; private set; } = null!;
     [PluginService] internal static IChatGui ChatGui { get; private set; } = null!;
     [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
+    [PluginService] internal static IToastGui ToastGui { get; private set; } = null!;
     
     private const string CommandName = "/krangler";
     private const string AliasCommandName = "/kr";
@@ -71,6 +77,9 @@ public sealed class Plugin : IDalamudPlugin
     private const int EquipmentByteCount = EquipmentSlotByteCount * EquipmentSlotCount;
     private const uint InvisibilityDrawStateFlag = 0x00000002;
     private const ushort SmallClothesNpcModelId = 9903;
+    private const uint PartyMemberListComponentNodeId = 12;
+    private const uint PartyMemberListTextNodeBaseId = 51001;
+    private const int PartyMemberListTextNodeCount = 15;
 
     private sealed class OriginalAppearanceData
     {
@@ -114,7 +123,8 @@ public sealed class Plugin : IDalamudPlugin
     private readonly Dictionary<ulong, OriginalAppearanceData> originalAppearanceData = new();
 
     // Runtime override for event-based activation
-    private bool IsSuperKrangleEventActive => GetDateBasedForcedPreset() == "Wuk Lamat";
+    private bool IsSuperKrangleEventWindowActive => !string.IsNullOrEmpty(GetDateBasedForcedPreset());
+    private bool IsSuperKrangleEventActive => !Configuration.DisableDateBasedSuperKrangleEvent && IsSuperKrangleEventWindowActive;
     private bool SuperKrangleMaster4000_Active => Configuration.SuperKrangleMaster4000 || IsSuperKrangleEventActive;
 
     private void ResetEventFlags()
@@ -135,6 +145,8 @@ public sealed class Plugin : IDalamudPlugin
     private int redrawCooldownFrames = 0;
     private int currentVisiblePlayerCount;
     private bool isRevertingAppearances;
+    private int partyMemberListFailedDraws;
+    private bool hasShownPartyMemberListFallbackWarning;
     private const int CharacterBaseReapplyAttempts = 5;
 
     private unsafe delegate CharacterBaseStruct* CreateCharacterBaseDelegate(uint modelId, GameCustomizeData* customize, EquipmentModelId* equipment, byte unk);
@@ -156,7 +168,7 @@ public sealed class Plugin : IDalamudPlugin
 
         CommandManager.AddHandler(AliasCommandName, new CommandInfo(OnAliasCommand)
         {
-            HelpMessage = "Krangler: /kr [on|off] to toggle, or /kr to open UI."
+            HelpMessage = "Krangler: /kr [on|off|debug|ws|j] to control the plugin, or /kr to open UI."
         });
 
         PluginInterface.UiBuilder.Draw += WindowSystem.Draw;
@@ -180,7 +192,9 @@ public sealed class Plugin : IDalamudPlugin
         }
 
         // Framework update for DTR bar + appearance + party list
-        Framework.Update += OnFrameworkUpdate;
+        Framework.Update += Framework_OnUpdate;
+        AddonLifecycle.RegisterListener(AddonEvent.PostDraw, "PartyMemberList", OnPartyMemberListAddon);
+        AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "PartyMemberList", OnPartyMemberListAddon);
 
         // Territory change handler for re-applying krangling
         ClientState.TerritoryChanged += OnTerritoryChanged;
@@ -203,12 +217,11 @@ public sealed class Plugin : IDalamudPlugin
         Log.Information("===Krangler loaded===");
     }
 
-    private void OnCommand(string command, string args)
-    {
-        MainWindow.Toggle();
-    }
+    private void OnCommand(string command, string args) => HandleCommand(args);
 
-    private void OnAliasCommand(string command, string args)
+    private void OnAliasCommand(string command, string args) => HandleCommand(args);
+
+    private void HandleCommand(string args)
     {
         var arg = args.Trim().ToLowerInvariant();
         if (arg == "on")
@@ -216,6 +229,7 @@ public sealed class Plugin : IDalamudPlugin
             Configuration.Enabled = true;
             Configuration.Save();
             Log.Information("[Krangler] Enabled via command");
+            PrintStatus("Enabled.");
         }
         else if (arg == "off")
         {
@@ -223,6 +237,19 @@ public sealed class Plugin : IDalamudPlugin
             KrangleService.ClearCache();
             Configuration.Save();
             Log.Information("[Krangler] Disabled via command");
+            PrintStatus("Disabled.");
+        }
+        else if (arg == "debug")
+        {
+            ToggleDebugOptions();
+        }
+        else if (arg == "ws")
+        {
+            ResetMainWindowPosition();
+        }
+        else if (arg == "j")
+        {
+            JumpMainWindowToRandomVisibleLocation();
         }
         else
         {
@@ -252,6 +279,7 @@ public sealed class Plugin : IDalamudPlugin
             {
                 Log.Information("[Krangler] Krangling deactivated");
                 RevertAllAppearances();
+                RestoreTargetInfoSurfaces();
             }
             wasEnabled = Configuration.Enabled;
         }
@@ -276,11 +304,14 @@ public sealed class Plugin : IDalamudPlugin
         // Party list krangling (throttled to every 1 second)
         if (Configuration.KrangleNames || SuperKrangleMaster4000_Active)
         {
+            UpdateTargetInfoSurfaces();
+
             var now = DateTime.UtcNow;
             if ((now - lastPartyListScan).TotalSeconds >= 1)
             {
                 lastPartyListScan = now;
                 KranglePartyList();
+                KranglePartyMemberList();
             }
         }
 
@@ -461,6 +492,8 @@ public sealed class Plugin : IDalamudPlugin
             objectKey = obj.GameObjectId;
             playerName = obj.Name.ToString();
             character = candidate;
+            if (IsLocalPlayerObject(objectKey, obj.Address))
+                return false;
             return !string.IsNullOrWhiteSpace(playerName);
         }
 
@@ -489,6 +522,8 @@ public sealed class Plugin : IDalamudPlugin
             objectKey = obj.GameObjectId;
             playerName = obj.Name.ToString();
             character = candidate;
+            if (IsLocalPlayerObject(objectKey, obj.Address))
+                return false;
             return !string.IsNullOrWhiteSpace(playerName);
         }
 
@@ -507,7 +542,9 @@ public sealed class Plugin : IDalamudPlugin
             var messageText = message.TextValue;
             var senderText = sender.TextValue;
             var garbledMessage = GenerateGarbledText(messageText.Length);
-            var garbledSender = GenerateGarbledText(senderText.Length);
+            var garbledSender = ShouldSkipSelfKrangling(senderText)
+                ? GetResolvedSelfDisplayName(senderText)
+                : GenerateGarbledText(senderText.Length);
 
             message = new SeString(new List<Payload> { new TextPayload(garbledMessage) });
             sender = new SeString(new List<Payload> { new TextPayload(garbledSender) });
@@ -538,8 +575,10 @@ public sealed class Plugin : IDalamudPlugin
     {
         var playerCount = 0;
         var appliedCount = 0;
-        var processedThisCycle = 0;
         var maxPlayersPerCycle = Math.Max(1, Configuration.SuperKrangleMaxPlayersPerCycle);
+        var maxAuxiliaryTargetsPerCycle = Math.Max(16, maxPlayersPerCycle * 4);
+        var processedPlayersThisCycle = 0;
+        var processedAuxiliaryTargetsThisCycle = 0;
 
         // Event activation notification
         if (IsSuperKrangleEventActive && !Configuration.SuperKrangleMaster4000 && !hasLoggedEventActivation)
@@ -562,33 +601,56 @@ public sealed class Plugin : IDalamudPlugin
             if (AppearanceService.IsApplied(objectKey))
                 continue;
 
-            if (processedThisCycle >= maxPlayersPerCycle)
-                break;
-
             var isPlayer = obj.ObjectKind == ObjectKind.Player;
             var isChocobo = obj.ObjectKind == ObjectKind.BattleNpc && obj.Name.ToString().Contains("Companion", StringComparison.OrdinalIgnoreCase);
             var isMinion = obj.ObjectKind == ObjectKind.Companion;
+            var isNpc = IsAppearanceNpc(obj.ObjectKind, isChocobo, isMinion);
+            var targetLabel = GetAppearanceTargetLabel(isNpc, isChocobo, isMinion);
 
-            if (!isPlayer && !isChocobo && !isMinion)
+            if (!isPlayer && !isNpc && !isChocobo && !isMinion)
                 continue;
 
             if (isPlayer)
+            {
                 playerCount++;
+                if (IsLocalPlayerObject(objectKey, obj.Address))
+                    continue;
+
+                if (processedPlayersThisCycle >= maxPlayersPerCycle)
+                    continue;
+            }
+            else if (isNpc || isChocobo || isMinion)
+            {
+                if (processedAuxiliaryTargetsThisCycle >= maxAuxiliaryTargetsPerCycle)
+                    continue;
+            }
+
+            if (!ShouldProcessAppearanceTarget(isPlayer, isNpc, isChocobo, isMinion))
+                continue;
 
             try
             {
                 var character = (CharacterStruct*)obj.Address;
-                if (character == null) continue;
+                if (character == null)
+                    continue;
+
+                if (!SupportsHumanCustomize(character))
+                {
+                    if (!hasLoggedAppearanceScan)
+                        Log.Warning($"[Krangler] Skipping unsupported {targetLabel} appearance target '{name}' - local appearance krangling currently requires a human CharacterBase draw object.");
+                    continue;
+                }
+
                 var customizePtr = (byte*)&character->DrawData.CustomizeData;
 
-                var (race, tribe, gender) = Configuration.SuperKrangleMaster4000
+                var (race, tribe, gender) = SuperKrangleMaster4000_Active
                     ? GetSuperKrangleAppearance(name)
                     : AppearanceService.GetRandomRaceGender(name);
                 bool changed = false;
 
-                if (Configuration.SuperKrangleMaster4000)
+                if (SuperKrangleMaster4000_Active)
                 {
-                    var selection = ResolveSuperKrangleSelection(name, isChocobo, isMinion);
+                    var selection = ResolveSuperKrangleSelection(name, isNpc, isChocobo, isMinion);
                     var preset = GlamourerPresetService.ResolvePresetSelection(name, selection);
                     if (preset != null)
                     {
@@ -603,7 +665,7 @@ public sealed class Plugin : IDalamudPlugin
                         }
 
                         if (!hasLoggedAppearanceScan && changed)
-                            Log.Information($"[Krangler] Applied Super Krangle preset '{preset.Name}' to '{name}' ({(isChocobo ? "chocobo" : isMinion ? "minion" : "player")}) via local path");
+                            Log.Information($"[Krangler] Applied Super Krangle preset '{preset.Name}' to '{name}' ({targetLabel}) via local path");
                     }
                     else if (Configuration.SuperKrangleApplyAppearance)
                     {
@@ -620,7 +682,7 @@ public sealed class Plugin : IDalamudPlugin
                         race = customizePtr[0];
                         tribe = customizePtr[4];
                         gender = customizePtr[1];
-                        changed = true;
+                        changed = refreshedAppearance;
 
                         if (!hasLoggedAppearanceScan)
                             Log.Information($"[Krangler] Native customize refresh for fallback Super Krangle appearance returned {refreshedAppearance}");
@@ -628,28 +690,26 @@ public sealed class Plugin : IDalamudPlugin
                 }
                 else
                 {
-                    var shouldKrangle = (isPlayer && Configuration.KrangleAppearance) ||
-                                     (isChocobo && Configuration.KrangleChocobos) ||
-                                     (isMinion && Configuration.KrangleMinions);
+                    var shouldApplyRace = isPlayer ? Configuration.KrangleRaces : true;
+                    var shouldApplyGender = isPlayer ? Configuration.KrangleGenders : true;
+                    var shouldApplyAppearance = isPlayer ? Configuration.KrangleAppearance : true;
 
-                    if (shouldKrangle)
-                    {
-                        SaveOriginalAppearanceIfNeeded(objectKey, character);
+                    SaveOriginalAppearanceIfNeeded(objectKey, character);
 
-                    if (Configuration.KrangleRaces)
+                    if (shouldApplyRace)
                     {
                         customizePtr[0] = race;
                         customizePtr[4] = tribe;
                         changed = true;
                     }
 
-                    if (Configuration.KrangleGenders)
+                    if (shouldApplyGender)
                     {
                         customizePtr[1] = gender;
                         changed = true;
                     }
 
-                    if (Configuration.KrangleAppearance)
+                    if (shouldApplyAppearance)
                     {
                         var appearance = AppearanceService.GetRandomAppearance(name, race, gender);
                         foreach (var (index, value) in appearance)
@@ -660,18 +720,27 @@ public sealed class Plugin : IDalamudPlugin
 
                         changed = true;
                     }
-                }
+
+                    if (changed)
+                    {
+                        var refreshedAppearance = RefreshCharacterCustomize(character);
+                        if (!refreshedAppearance && !hasLoggedAppearanceScan)
+                            Log.Warning($"[Krangler] Native customize refresh reported false for regular krangle target '{name}', continuing with redraw.");
+                    }
                 }
 
                 if (changed)
                 {
                     QueuePenumbraStyleRedraw(obj.Address);
-                AppearanceService.MarkApplied(objectKey);
+                    AppearanceService.MarkApplied(objectKey);
                     appliedCount++;
-                    processedThisCycle++;
+                    if (isPlayer)
+                        processedPlayersThisCycle++;
+                    else
+                        processedAuxiliaryTargetsThisCycle++;
 
                     if (!hasLoggedAppearanceScan)
-                        Log.Information($"[Krangler] Applied appearance to '{name}' ({(isChocobo ? "chocobo" : isMinion ? "minion" : "player")}): race={race}, tribe={tribe}, gender={gender}");
+                        Log.Information($"[Krangler] Applied appearance to '{name}' ({targetLabel}): race={race}, tribe={tribe}, gender={gender}");
                 }
             }
             catch (Exception ex)
@@ -684,7 +753,7 @@ public sealed class Plugin : IDalamudPlugin
         if (!hasLoggedAppearanceScan && playerCount > 0)
         {
             currentVisiblePlayerCount = playerCount;
-            Log.Information($"[Krangler] Appearance scan: {playerCount} visible players, {appliedCount} modified, {processedThisCycle}/{maxPlayersPerCycle} processed this cycle");
+            Log.Information($"[Krangler] Appearance scan: {playerCount} visible players, {appliedCount} modified, players {processedPlayersThisCycle}/{maxPlayersPerCycle}, auxiliary {processedAuxiliaryTargetsThisCycle}/{maxAuxiliaryTargetsPerCycle} processed this cycle");
             hasLoggedAppearanceScan = true;
         }
         else
@@ -784,7 +853,7 @@ public sealed class Plugin : IDalamudPlugin
             foreach (var obj in ObjectTable)
             {
                 if (obj == null) continue;
-                if (!originalAppearanceData.TryGetValue(obj.EntityId, out var originalData)) continue;
+                if (!originalAppearanceData.TryGetValue(obj.GameObjectId, out var originalData)) continue;
 
                 try
                 {
@@ -823,6 +892,53 @@ public sealed class Plugin : IDalamudPlugin
             originalAppearanceData.Clear();
             AppearanceService.Reset();
             isRevertingAppearances = false;
+        }
+    }
+
+    private unsafe void RevertLocalPlayerAppearanceIfApplied()
+    {
+        var localPlayer = ObjectTable.LocalPlayer;
+        if (localPlayer == null || localPlayer.Address == 0)
+            return;
+
+        var objectKey = localPlayer.GameObjectId;
+        if (!originalAppearanceData.TryGetValue(objectKey, out var originalData))
+            return;
+
+        try
+        {
+            var character = (CharacterStruct*)localPlayer.Address;
+            if (character == null)
+                return;
+
+            var customizePtr = (byte*)&character->DrawData.CustomizeData;
+            for (var j = 0; j < CustomizeByteCount; j++)
+                customizePtr[j] = originalData.CustomizeData[j];
+
+            fixed (EquipmentModelId* equipmentModelPtr = &character->DrawData.EquipmentModelIds[0])
+            {
+                var equipmentPtr = (byte*)equipmentModelPtr;
+                for (var j = 0; j < EquipmentByteCount; j++)
+                    equipmentPtr[j] = originalData.EquipmentData[j];
+            }
+
+            RestoreWeaponData(character, originalData);
+            RestoreBonusItems(character, originalData);
+            RestoreDrawMetaState(character, originalData);
+            RefreshCharacterCustomize(character);
+            RefreshCharacterEquipment(character);
+
+            QueuePenumbraStyleRedraw(localPlayer.Address);
+            Log.Information("[Krangler] Reverted local player appearance after self-krangle opt-out");
+        }
+        catch (Exception ex)
+        {
+            Log.Warning($"[Krangler] Failed to revert local player appearance after self-krangle opt-out: {ex.Message}");
+        }
+        finally
+        {
+            originalAppearanceData.Remove(objectKey);
+            AppearanceService.ClearApplied(objectKey);
         }
     }
 
@@ -898,8 +1014,25 @@ public sealed class Plugin : IDalamudPlugin
             }
             
             hasPartyMembers = true;
-            nameMap[orig] = KrangleService.KrangleName(orig);
-            Log.Information($"[Krangler] PartyList member {i}: '{orig}' -> '{nameMap[orig]}'");
+            var replacementName = GetNameReplacement(orig);
+            if (!string.Equals(orig, replacementName, StringComparison.Ordinal))
+                nameMap[orig] = replacementName;
+
+            var krangledName = KrangleService.KrangleName(orig);
+            if (!string.Equals(krangledName, replacementName, StringComparison.Ordinal))
+                nameMap[krangledName] = replacementName;
+
+            if (IsLocalPlayerName(orig))
+            {
+                var configuredSelfName = GetConfiguredSelfDisplayName();
+                if (!string.IsNullOrWhiteSpace(configuredSelfName) &&
+                    !string.Equals(configuredSelfName, replacementName, StringComparison.Ordinal))
+                {
+                    nameMap[configuredSelfName] = replacementName;
+                }
+            }
+
+            Log.Information($"[Krangler] PartyList member {i}: '{orig}' -> '{replacementName}'");
         }
 
         // SOLO PARTY: If no party members, try to krangle the player's own name
@@ -908,8 +1041,23 @@ public sealed class Plugin : IDalamudPlugin
             var playerName = ObjectTable.LocalPlayer.Name.ToString();
             if (!string.IsNullOrEmpty(playerName))
             {
-                nameMap[playerName] = KrangleService.KrangleName(playerName);
-                Log.Information($"[Krangler] Solo party: '{playerName}' -> '{nameMap[playerName]}'");
+                var replacementName = GetNameReplacement(playerName);
+                if (!string.Equals(playerName, replacementName, StringComparison.Ordinal))
+                    nameMap[playerName] = replacementName;
+
+                var krangledName = KrangleService.KrangleName(playerName);
+                if (!string.Equals(krangledName, replacementName, StringComparison.Ordinal))
+                    nameMap[krangledName] = replacementName;
+
+                var configuredSelfName = GetConfiguredSelfDisplayName();
+                if (!string.IsNullOrWhiteSpace(configuredSelfName) &&
+                    !string.Equals(configuredSelfName, replacementName, StringComparison.Ordinal))
+                {
+                    nameMap[configuredSelfName] = replacementName;
+                }
+
+                if (nameMap.Count > 0)
+                    Log.Information($"[Krangler] Solo party: '{playerName}' -> '{replacementName}'");
             }
         }
 
@@ -1107,6 +1255,256 @@ public sealed class Plugin : IDalamudPlugin
         }
     }
 
+    private unsafe void KranglePartyMemberList()
+    {
+        var addon = Instance()->GetAddonByName("PartyMemberList");
+        if (addon == null || !addon->IsVisible)
+            return;
+
+        KranglePartyMemberList(addon);
+    }
+
+    private unsafe int KranglePartyMemberList(AtkUnitBase* addon)
+    {
+        var nameMap = BuildPlayerNameMap();
+        if (nameMap.Count == 0)
+            return 0;
+
+        return TryKranglePartyMemberListNodes(addon, nameMap);
+    }
+
+    private unsafe int TryKranglePartyMemberListNodes(AtkUnitBase* addon, Dictionary<string, string> nameMap)
+    {
+        if (addon == null || nameMap.Count == 0)
+            return 0;
+
+        var componentNode = addon->GetNodeById(PartyMemberListComponentNodeId);
+        var component = componentNode != null
+            ? componentNode->GetComponent()
+            : null;
+        if (component == null)
+            return 0;
+
+        var replacedCount = 0;
+        for (var i = 0; i < PartyMemberListTextNodeCount; i++)
+        {
+            var nodeId = PartyMemberListTextNodeBaseId + (uint)i;
+            var node = component->UldManager.SearchNodeById(nodeId);
+            if (node == null || node->Type != NodeType.Text)
+                continue;
+
+            var textNode = (AtkTextNode*)node;
+            var text = textNode->NodeText.ToString();
+            if (!TryBuildUpdatedText(text, nameMap, out var newText) ||
+                string.Equals(text, newText, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            textNode->SetText(newText);
+            replacedCount++;
+        }
+
+        return replacedCount;
+    }
+
+    private void OnPartyMemberListAddon(AddonEvent type, AddonArgs args)
+    {
+        switch (type)
+        {
+            case AddonEvent.PreFinalize:
+                ResetPartyMemberListFallbackState();
+                return;
+
+            case AddonEvent.PostDraw:
+                break;
+
+            default:
+                return;
+        }
+
+        if (!Configuration.Enabled ||
+            (!Configuration.KrangleNames && !SuperKrangleMaster4000_Active))
+        {
+            ResetPartyMemberListFallbackState();
+            return;
+        }
+
+        unsafe
+        {
+            var addon = (AtkUnitBase*)args.Addon.Address;
+            if (addon == null || !addon->IsVisible)
+                return;
+
+            var replacedCount = KranglePartyMemberList(addon);
+            if (replacedCount > 0)
+            {
+                ResetPartyMemberListFallbackState();
+                return;
+            }
+
+            if (!ShouldClosePartyMemberListFallback())
+                return;
+
+            partyMemberListFailedDraws++;
+            if (partyMemberListFailedDraws < 2 || hasShownPartyMemberListFallbackWarning)
+                return;
+
+            addon->Close(true);
+            hasShownPartyMemberListFallbackWarning = true;
+
+            var message = "PartyMemberList cannot be safely krangled yet. It was closed; disable Krangle Names to view it for now.";
+            ToastGui.ShowNormal(new SeString(new TextPayload(message)));
+            PrintStatus(message);
+            Log.Warning("[Krangler] Closed PartyMemberList after repeated failed name replacements while krangling was active.");
+        }
+    }
+
+    private bool ShouldClosePartyMemberListFallback()
+    {
+        if (PartyList.Length > 0)
+            return true;
+
+        return !Configuration.SkipSelfKrangling;
+    }
+
+    private void ResetPartyMemberListFallbackState()
+    {
+        partyMemberListFailedDraws = 0;
+        hasShownPartyMemberListFallbackWarning = false;
+    }
+
+    private unsafe void UpdateTargetInfoSurfaces()
+    {
+        UpdateTargetInfoAddon("_TargetInfo", 16, 7, TargetManager.Target);
+        UpdateTargetInfoAddon("_TargetInfoMainTarget", 10, 7, TargetManager.Target);
+        UpdateSingleTargetAddon("_FocusTargetInfo", 10, TargetManager.FocusTarget);
+    }
+
+    private unsafe void RestoreTargetInfoSurfaces()
+    {
+        UpdateTargetInfoAddon("_TargetInfo", 16, 7, TargetManager.Target, true);
+        UpdateTargetInfoAddon("_TargetInfoMainTarget", 10, 7, TargetManager.Target, true);
+        UpdateSingleTargetAddon("_FocusTargetInfo", 10, TargetManager.FocusTarget, true);
+    }
+
+    private unsafe void UpdateTargetInfoAddon(string addonName, uint targetNodeId, uint targetOfTargetNodeId, IGameObject? target, bool forceOriginal = false)
+    {
+        var addon = Instance()->GetAddonByName(addonName);
+        if (addon == null || !addon->IsVisible)
+            return;
+
+        SetTargetInfoNodeText(addon, targetNodeId, target, forceOriginal);
+
+        var targetOfTarget = target is ICharacter characterTarget
+            ? characterTarget.TargetObject
+            : null;
+        if (targetOfTarget == null &&
+            target != null &&
+            IsLocalPlayerName(target.Name.ToString()))
+        {
+            targetOfTarget = target;
+        }
+
+        SetTargetInfoNodeText(addon, targetOfTargetNodeId, targetOfTarget, forceOriginal);
+    }
+
+    private unsafe void UpdateSingleTargetAddon(string addonName, uint targetNodeId, IGameObject? target, bool forceOriginal = false)
+    {
+        var addon = Instance()->GetAddonByName(addonName);
+        if (addon == null || !addon->IsVisible)
+            return;
+
+        SetTargetInfoNodeText(addon, targetNodeId, target, forceOriginal);
+    }
+
+    private unsafe void SetTargetInfoNodeText(AtkUnitBase* addon, uint nodeId, IGameObject? target, bool forceOriginal)
+    {
+        if (addon == null)
+            return;
+
+        var node = addon->GetTextNodeById(nodeId);
+        if (node == null)
+            return;
+
+        var desiredText = GetTargetSurfaceDisplayName(target, forceOriginal);
+        if (string.IsNullOrWhiteSpace(desiredText))
+            return;
+
+        var currentText = node->NodeText.ToString();
+        if (!string.Equals(currentText, desiredText, StringComparison.Ordinal))
+            node->SetText(desiredText);
+    }
+
+    private string? GetTargetSurfaceDisplayName(IGameObject? target, bool forceOriginal)
+    {
+        if (target == null)
+            return null;
+
+        var originalName = target.Name.ToString();
+        if (string.IsNullOrWhiteSpace(originalName))
+            return null;
+
+        if (forceOriginal)
+            return originalName;
+
+        return target.ObjectKind == ObjectKind.Player
+            ? GetNameReplacement(originalName)
+            : originalName;
+    }
+
+    private Dictionary<string, string> BuildPlayerNameMap()
+    {
+        var nameMap = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        for (var i = 0; i < ObjectTable.Length; i++)
+        {
+            var obj = ObjectTable[i];
+            if (obj == null || obj.ObjectKind != ObjectKind.Player)
+                continue;
+
+            AddNameReplacement(nameMap, obj.Name.ToString());
+        }
+
+        for (var i = 0; i < PartyList.Length; i++)
+        {
+            var member = PartyList[i];
+            if (member == null)
+                continue;
+
+            AddNameReplacement(nameMap, member.Name.ToString());
+        }
+
+        if (ObjectTable.LocalPlayer != null)
+            AddNameReplacement(nameMap, ObjectTable.LocalPlayer.Name.ToString());
+
+        return nameMap;
+    }
+
+    private void AddNameReplacement(Dictionary<string, string> nameMap, string originalName)
+    {
+        if (string.IsNullOrWhiteSpace(originalName))
+            return;
+
+        var replacementName = GetNameReplacement(originalName);
+        if (!string.Equals(originalName, replacementName, StringComparison.Ordinal))
+            nameMap[originalName] = replacementName;
+
+        var krangledName = KrangleService.KrangleName(originalName);
+        if (!string.Equals(krangledName, replacementName, StringComparison.Ordinal))
+            nameMap[krangledName] = replacementName;
+
+        if (IsLocalPlayerName(originalName))
+        {
+            var configuredSelfName = GetConfiguredSelfDisplayName();
+            if (!string.IsNullOrWhiteSpace(configuredSelfName) &&
+                !string.Equals(configuredSelfName, replacementName, StringComparison.Ordinal))
+            {
+                nameMap[configuredSelfName] = replacementName;
+            }
+        }
+    }
+
     /// <summary>
     /// Strip FFXIV SeString payload bytes from text for plain-text matching.
     /// SeString payloads: 0x02 [type] [length] [data...] 0x03
@@ -1144,22 +1542,16 @@ public sealed class Plugin : IDalamudPlugin
 
     private unsafe void WalkAndReplaceTextNodes(AtkResNode* node, Dictionary<string, string> nameMap)
     {
-        if (node == null) return;
+        if (node == null || nameMap.Count == 0) return;
 
         // Check if this is a text node
         if (node->Type == NodeType.Text)
         {
             var textNode = (AtkTextNode*)node;
             var text = textNode->NodeText.ToString();
-
-            foreach (var (original, krangled) in nameMap)
+            if (TryBuildUpdatedText(text, nameMap, out var newText))
             {
-                if (text.Contains(original))
-                {
-                    var newText = text.Replace(original, krangled);
-                    textNode->SetText(newText);
-                    break;
-                }
+                textNode->SetText(newText);
             }
         }
 
@@ -1184,6 +1576,69 @@ public sealed class Plugin : IDalamudPlugin
             WalkAndReplaceTextNodes(sibling, nameMap);
     }
 
+    private static bool TryBuildUpdatedText(string text, Dictionary<string, string> nameMap, out string updatedText)
+    {
+        updatedText = text;
+        if (string.IsNullOrEmpty(text) || nameMap.Count == 0)
+            return false;
+
+        var cleanText = StripSeStringPayloads(text);
+        foreach (var (original, replacement) in nameMap)
+        {
+            if (TryReplaceNameInText(text, cleanText, original, replacement, out updatedText))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryReplaceNameInText(string rawText, string cleanText, string original, string replacement, out string updatedText)
+    {
+        updatedText = rawText;
+        if (string.IsNullOrEmpty(rawText) ||
+            string.IsNullOrEmpty(cleanText) ||
+            string.IsNullOrEmpty(original) ||
+            string.Equals(original, replacement, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var nameStartIndex = -1;
+        for (var i = 0; i < cleanText.Length; i++)
+        {
+            if (char.IsLetter(cleanText[i]))
+            {
+                nameStartIndex = i;
+                break;
+            }
+        }
+
+        if (nameStartIndex >= 0 &&
+            cleanText.Length - nameStartIndex >= 5 &&
+            original.Length >= 5)
+        {
+            var actualTextInNode = cleanText.Substring(nameStartIndex);
+            var minLength = Math.Min(5, Math.Min(actualTextInNode.Length, original.Length));
+            if (actualTextInNode.Substring(0, minLength) == original.Substring(0, minLength))
+            {
+                var partialLength = actualTextInNode.Length;
+                var replacementText = replacement.Length >= partialLength
+                    ? replacement.Substring(0, partialLength)
+                    : replacement;
+                updatedText = rawText.Replace(actualTextInNode, replacementText, StringComparison.Ordinal);
+                return !string.Equals(rawText, updatedText, StringComparison.Ordinal);
+            }
+        }
+
+        if (cleanText.Contains(original, StringComparison.Ordinal))
+        {
+            updatedText = rawText.Replace(original, replacement, StringComparison.Ordinal);
+            return !string.Equals(rawText, updatedText, StringComparison.Ordinal);
+        }
+
+        return false;
+    }
+
     private void OnNamePlateUpdate(INamePlateUpdateContext context, IReadOnlyList<INamePlateUpdateHandler> handlers)
     {
         if (!Configuration.Enabled)
@@ -1199,19 +1654,23 @@ public sealed class Plugin : IDalamudPlugin
                 continue;
 
             playerCount++;
+            var originalName = handler.Name.ToString();
+            var skipSelfKrangling = ShouldSkipSelfKrangling(originalName);
 
             // Krangle name
             if (Configuration.KrangleNames)
             {
-                var originalName = handler.Name.ToString();
                 if (!string.IsNullOrEmpty(originalName))
                 {
-                    var krangled = KrangleService.KrangleName(originalName);
+                    var krangled = GetNameReplacement(originalName);
                     if (!hasLoggedNameplateUpdate)
                         Log.Information($"[Krangler] Name: '{originalName}' -> '{krangled}'");
                     handler.Name = krangled;
                 }
             }
+
+            if (skipSelfKrangling)
+                continue;
 
             // Krangle FC tag
             try
@@ -1314,6 +1773,157 @@ public sealed class Plugin : IDalamudPlugin
 
     public void ToggleMainUi() => MainWindow.Toggle();
 
+    public bool ShowDebugOptions => Configuration.ShowDebugOptions;
+    public bool DisableDateBasedSuperKrangleEvent => Configuration.DisableDateBasedSuperKrangleEvent;
+    public bool IsDateBasedSuperKrangleWindowActive => IsSuperKrangleEventWindowActive;
+    public bool IsDateBasedSuperKrangleEventCurrentlyForced => IsSuperKrangleEventActive && !Configuration.SuperKrangleMaster4000;
+
+    public void ToggleDebugOptions()
+    {
+        Configuration.ShowDebugOptions = !Configuration.ShowDebugOptions;
+        Configuration.Save();
+        MainWindow.IsOpen = true;
+
+        var debugState = Configuration.ShowDebugOptions ? "ON" : "OFF";
+        Log.Information($"[Krangler] Debug controls toggled: {debugState}");
+        PrintStatus($"Debug controls: {debugState}.");
+    }
+
+    public void SetDateBasedSuperKrangleEventSuppressed(bool suppressed)
+    {
+        if (Configuration.DisableDateBasedSuperKrangleEvent == suppressed)
+            return;
+
+        Configuration.DisableDateBasedSuperKrangleEvent = suppressed;
+        Configuration.Save();
+
+        hasLoggedEventActivation = false;
+        hasLoggedAppearanceScan = false;
+        hasLoggedPartyList = false;
+        lastAppearanceScan = DateTime.MinValue;
+        lastPartyListScan = DateTime.MinValue;
+
+        if (Configuration.Enabled)
+            RevertAllAppearances();
+
+        var message = suppressed
+            ? "Date-based Wuk Lamat auto-event disabled for debugging."
+            : "Date-based Wuk Lamat auto-event re-enabled.";
+        Log.Information($"[Krangler] {message}");
+        PrintStatus(message);
+    }
+
+    public void SetSkipSelfKrangling(bool skipSelfKrangling)
+    {
+        if (Configuration.SkipSelfKrangling == skipSelfKrangling)
+            return;
+
+        Configuration.SkipSelfKrangling = skipSelfKrangling;
+        RefreshSelfKrangleState(skipSelfKrangling);
+        Configuration.Save();
+
+        var message = skipSelfKrangling
+            ? "Self krangling disabled."
+            : "Self krangling re-enabled.";
+        Log.Information($"[Krangler] {message}");
+        PrintStatus(message);
+    }
+
+    public void SetCustomSelfDisplayName(string customSelfDisplayName)
+    {
+        var sanitized = SanitizeCustomSelfDisplayName(customSelfDisplayName);
+        if (string.Equals(Configuration.CustomSelfDisplayName, sanitized, StringComparison.Ordinal))
+            return;
+
+        Configuration.CustomSelfDisplayName = sanitized;
+        RefreshNameKrangleSurfaces();
+        Configuration.Save();
+    }
+
+    public void ResetMainWindowPosition()
+    {
+        MainWindow.QueueResetToOrigin();
+        MainWindow.IsOpen = true;
+        PrintStatus("Queued Krangler main window reset to 1,1.");
+    }
+
+    public void JumpMainWindowToRandomVisibleLocation()
+    {
+        MainWindow.QueueRandomVisibleJump();
+        MainWindow.IsOpen = true;
+        PrintStatus("Queued a random visible jump for the Krangler main window.");
+    }
+
+    private void PrintStatus(string message)
+    {
+        ChatGui.Print($"[Krangler] {message}");
+    }
+
+    private void RefreshNameKrangleSurfaces()
+    {
+        hasLoggedNameplateUpdate = false;
+        hasLoggedPartyList = false;
+        lastPartyListScan = DateTime.MinValue;
+    }
+
+    private void RefreshSelfKrangleState(bool revertLocalAppearance)
+    {
+        RefreshNameKrangleSurfaces();
+        hasLoggedAppearanceScan = false;
+        lastAppearanceScan = DateTime.MinValue;
+
+        if (revertLocalAppearance && Configuration.Enabled)
+            RevertLocalPlayerAppearanceIfApplied();
+    }
+
+    private bool IsLocalPlayerObject(ulong objectKey, nint address)
+    {
+        if (!Configuration.SkipSelfKrangling)
+            return false;
+
+        var localPlayer = ObjectTable.LocalPlayer;
+        return localPlayer != null &&
+               (localPlayer.GameObjectId == objectKey || localPlayer.Address == address);
+    }
+
+    private bool ShouldSkipSelfKrangling(string playerName)
+    {
+        return Configuration.SkipSelfKrangling && IsLocalPlayerName(playerName);
+    }
+
+    private bool IsLocalPlayerName(string playerName)
+    {
+        if (string.IsNullOrWhiteSpace(playerName))
+            return false;
+
+        var localName = ObjectTable.LocalPlayer?.Name.ToString();
+        return !string.IsNullOrWhiteSpace(localName) &&
+               string.Equals(localName, playerName, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string GetNameReplacement(string originalName)
+    {
+        if (ShouldSkipSelfKrangling(originalName))
+            return GetResolvedSelfDisplayName(originalName);
+
+        return KrangleService.KrangleName(originalName);
+    }
+
+    private string GetResolvedSelfDisplayName(string fallbackName)
+    {
+        var configuredSelfName = GetConfiguredSelfDisplayName();
+        return string.IsNullOrWhiteSpace(configuredSelfName) ? fallbackName : configuredSelfName;
+    }
+
+    private string GetConfiguredSelfDisplayName()
+        => SanitizeCustomSelfDisplayName(Configuration.CustomSelfDisplayName);
+
+    private static string SanitizeCustomSelfDisplayName(string? customSelfDisplayName)
+    {
+        var sanitized = customSelfDisplayName?.Trim() ?? string.Empty;
+        return sanitized.Length > 22 ? sanitized[..22] : sanitized;
+    }
+
     // ─── Glamourer Preset Application ─────────────────────────────────────
 
     /// <summary>
@@ -1340,7 +1950,7 @@ public sealed class Plugin : IDalamudPlugin
         if (appliedEquipment > 0)
             RefreshCharacterEquipment(character);
         
-        var changed = appliedAppearance || appliedEquipment > 0 || appliedWeapons > 0 || appliedBonus || appliedMetaState;
+        var changed = refreshedAppearance || appliedEquipment > 0 || appliedWeapons > 0 || appliedBonus || appliedMetaState;
 
         if (logRefreshResult && !hasLoggedAppearanceScan && appliedAppearance)
             Log.Information($"[Krangler] Native customize refresh for preset '{preset.Name}' returned {refreshedAppearance}");
@@ -1659,7 +2269,7 @@ public sealed class Plugin : IDalamudPlugin
     private unsafe bool RefreshCharacterCustomize(CharacterStruct* character)
     {
         var characterBase = GetCharacterBaseDrawObject(character);
-        if (characterBase == null)
+        if (characterBase == null || characterBase->GetModelType() != CharacterBaseStruct.ModelType.Human)
             return false;
 
         var human = (HumanStruct*)characterBase;
@@ -1687,6 +2297,39 @@ public sealed class Plugin : IDalamudPlugin
             ? (CharacterBaseStruct*)character->DrawObject
             : null;
     }
+
+    private bool ShouldProcessAppearanceTarget(bool isPlayer, bool isNpc, bool isChocobo, bool isMinion)
+    {
+        if (SuperKrangleMaster4000_Active)
+        {
+            return isPlayer ||
+                   (isNpc && (Configuration.SuperKrangleNpcs || IsSuperKrangleEventActive)) ||
+                   (isChocobo && Configuration.SuperKrangleChocobos) ||
+                   (isMinion && Configuration.SuperKrangleMinions);
+        }
+
+        return (isPlayer && (Configuration.KrangleRaces || Configuration.KrangleGenders || Configuration.KrangleAppearance)) ||
+               (isNpc && Configuration.KrangleNpcs) ||
+               (isChocobo && Configuration.KrangleChocobos) ||
+               (isMinion && Configuration.KrangleMinions);
+    }
+
+    private static bool IsAppearanceNpc(ObjectKind objectKind, bool isChocobo, bool isMinion)
+    {
+        if (isChocobo || isMinion)
+            return false;
+
+        return objectKind == ObjectKind.BattleNpc || objectKind == ObjectKind.EventNpc;
+    }
+
+    private unsafe bool SupportsHumanCustomize(CharacterStruct* character)
+    {
+        var characterBase = GetCharacterBaseDrawObject(character);
+        return characterBase != null && characterBase->GetModelType() == CharacterBaseStruct.ModelType.Human;
+    }
+
+    private static string GetAppearanceTargetLabel(bool isNpc, bool isChocobo, bool isMinion)
+        => isNpc ? "npc" : isChocobo ? "chocobo" : isMinion ? "minion" : "player";
 
     private unsafe void ApplyNativeEquipmentSlot(CharacterStruct* character, int slotIndex, EquipmentModelId* modelId)
     {
@@ -2014,15 +2657,30 @@ public sealed class Plugin : IDalamudPlugin
         return string.Empty;
     }
 
-    private string ResolveSuperKrangleSelection(string playerName, bool isChocobo = false, bool isMinion = false)
+    private string GetActiveDateBasedForcedPreset(bool isChocobo = false, bool isMinion = false)
+    {
+        if (!IsSuperKrangleEventActive || isChocobo || isMinion)
+            return string.Empty;
+
+        return GetDateBasedForcedPreset();
+    }
+
+    private string ResolveSuperKrangleSelection(string playerName, bool isNpc = false, bool isChocobo = false, bool isMinion = false)
     {
         // SPECIAL EVENT: Force Wuk Lamat preset on specific dates
-        var forcedPreset = GetDateBasedForcedPreset();
+        var forcedPreset = GetActiveDateBasedForcedPreset(isChocobo, isMinion);
         if (!string.IsNullOrEmpty(forcedPreset))
         {
             if (!hasLoggedAppearanceScan)
                 Log.Information($"[Krangler] Date-based override forcing preset: {forcedPreset}");
             return forcedPreset;
+        }
+
+        if (isNpc)
+        {
+            return string.IsNullOrWhiteSpace(Configuration.SuperKrangleNpcSelection)
+                ? "Random"
+                : Configuration.SuperKrangleNpcSelection;
         }
 
         if (isChocobo)
@@ -2190,7 +2848,8 @@ public sealed class Plugin : IDalamudPlugin
     {
         createCharacterBaseHook?.Disable();
         createCharacterBaseHook?.Dispose();
-        Framework.Update -= OnFrameworkUpdate;
+        Framework.Update -= Framework_OnUpdate;
+        AddonLifecycle.UnregisterListener(OnPartyMemberListAddon);
         NamePlateGui.OnNamePlateUpdate -= OnNamePlateUpdate;
         ClientState.TerritoryChanged -= OnTerritoryChanged;
         try 

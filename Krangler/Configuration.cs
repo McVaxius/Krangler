@@ -17,12 +17,17 @@ public class Configuration : IPluginConfiguration
     public bool KrangleGenders { get; set; } = true;
     public bool KrangleRaces { get; set; } = true;
     public bool KrangleAppearance { get; set; } = true;
+    public bool KrangleNpcs { get; set; } = false;
     public bool KrangleChocobos { get; set; } = false;
     public bool KrangleMinions { get; set; } = false;
+    public bool SkipSelfKrangling { get; set; } = false;
+    public string CustomSelfDisplayName { get; set; } = string.Empty;
 
     // Special mode (disabled by default)
     public bool SuperKrangleMaster4000 { get; set; } = false;
     public string SuperKrangleSelection { get; set; } = "Random";
+    public bool SuperKrangleNpcs { get; set; } = false;
+    public string SuperKrangleNpcSelection { get; set; } = "Random";
     public bool SuperKrangleChocobos { get; set; } = false;
     public string SuperKrangleChocoboSelection { get; set; } = "Random";
     public bool SuperKrangleMinions { get; set; } = false;
@@ -48,6 +53,8 @@ public class Configuration : IPluginConfiguration
     public bool SuperKrangleApplyWeapons { get; set; } = false;
     public int SuperKrangleMaxPlayersPerCycle { get; set; } = 8;
     public int SuperKrangleBaseRedrawDelayFrames { get; set; } = 2;
+    public bool ShowDebugOptions { get; set; } = false;
+    public bool DisableDateBasedSuperKrangleEvent { get; set; } = false;
 
     // DTR bar settings
     public bool DtrBarEnabled { get; set; } = true;
