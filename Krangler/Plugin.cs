@@ -77,9 +77,18 @@ public sealed class Plugin : IDalamudPlugin
     private const int EquipmentByteCount = EquipmentSlotByteCount * EquipmentSlotCount;
     private const uint InvisibilityDrawStateFlag = 0x00000002;
     private const ushort SmallClothesNpcModelId = 9903;
-    private const uint PartyMemberListComponentNodeId = 12;
-    private const uint PartyMemberListTextNodeBaseId = 51001;
-    private const int PartyMemberListTextNodeCount = 15;
+    private static readonly uint[][] PartyMemberListTextNodePaths =
+    {
+        new uint[] { 26, 2, 41 },
+        new uint[] { 26, 2, 42 },
+        new uint[] { 26, 3, 42 },
+        new uint[] { 26, 4, 42 },
+        new uint[] { 26, 5, 42 },
+        new uint[] { 26, 6, 42 },
+        new uint[] { 26, 7, 42 },
+        new uint[] { 26, 8, 42 },
+        new uint[] { 26, 9, 42 },
+    };
 
     private sealed class OriginalAppearanceData
     {
@@ -145,7 +154,6 @@ public sealed class Plugin : IDalamudPlugin
     private int redrawCooldownFrames = 0;
     private int currentVisiblePlayerCount;
     private bool isRevertingAppearances;
-    private int partyMemberListFailedDraws;
     private bool hasShownPartyMemberListFallbackWarning;
     private const int CharacterBaseReapplyAttempts = 5;
 
@@ -1278,18 +1286,10 @@ public sealed class Plugin : IDalamudPlugin
         if (addon == null || nameMap.Count == 0)
             return 0;
 
-        var componentNode = addon->GetNodeById(PartyMemberListComponentNodeId);
-        var component = componentNode != null
-            ? componentNode->GetComponent()
-            : null;
-        if (component == null)
-            return 0;
-
         var replacedCount = 0;
-        for (var i = 0; i < PartyMemberListTextNodeCount; i++)
+        foreach (var nodePath in PartyMemberListTextNodePaths)
         {
-            var nodeId = PartyMemberListTextNodeBaseId + (uint)i;
-            var node = component->UldManager.SearchNodeById(nodeId);
+            var node = FindNestedPartyMemberListNode(addon, nodePath);
             if (node == null || node->Type != NodeType.Text)
                 continue;
 
@@ -1305,7 +1305,86 @@ public sealed class Plugin : IDalamudPlugin
             replacedCount++;
         }
 
+        if (replacedCount == 0)
+            replacedCount += WalkUldManagerNodeListAndReplaceTextNodes(addon, nameMap);
+
+        if (replacedCount == 0 && addon->UldManager.RootNode != null)
+            replacedCount += WalkAndReplaceTextNodes(addon->UldManager.RootNode, nameMap);
+
         return replacedCount;
+    }
+
+    private unsafe int WalkUldManagerNodeListAndReplaceTextNodes(AtkUnitBase* addon, Dictionary<string, string> nameMap)
+    {
+        if (addon == null || nameMap.Count == 0)
+            return 0;
+
+        var replacedCount = 0;
+        var visited = new HashSet<nint>();
+
+        for (var i = 0; i < addon->UldManager.NodeListCount; i++)
+        {
+            var node = addon->UldManager.NodeList[i];
+            if (node == null)
+                continue;
+
+            replacedCount += WalkAndReplaceTextNodes(node, nameMap, visited);
+        }
+
+        return replacedCount;
+    }
+
+    private unsafe AtkResNode* FindNestedPartyMemberListNode(AtkUnitBase* addon, uint[] nodePath)
+    {
+        if (addon == null || nodePath.Length == 0)
+            return null;
+
+        AtkResNode* currentNode = addon->GetNodeById(nodePath[0]);
+        for (var i = 1; currentNode != null && i < nodePath.Length; i++)
+        {
+            currentNode = FindDescendantNodeById(currentNode, nodePath[i]);
+        }
+
+        return currentNode;
+    }
+
+    private unsafe AtkResNode* FindDescendantNodeById(AtkResNode* parentNode, uint targetNodeId)
+    {
+        if (parentNode == null)
+            return null;
+
+        if ((int)parentNode->Type >= 1000)
+        {
+            var componentNode = (AtkComponentNode*)parentNode;
+            if (componentNode->Component != null)
+            {
+                var directMatch = componentNode->Component->UldManager.SearchNodeById(targetNodeId);
+                if (directMatch != null)
+                    return directMatch;
+
+                return FindNodeByIdInChain(componentNode->Component->UldManager.RootNode, targetNodeId);
+            }
+        }
+
+        return FindNodeByIdInChain(parentNode->ChildNode, targetNodeId);
+    }
+
+    private unsafe AtkResNode* FindNodeByIdInChain(AtkResNode* startNode, uint targetNodeId)
+    {
+        var node = startNode;
+        while (node != null)
+        {
+            if (node->NodeId == targetNodeId)
+                return node;
+
+            var descendantMatch = FindDescendantNodeById(node, targetNodeId);
+            if (descendantMatch != null)
+                return descendantMatch;
+
+            node = node->PrevSiblingNode;
+        }
+
+        return null;
     }
 
     private void OnPartyMemberListAddon(AddonEvent type, AddonArgs args)
@@ -1336,41 +1415,20 @@ public sealed class Plugin : IDalamudPlugin
             if (addon == null || !addon->IsVisible)
                 return;
 
-            var replacedCount = KranglePartyMemberList(addon);
-            if (replacedCount > 0)
+            if (!hasShownPartyMemberListFallbackWarning)
             {
-                ResetPartyMemberListFallbackState();
-                return;
+                const string warningMessage = "DO NOT CLICK ON PLAYERSEARCH OR FRIEND LIST";
+                ToastGui.ShowNormal(new SeString(new TextPayload(warningMessage)));
+                PrintStatus(warningMessage);
+                hasShownPartyMemberListFallbackWarning = true;
             }
 
-            if (!ShouldClosePartyMemberListFallback())
-                return;
-
-            partyMemberListFailedDraws++;
-            if (partyMemberListFailedDraws < 2 || hasShownPartyMemberListFallbackWarning)
-                return;
-
-            addon->Close(true);
-            hasShownPartyMemberListFallbackWarning = true;
-
-            var message = "PartyMemberList cannot be safely krangled yet. It was closed; disable Krangle Names to view it for now.";
-            ToastGui.ShowNormal(new SeString(new TextPayload(message)));
-            PrintStatus(message);
-            Log.Warning("[Krangler] Closed PartyMemberList after repeated failed name replacements while krangling was active.");
+            KranglePartyMemberList(addon);
         }
-    }
-
-    private bool ShouldClosePartyMemberListFallback()
-    {
-        if (PartyList.Length > 0)
-            return true;
-
-        return !Configuration.SkipSelfKrangling;
     }
 
     private void ResetPartyMemberListFallbackState()
     {
-        partyMemberListFailedDraws = 0;
         hasShownPartyMemberListFallbackWarning = false;
     }
 
@@ -1540,18 +1598,32 @@ public sealed class Plugin : IDalamudPlugin
         return sb.ToString();
     }
 
-    private unsafe void WalkAndReplaceTextNodes(AtkResNode* node, Dictionary<string, string> nameMap)
+    private unsafe int WalkAndReplaceTextNodes(AtkResNode* node, Dictionary<string, string> nameMap)
     {
-        if (node == null || nameMap.Count == 0) return;
+        return WalkAndReplaceTextNodes(node, nameMap, new HashSet<nint>());
+    }
+
+    private unsafe int WalkAndReplaceTextNodes(AtkResNode* node, Dictionary<string, string> nameMap, HashSet<nint> visited)
+    {
+        if (node == null || nameMap.Count == 0)
+            return 0;
+
+        var nodeAddress = (nint)node;
+        if (!visited.Add(nodeAddress))
+            return 0;
+
+        var replacedCount = 0;
 
         // Check if this is a text node
         if (node->Type == NodeType.Text)
         {
             var textNode = (AtkTextNode*)node;
             var text = textNode->NodeText.ToString();
-            if (TryBuildUpdatedText(text, nameMap, out var newText))
+            if (TryBuildUpdatedText(text, nameMap, out var newText) &&
+                !string.Equals(text, newText, StringComparison.Ordinal))
             {
                 textNode->SetText(newText);
+                replacedCount++;
             }
         }
 
@@ -1562,18 +1634,21 @@ public sealed class Plugin : IDalamudPlugin
             if (comp->Component != null)
             {
                 var child = comp->Component->UldManager.RootNode;
-                while (child != null)
-                {
-                    WalkAndReplaceTextNodes(child, nameMap);
-                    child = child->PrevSiblingNode;
-                }
+                if (child != null)
+                    replacedCount += WalkAndReplaceTextNodes(child, nameMap, visited);
             }
         }
 
         // Walk siblings
         var sibling = node->PrevSiblingNode;
         if (sibling != null)
-            WalkAndReplaceTextNodes(sibling, nameMap);
+            replacedCount += WalkAndReplaceTextNodes(sibling, nameMap, visited);
+
+        var childNode = node->ChildNode;
+        if (childNode != null)
+            replacedCount += WalkAndReplaceTextNodes(childNode, nameMap, visited);
+
+        return replacedCount;
     }
 
     private static bool TryBuildUpdatedText(string text, Dictionary<string, string> nameMap, out string updatedText)
