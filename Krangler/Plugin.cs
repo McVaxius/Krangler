@@ -6,6 +6,7 @@ using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Command;
+using Dalamud.Game.Chat;
 using Dalamud.Game.Gui.Dtr;
 using Dalamud.Game.Gui.NamePlate;
 using Dalamud.Game.Text;
@@ -28,6 +29,7 @@ using CharacterBaseStruct = FFXIVClientStructs.FFXIV.Client.Graphics.Scene.Chara
 using DrawDataContainerStruct = FFXIVClientStructs.FFXIV.Client.Game.Character.DrawDataContainer;
 using GameCustomizeData = FFXIVClientStructs.FFXIV.Client.Game.Character.CustomizeData;
 using GameObjectStruct = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
+using HumanDrawData = FFXIVClientStructs.FFXIV.Client.Graphics.Scene.Human.DrawData;
 using HumanStruct = FFXIVClientStructs.FFXIV.Client.Graphics.Scene.Human;
 using BattleNpcSubKind = FFXIVClientStructs.FFXIV.Client.Game.Object.BattleNpcSubKind;
 
@@ -328,7 +330,7 @@ public sealed class Plugin : IDalamudPlugin
 
     // ─── Territory Change Handler ───────────────────────────────────────
 
-    private void OnTerritoryChanged(ushort territory)
+    private void OnTerritoryChanged(uint territory)
     {
         if (!Configuration.Enabled) return;
         
@@ -342,6 +344,9 @@ public sealed class Plugin : IDalamudPlugin
         hasLoggedAppearanceScan = false;
         hasLoggedPartyList = false;
     }
+
+    private void OnTerritoryChanged(ushort territory)
+        => OnTerritoryChanged((uint)territory);
 
     private unsafe CharacterBaseStruct* CreateCharacterBaseDetour(uint modelId, GameCustomizeData* customize, EquipmentModelId* equipment, byte unk)
     {
@@ -539,6 +544,29 @@ public sealed class Plugin : IDalamudPlugin
     }
 
     // ─── Chat Message Garbling ───────────────────────────────────────
+
+    private void OnChatMessage(IHandleableChatMessage chatMessage)
+    {
+        if (!Configuration.Enabled || !Configuration.KrangleChat)
+            return;
+
+        try
+        {
+            var messageText = chatMessage.Message.TextValue;
+            var senderText = chatMessage.Sender.TextValue;
+            var garbledMessage = GenerateGarbledText(messageText.Length);
+            var garbledSender = ShouldSkipSelfKrangling(senderText)
+                ? GetResolvedSelfDisplayName(senderText)
+                : GenerateGarbledText(senderText.Length);
+
+            chatMessage.Message = new SeString(new List<Payload> { new TextPayload(garbledMessage) });
+            chatMessage.Sender = new SeString(new List<Payload> { new TextPayload(garbledSender) });
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"[Krangler] Error in chat message processing: {ex.Message}");
+        }
+    }
 
     private void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
     {
@@ -2249,7 +2277,7 @@ public sealed class Plugin : IDalamudPlugin
                     mainHandWeapon.Stain1 = (byte)Math.Min(mainHandData.Stain2, byte.MaxValue);
                 }
 
-                character->DrawData.LoadWeapon(DrawDataContainerStruct.WeaponSlot.MainHand, mainHandWeapon, 1, 0, 1, 0);
+                character->DrawData.LoadWeapon(DrawDataContainerStruct.WeaponSlot.MainHand, mainHandWeapon, 1, 0, 1, 0, true);
                 appliedCount++;
 
                 if (!hasLoggedAppearanceScan)
@@ -2276,7 +2304,7 @@ public sealed class Plugin : IDalamudPlugin
                     offHandWeapon.Stain1 = (byte)Math.Min(offHandData.Stain2, byte.MaxValue);
                 }
 
-                character->DrawData.LoadWeapon(DrawDataContainerStruct.WeaponSlot.OffHand, offHandWeapon, 1, 0, 1, 0);
+                character->DrawData.LoadWeapon(DrawDataContainerStruct.WeaponSlot.OffHand, offHandWeapon, 1, 0, 1, 0, true);
                 appliedCount++;
 
                 if (!hasLoggedAppearanceScan)
@@ -2348,7 +2376,19 @@ public sealed class Plugin : IDalamudPlugin
             return false;
 
         var human = (HumanStruct*)characterBase;
-        return human->UpdateDrawData((byte*)&character->DrawData.CustomizeData, true);
+        var drawData = new HumanDrawData
+        {
+            CustomizeData = character->DrawData.CustomizeData,
+            AnimationVariant = human->AnimationVariant,
+        };
+
+        for (var i = 0; i < EquipmentSlotCount; i++)
+            drawData.Equipments[i] = character->DrawData.EquipmentModelIds[i];
+
+        drawData.Glasses[0] = new EquipmentModelId { Id = character->DrawData.GlassesIds[0] };
+        drawData.Glasses[1] = new EquipmentModelId { Id = character->DrawData.GlassesIds[1] };
+
+        return human->UpdateDrawData(&drawData, true);
     }
 
     private unsafe void RefreshCharacterEquipment(CharacterStruct* character)
@@ -2436,8 +2476,8 @@ public sealed class Plugin : IDalamudPlugin
         if (character == null)
             return;
 
-        character->DrawData.LoadWeapon(DrawDataContainerStruct.WeaponSlot.MainHand, originalData.MainHandWeapon, 1, 0, 1, 0);
-        character->DrawData.LoadWeapon(DrawDataContainerStruct.WeaponSlot.OffHand, originalData.OffHandWeapon, 1, 0, 1, 0);
+        character->DrawData.LoadWeapon(DrawDataContainerStruct.WeaponSlot.MainHand, originalData.MainHandWeapon, 1, 0, 1, 0, true);
+        character->DrawData.LoadWeapon(DrawDataContainerStruct.WeaponSlot.OffHand, originalData.OffHandWeapon, 1, 0, 1, 0, true);
     }
 
     private static unsafe void RestoreBonusItems(CharacterStruct* character, OriginalAppearanceData originalData)

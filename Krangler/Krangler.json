@@ -11,8 +11,8 @@
     "names",
     "randomize"
   ],
-  "DalamudApiLevel": 14,
+  "DalamudApiLevel": 15,
   "LoadPriority": 0,
   "IconUrl": "https://raw.githubusercontent.com/McVaxius/Krangler/refs/heads/master/Krangler/images/icon.png",
-  "AssemblyVersion": "0.0.0.23"
+  "AssemblyVersion": "0.0.0.24"
 }
