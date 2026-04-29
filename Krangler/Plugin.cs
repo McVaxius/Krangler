@@ -485,7 +485,7 @@ public sealed class Plugin : IDalamudPlugin
         for (var objectIndex = 0; objectIndex < ObjectTable.Length; objectIndex++)
         {
             var obj = ObjectTable[objectIndex];
-            if (obj == null || obj.ObjectKind != ObjectKind.Player || obj.Address == 0)
+            if (obj == null || obj.ObjectKind != ObjectKind.Pc || obj.Address == 0)
                 continue;
 
             var candidate = (CharacterStruct*)obj.Address;
@@ -525,7 +525,7 @@ public sealed class Plugin : IDalamudPlugin
         for (var objectIndex = 0; objectIndex < ObjectTable.Length; objectIndex++)
         {
             var obj = ObjectTable[objectIndex];
-            if (obj == null || obj.ObjectKind != ObjectKind.Player || obj.Address == 0)
+            if (obj == null || obj.ObjectKind != ObjectKind.Pc || obj.Address == 0)
                 continue;
 
             var candidate = (CharacterStruct*)obj.Address;
@@ -637,7 +637,7 @@ public sealed class Plugin : IDalamudPlugin
             if (AppearanceService.IsApplied(objectKey))
                 continue;
 
-            var isPlayer = obj.ObjectKind == ObjectKind.Player;
+            var isPlayer = obj.ObjectKind == ObjectKind.Pc;
             var isChocobo = obj.ObjectKind == ObjectKind.BattleNpc && obj.Name.ToString().Contains("Companion", StringComparison.OrdinalIgnoreCase);
             var isMinion = obj.ObjectKind == ObjectKind.Companion;
             var isNpc = IsAppearanceNpc(obj.ObjectKind, isChocobo, isMinion);
@@ -1534,7 +1534,7 @@ public sealed class Plugin : IDalamudPlugin
         if (forceOriginal)
             return originalName;
 
-        return target.ObjectKind == ObjectKind.Player
+        return target.ObjectKind == ObjectKind.Pc
             ? GetNameReplacement(originalName)
             : originalName;
     }
@@ -1546,7 +1546,7 @@ public sealed class Plugin : IDalamudPlugin
         for (var i = 0; i < ObjectTable.Length; i++)
         {
             var obj = ObjectTable[i];
-            if (obj == null || obj.ObjectKind != ObjectKind.Player)
+            if (obj == null || obj.ObjectKind != ObjectKind.Pc)
                 continue;
 
             AddNameReplacement(nameMap, obj.Name.ToString());
