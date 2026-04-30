@@ -568,29 +568,6 @@ public sealed class Plugin : IDalamudPlugin
         }
     }
 
-    private void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
-    {
-        if (!Configuration.Enabled || !Configuration.KrangleChat)
-            return;
-
-        try
-        {
-            var messageText = message.TextValue;
-            var senderText = sender.TextValue;
-            var garbledMessage = GenerateGarbledText(messageText.Length);
-            var garbledSender = ShouldSkipSelfKrangling(senderText)
-                ? GetResolvedSelfDisplayName(senderText)
-                : GenerateGarbledText(senderText.Length);
-
-            message = new SeString(new List<Payload> { new TextPayload(garbledMessage) });
-            sender = new SeString(new List<Payload> { new TextPayload(garbledSender) });
-        }
-        catch (Exception ex)
-        {
-            Log.Error($"[Krangler] Error in chat message processing: {ex.Message}");
-        }
-    }
-
     private static string GenerateGarbledText(int length)
     {
         if (length <= 0) return string.Empty;
