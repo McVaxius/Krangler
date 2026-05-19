@@ -7,6 +7,7 @@ public class GlamourerPreset
     public int FileVersion { get; set; }
     public string Identifier { get; set; } = "";
     public string Name { get; set; } = "";
+    public string SourceFileName { get; set; } = "";
     public string Description { get; set; } = "";
     public bool ForcedRedraw { get; set; }
     public Dictionary<string, EquipmentSlotData> Equipment { get; set; } = new();

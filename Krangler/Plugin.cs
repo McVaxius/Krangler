@@ -29,6 +29,7 @@ using CharacterBaseStruct = FFXIVClientStructs.FFXIV.Client.Graphics.Scene.Chara
 using DrawDataContainerStruct = FFXIVClientStructs.FFXIV.Client.Game.Character.DrawDataContainer;
 using GameCustomizeData = FFXIVClientStructs.FFXIV.Client.Game.Character.CustomizeData;
 using GameObjectStruct = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
+using ClientVisibilityFlags = FFXIVClientStructs.FFXIV.Client.Game.Object.VisibilityFlags;
 using HumanDrawData = FFXIVClientStructs.FFXIV.Client.Graphics.Scene.Human.DrawData;
 using HumanStruct = FFXIVClientStructs.FFXIV.Client.Graphics.Scene.Human;
 using BattleNpcSubKind = FFXIVClientStructs.FFXIV.Client.Game.Object.BattleNpcSubKind;
@@ -78,6 +79,9 @@ public sealed class Plugin : IDalamudPlugin
     private const int EquipmentSlotCount = 10;
     private const int EquipmentByteCount = EquipmentSlotByteCount * EquipmentSlotCount;
     private const uint InvisibilityDrawStateFlag = 0x00000002;
+    private const uint ObservedExactNpcHiddenRenderFlag = 0x00000100;
+    private static readonly uint HiddenExactNpcRenderFlagsMask = (uint)(ClientVisibilityFlags.Model | ClientVisibilityFlags.Nameplate) | ObservedExactNpcHiddenRenderFlag;
+    private const int ExactNpcHumanizeAttempts = 300;
     private const ushort SmallClothesNpcModelId = 9903;
     private static readonly uint[][] PartyMemberListTextNodePaths =
     {
@@ -104,18 +108,69 @@ public sealed class Plugin : IDalamudPlugin
         public bool IsWeaponHidden { get; set; }
         public bool IsVisorToggled { get; set; }
         public bool VieraEarsHidden { get; set; }
+        public uint RenderFlags { get; set; }
+        public bool HasRenderFlags { get; set; }
+        public int ModelCharaId { get; set; }
+        public int ModelCharaId2 { get; set; }
+        public int ModelSkeletonId { get; set; }
+        public int ModelSkeletonId2 { get; set; }
+        public bool HasModelContainerIds { get; set; }
+    }
+
+    private readonly struct PresetApplyResult
+    {
+        public PresetApplyResult(
+            bool customizeApplied,
+            bool customizeRefreshed,
+            int equipmentApplied,
+            int weaponsApplied,
+            bool bonusApplied,
+            bool metaApplied,
+            bool preAppliedDuringCreate)
+        {
+            CustomizeApplied = customizeApplied;
+            CustomizeRefreshed = customizeRefreshed;
+            EquipmentApplied = equipmentApplied;
+            WeaponsApplied = weaponsApplied;
+            BonusApplied = bonusApplied;
+            MetaApplied = metaApplied;
+            PreAppliedDuringCreate = preAppliedDuringCreate;
+        }
+
+        public bool CustomizeApplied { get; }
+        public bool CustomizeRefreshed { get; }
+        public int EquipmentApplied { get; }
+        public int WeaponsApplied { get; }
+        public bool BonusApplied { get; }
+        public bool MetaApplied { get; }
+        public bool PreAppliedDuringCreate { get; }
+        public bool AnyApplied => CustomizeApplied || EquipmentApplied > 0 || WeaponsApplied > 0 || BonusApplied || MetaApplied;
+        public bool GeneralSuccess => CustomizeRefreshed || EquipmentApplied > 0 || WeaponsApplied > 0 || BonusApplied || MetaApplied;
+        public bool ExactCustomizeSatisfied => !CustomizeApplied || CustomizeRefreshed || PreAppliedDuringCreate;
+        public bool ExactSuccess => AnyApplied && ExactCustomizeSatisfied;
+    }
+
+    private enum PendingRedrawKind
+    {
+        InvisibleThenVisible,
+        VisibleOnly,
+        RestoreRenderFlags,
+        ExactDisableDraw,
+        ExactEnableDraw,
     }
 
     private readonly struct PendingRedrawEntry
     {
-        public PendingRedrawEntry(nint address, bool makeVisible)
+        public PendingRedrawEntry(nint address, PendingRedrawKind kind, uint? renderFlags = null)
         {
             Address = address;
-            MakeVisible = makeVisible;
+            Kind = kind;
+            RenderFlags = renderFlags;
         }
 
         public nint Address { get; }
-        public bool MakeVisible { get; }
+        public PendingRedrawKind Kind { get; }
+        public uint? RenderFlags { get; }
     }
 
     private readonly struct PendingCreatedCharacterBaseEntry
@@ -128,6 +183,65 @@ public sealed class Plugin : IDalamudPlugin
 
         public nint Address { get; }
         public int RemainingAttempts { get; }
+    }
+
+    private readonly struct PendingAmongusNpcEntry
+    {
+        public PendingAmongusNpcEntry(
+            string npcName,
+            ObjectKind objectKind,
+            ulong gameObjectId,
+            nint queuedAddress,
+            int remainingAttempts,
+            bool preAppliedDuringCreate = false,
+            int lastModelCharaId = 0,
+            int lastModelCharaId2 = 0,
+            int lastModelSkeletonId = 0,
+            int lastModelSkeletonId2 = 0,
+            string lastDrawObjectType = "unknown")
+        {
+            NpcName = npcName;
+            ObjectKind = objectKind;
+            GameObjectId = gameObjectId;
+            QueuedAddress = queuedAddress;
+            RemainingAttempts = remainingAttempts;
+            PreAppliedDuringCreate = preAppliedDuringCreate;
+            LastModelCharaId = lastModelCharaId;
+            LastModelCharaId2 = lastModelCharaId2;
+            LastModelSkeletonId = lastModelSkeletonId;
+            LastModelSkeletonId2 = lastModelSkeletonId2;
+            LastDrawObjectType = lastDrawObjectType;
+        }
+
+        public string NpcName { get; }
+        public ObjectKind ObjectKind { get; }
+        public ulong GameObjectId { get; }
+        public nint QueuedAddress { get; }
+        public int RemainingAttempts { get; }
+        public bool PreAppliedDuringCreate { get; }
+        public int LastModelCharaId { get; }
+        public int LastModelCharaId2 { get; }
+        public int LastModelSkeletonId { get; }
+        public int LastModelSkeletonId2 { get; }
+        public string LastDrawObjectType { get; }
+
+        public PendingAmongusNpcEntry WithRemainingAttempts(int remainingAttempts)
+            => new(NpcName, ObjectKind, GameObjectId, QueuedAddress, remainingAttempts, PreAppliedDuringCreate, LastModelCharaId, LastModelCharaId2, LastModelSkeletonId, LastModelSkeletonId2, LastDrawObjectType);
+
+        public PendingAmongusNpcEntry WithQueuedAddress(nint queuedAddress)
+            => new(NpcName, ObjectKind, GameObjectId, queuedAddress, RemainingAttempts, PreAppliedDuringCreate, LastModelCharaId, LastModelCharaId2, LastModelSkeletonId, LastModelSkeletonId2, LastDrawObjectType);
+
+        public PendingAmongusNpcEntry WithPreAppliedDuringCreate()
+            => new(NpcName, ObjectKind, GameObjectId, QueuedAddress, RemainingAttempts, true, LastModelCharaId, LastModelCharaId2, LastModelSkeletonId, LastModelSkeletonId2, LastDrawObjectType);
+
+        public PendingAmongusNpcEntry WithLastObserved(
+            nint queuedAddress,
+            int lastModelCharaId,
+            int lastModelCharaId2,
+            int lastModelSkeletonId,
+            int lastModelSkeletonId2,
+            string lastDrawObjectType)
+            => new(NpcName, ObjectKind, GameObjectId, queuedAddress, RemainingAttempts, PreAppliedDuringCreate, lastModelCharaId, lastModelCharaId2, lastModelSkeletonId, lastModelSkeletonId2, lastDrawObjectType);
     }
 
     // Track original customize data for revert, keyed by GameObjectId
@@ -152,6 +266,17 @@ public sealed class Plugin : IDalamudPlugin
     private readonly HashSet<nint> pendingRedrawAddresses = new();
     private readonly Queue<PendingCreatedCharacterBaseEntry> pendingCreatedCharacterBaseQueue = new();
     private readonly HashSet<nint> pendingCreatedCharacterBaseAddresses = new();
+    private readonly HashSet<ulong> pendingAmongusObjectKeys = new();
+    private readonly Dictionary<ulong, PendingAmongusNpcEntry> pendingAmongusNpcEntries = new();
+    private readonly HashSet<ulong> amongusKeepVisibleObjectKeys = new();
+    private readonly HashSet<ulong> loggedAmongusMatchObjectKeys = new();
+    private readonly HashSet<ulong> loggedAmongusVisibilityObjectKeys = new();
+    private readonly HashSet<ulong> loggedPendingAmongusObjectKeys = new();
+    private readonly HashSet<ulong> loggedAppliedPendingAmongusObjectKeys = new();
+    private readonly HashSet<ulong> loggedAmongusCustomizeRefreshFalseObjectKeys = new();
+    private readonly HashSet<ulong> loggedExhaustedPendingAmongusObjectKeys = new();
+    private readonly HashSet<string> loggedMissingAmongusObjectNames = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> loggedMissingAmongusPresetKeys = new(StringComparer.OrdinalIgnoreCase);
     private Hook<CreateCharacterBaseDelegate>? createCharacterBaseHook;
     private int redrawCooldownFrames = 0;
     private int currentVisiblePlayerCount;
@@ -164,6 +289,8 @@ public sealed class Plugin : IDalamudPlugin
     public Plugin()
     {
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+        if (Configuration.SanitizeAmongusNpcReplacements())
+            Configuration.Save();
 
         AppearanceService = new AppearanceService(Log, ObjectTable, Configuration);
         GlamourerPresetService = new GlamourerPresetService(Log, PluginInterface);
@@ -274,6 +401,7 @@ public sealed class Plugin : IDalamudPlugin
         // Process staggered redraws — one character per N frames
         ProcessRedrawQueue();
         ProcessCreatedCharacterBaseQueue();
+        ProcessPendingAmongusNpcEntries();
 
         // Track enable/disable transitions for logging
         if (Configuration.Enabled != wasEnabled)
@@ -299,9 +427,11 @@ public sealed class Plugin : IDalamudPlugin
             UpdateDtrBar();
             return;
         }
-        
+
+        MaintainAmongusNpcVisibility();
+
         // Appearance krangling via direct memory (throttled to every 5 seconds)
-        if (Configuration.KrangleGenders || Configuration.KrangleRaces || Configuration.KrangleAppearance || SuperKrangleMaster4000_Active)
+        if (Configuration.KrangleGenders || Configuration.KrangleRaces || Configuration.KrangleAppearance || SuperKrangleMaster4000_Active || HasActiveAmongusReplacements())
         {
             var now = DateTime.UtcNow;
             if ((now - lastAppearanceScan).TotalSeconds >= 5)
@@ -352,7 +482,7 @@ public sealed class Plugin : IDalamudPlugin
     {
         var createModelId = modelId;
         if (Configuration.Enabled &&
-            SuperKrangleMaster4000_Active &&
+            (SuperKrangleMaster4000_Active || HasActiveAmongusReplacements()) &&
             !isRevertingAppearances &&
             customize != null &&
             equipment != null)
@@ -370,7 +500,7 @@ public sealed class Plugin : IDalamudPlugin
 
         var createdCharacterBase = createCharacterBaseHook!.Original(createModelId, customize, equipment, unk);
         if (!Configuration.Enabled ||
-            !SuperKrangleMaster4000_Active ||
+            (!SuperKrangleMaster4000_Active && !HasActiveAmongusReplacements()) ||
             isRevertingAppearances ||
             createdCharacterBase == null ||
             createdCharacterBase->GetModelType() != CharacterBaseStruct.ModelType.Human)
@@ -428,6 +558,74 @@ public sealed class Plugin : IDalamudPlugin
 
     private unsafe bool TryReapplyPresetToCreatedCharacterBase(nint characterBaseAddress)
     {
+        if (TryFindAmongusNpcByDrawObject(
+                characterBaseAddress,
+                out var amongusObjectKey,
+                out var amongusName,
+                out var amongusCharacter,
+                out var amongusReplacement,
+                out var amongusObjectAddress,
+                out var amongusObjectKind,
+                out var amongusGameObjectId))
+        {
+            SaveOriginalAppearanceIfNeeded(amongusObjectKey, amongusCharacter, amongusObjectAddress);
+            ForceAmongusNpcVisible(amongusObjectKey, amongusName, amongusObjectKind, amongusGameObjectId, amongusObjectAddress);
+
+            var amongusPreset = ResolveAmongusPreset(amongusReplacement, amongusName);
+            if (amongusPreset == null)
+            {
+                RemovePendingAmongusNpcEntry(amongusObjectKey);
+                return true;
+            }
+
+            if (!TryGetPendingAmongusNpcEntry(
+                    amongusObjectKey,
+                    amongusGameObjectId,
+                    amongusObjectAddress,
+                    amongusName,
+                    out var pendingObjectKey,
+                    out var pendingEntry))
+            {
+                pendingObjectKey = amongusObjectKey;
+                pendingEntry = CreatePendingAmongusNpcEntry(
+                    amongusName,
+                    amongusObjectKind,
+                    amongusGameObjectId,
+                    amongusObjectAddress,
+                    amongusCharacter);
+                pendingAmongusObjectKeys.Add(pendingObjectKey);
+                pendingAmongusNpcEntries[pendingObjectKey] = pendingEntry;
+            }
+
+            ApplyExactNpcPresetDrawData(amongusCharacter, amongusPreset);
+            ForceExactNpcModelContainer(amongusCharacter, amongusPreset);
+
+            var result = ApplySuperKranglePresetDetailed(
+                amongusCharacter,
+                amongusPreset,
+                logRefreshResult: false,
+                exactNpcReplacement: true,
+                logDetails: false,
+                preAppliedDuringCreate: pendingEntry.PreAppliedDuringCreate);
+
+            if (result.ExactSuccess)
+            {
+                AppearanceService.MarkApplied(amongusObjectKey);
+                RemovePendingAmongusNpcEntry(pendingObjectKey, amongusObjectKey);
+                LogAmongusPresetAppliedIfNeeded(amongusObjectKey, amongusName, amongusPreset.Name, pendingEntry.PreAppliedDuringCreate ? "CharacterBase.Create" : "post-create refresh");
+            }
+            else if (result.CustomizeApplied && !result.CustomizeRefreshed && !pendingEntry.PreAppliedDuringCreate)
+            {
+                QueueExactNpcRedraw(amongusObjectAddress, ReadExactNpcVisibleRenderFlags(amongusObjectAddress));
+                LogAmongusCustomizeRefreshFalseIfNeeded(amongusObjectKey, amongusName, amongusPreset.Name);
+            }
+
+            return true;
+        }
+
+        if (!SuperKrangleMaster4000_Active)
+            return pendingAmongusObjectKeys.Count > 0 ? false : true;
+
         if (!TryFindPlayerCharacterByDrawObject(characterBaseAddress, out var objectKey, out var playerName, out var character))
             return false;
 
@@ -448,6 +646,12 @@ public sealed class Plugin : IDalamudPlugin
 
     private unsafe bool TryApplyPresetToCreateBuffers(ref uint modelId, GameCustomizeData* customize, EquipmentModelId* equipment)
     {
+        if (TryApplyAmongusPresetToCreateBuffers(ref modelId, customize, equipment))
+            return true;
+
+        if (!SuperKrangleMaster4000_Active)
+            return false;
+
         if (!TryFindPlayerCharacterByCreateBuffers(customize, equipment, out var objectKey, out var playerName, out var character))
             return false;
 
@@ -471,6 +675,154 @@ public sealed class Plugin : IDalamudPlugin
             Log.Information($"[Krangler] Pre-applied preset '{preset.Name}' during CharacterBase.Create for '{playerName}': modelId={modelId}, equipmentSlots={appliedEquipment}");
 
         return true;
+    }
+
+    private unsafe bool TryApplyAmongusPresetToCreateBuffers(ref uint modelId, GameCustomizeData* customize, EquipmentModelId* equipment)
+    {
+        if (!TryFindAmongusNpcByCreateBuffers(
+                customize,
+                equipment,
+                out var objectKey,
+                out var npcName,
+                out var character,
+                out var replacement,
+                out var objectAddress,
+                out var objectKind,
+                out var gameObjectId))
+            return false;
+
+        SaveOriginalAppearanceIfNeeded(objectKey, character, objectAddress);
+        ForceAmongusNpcVisible(objectKey, npcName, objectKind, gameObjectId, objectAddress);
+
+        var preset = ResolveAmongusPreset(replacement, npcName);
+        if (preset == null)
+            return true;
+
+        var appliedAppearance = ApplyCustomizeData(customize, preset);
+        var appliedEquipment = ApplyEquipmentData(equipment, preset, null, true);
+        var originalModelId = modelId;
+        modelId = GetExactNpcCreateModelId(preset);
+        ApplyExactNpcPresetDrawData(character, preset);
+        ForceExactNpcModelContainer(character, preset);
+
+        UpsertPendingAmongusNpcEntry(
+            objectKey,
+            npcName,
+            objectKind,
+            gameObjectId,
+            objectAddress,
+            character,
+            preAppliedDuringCreate: true);
+
+        if ((appliedAppearance || appliedEquipment > 0 || originalModelId != modelId) && !hasLoggedAppearanceScan)
+            Log.Information($"[Krangler] Pre-applied Amongus preset '{preset.Name}' during CharacterBase.Create for '{npcName}': modelId={modelId}, equipmentSlots={appliedEquipment}");
+
+        return true;
+    }
+
+    private unsafe bool TryFindAmongusNpcByCreateBuffers(
+        GameCustomizeData* customize,
+        EquipmentModelId* equipment,
+        out ulong objectKey,
+        out string npcName,
+        out CharacterStruct* character,
+        out AmongusNpcReplacement replacement,
+        out nint objectAddress,
+        out ObjectKind objectKind,
+        out ulong gameObjectId)
+    {
+        objectKey = 0;
+        npcName = string.Empty;
+        character = null;
+        replacement = null!;
+        objectAddress = 0;
+        objectKind = default;
+        gameObjectId = 0;
+
+        if (!HasActiveAmongusReplacements() || customize == null && equipment == null)
+            return false;
+
+        for (var objectIndex = 0; objectIndex < ObjectTable.Length; objectIndex++)
+        {
+            var obj = ObjectTable[objectIndex];
+            if (obj == null || obj.Address == 0 || !IsAmongusObjectKind(obj.ObjectKind))
+                continue;
+
+            var name = obj.Name.ToString();
+            if (!TryGetAmongusReplacement(name, out replacement))
+                continue;
+
+            var candidate = (CharacterStruct*)obj.Address;
+            if (candidate == null)
+                continue;
+
+            var customizeMatches = customize != null && (GameCustomizeData*)&candidate->DrawData.CustomizeData == customize;
+            var equipmentMatches = false;
+            fixed (EquipmentModelId* candidateEquipment = &candidate->DrawData.EquipmentModelIds[0])
+            {
+                equipmentMatches = equipment != null && candidateEquipment == equipment;
+            }
+
+            if (!customizeMatches && !equipmentMatches)
+                continue;
+
+            objectKey = GetAppearanceObjectKey(obj);
+            npcName = name;
+            character = candidate;
+            objectAddress = obj.Address;
+            objectKind = obj.ObjectKind;
+            gameObjectId = obj.GameObjectId;
+            return !string.IsNullOrWhiteSpace(npcName);
+        }
+
+        return false;
+    }
+
+    private unsafe bool TryFindAmongusNpcByDrawObject(
+        nint drawObjectAddress,
+        out ulong objectKey,
+        out string npcName,
+        out CharacterStruct* character,
+        out AmongusNpcReplacement replacement,
+        out nint objectAddress,
+        out ObjectKind objectKind,
+        out ulong gameObjectId)
+    {
+        objectKey = 0;
+        npcName = string.Empty;
+        character = null;
+        replacement = null!;
+        objectAddress = 0;
+        objectKind = default;
+        gameObjectId = 0;
+
+        if (!HasActiveAmongusReplacements() || drawObjectAddress == 0)
+            return false;
+
+        for (var objectIndex = 0; objectIndex < ObjectTable.Length; objectIndex++)
+        {
+            var obj = ObjectTable[objectIndex];
+            if (obj == null || obj.Address == 0 || !IsAmongusObjectKind(obj.ObjectKind))
+                continue;
+
+            var name = obj.Name.ToString();
+            if (!TryGetAmongusReplacement(name, out replacement))
+                continue;
+
+            var candidate = (CharacterStruct*)obj.Address;
+            if (candidate == null || (nint)candidate->DrawObject != drawObjectAddress)
+                continue;
+
+            objectKey = GetAppearanceObjectKey(obj);
+            npcName = name;
+            character = candidate;
+            objectAddress = obj.Address;
+            objectKind = obj.ObjectKind;
+            gameObjectId = obj.GameObjectId;
+            return !string.IsNullOrWhiteSpace(npcName);
+        }
+
+        return false;
     }
 
     private unsafe bool TryFindPlayerCharacterByCreateBuffers(GameCustomizeData* customize, EquipmentModelId* equipment, out ulong objectKey, out string playerName, out CharacterStruct* character)
@@ -545,6 +897,567 @@ public sealed class Plugin : IDalamudPlugin
 
     // ─── Chat Message Garbling ───────────────────────────────────────
 
+    private bool HasActiveAmongusReplacements()
+    {
+        if (!Configuration.AmongusEnabled || Configuration.AmongusNpcReplacements == null)
+            return false;
+
+        foreach (var replacement in Configuration.AmongusNpcReplacements)
+        {
+            if (replacement == null ||
+                !replacement.Enabled ||
+                string.IsNullOrWhiteSpace(replacement.NpcName) ||
+                string.IsNullOrWhiteSpace(replacement.PresetKey))
+            {
+                continue;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool ShouldMaintainAmongusNpcVisibility()
+        => HasActiveAmongusReplacements() ||
+           pendingAmongusObjectKeys.Count > 0 ||
+           amongusKeepVisibleObjectKeys.Count > 0;
+
+    private unsafe void ProcessPendingAmongusNpcEntries()
+    {
+        if (!Configuration.Enabled || pendingAmongusNpcEntries.Count == 0)
+            return;
+
+        var pendingEntries = new List<KeyValuePair<ulong, PendingAmongusNpcEntry>>(pendingAmongusNpcEntries);
+        foreach (var (pendingObjectKey, pendingEntry) in pendingEntries)
+        {
+            var currentPendingEntry = pendingEntry;
+            if (!TryFindAmongusNpcForPendingEntry(
+                    pendingObjectKey,
+                    currentPendingEntry,
+                    out var actualObjectKey,
+                    out var npcName,
+                    out var character,
+                    out var replacement,
+                    out var objectAddress,
+                    out var objectKind,
+                    out var gameObjectId))
+            {
+                DecrementPendingAmongusAttempt(pendingObjectKey, pendingEntry);
+                continue;
+            }
+
+            SaveOriginalAppearanceIfNeeded(actualObjectKey, character, objectAddress);
+            ForceAmongusNpcVisible(actualObjectKey, npcName, objectKind, gameObjectId, objectAddress);
+
+            var preset = ResolveAmongusPreset(replacement, npcName);
+            if (preset == null)
+            {
+                RemovePendingAmongusNpcEntry(pendingObjectKey, actualObjectKey);
+                continue;
+            }
+
+            var previousQueuedAddress = currentPendingEntry.QueuedAddress;
+            currentPendingEntry = currentPendingEntry.WithLastObserved(
+                objectAddress,
+                character->ModelContainer.ModelCharaId,
+                character->ModelContainer.ModelCharaId_2,
+                character->ModelContainer.ModelSkeletonId,
+                character->ModelContainer.ModelSkeletonId_2,
+                GetDrawObjectTypeName(character));
+            pendingAmongusNpcEntries[pendingObjectKey] = currentPendingEntry;
+
+            ApplyExactNpcPresetDrawData(character, preset);
+            ForceExactNpcModelContainer(character, preset);
+            if (objectAddress != previousQueuedAddress)
+            {
+                QueueExactNpcRedraw(objectAddress, ReadExactNpcVisibleRenderFlags(objectAddress));
+                currentPendingEntry = currentPendingEntry.WithQueuedAddress(objectAddress);
+                pendingAmongusNpcEntries[pendingObjectKey] = currentPendingEntry;
+            }
+
+            if (!SupportsHumanCustomize(character))
+            {
+                QueueExactNpcRedraw(objectAddress, ReadExactNpcVisibleRenderFlags(objectAddress));
+                DecrementPendingAmongusAttempt(pendingObjectKey, currentPendingEntry);
+                continue;
+            }
+
+            var result = ApplySuperKranglePresetDetailed(
+                character,
+                preset,
+                logRefreshResult: false,
+                exactNpcReplacement: true,
+                logDetails: false,
+                preAppliedDuringCreate: currentPendingEntry.PreAppliedDuringCreate);
+
+            if (result.ExactSuccess)
+            {
+                AppearanceService.MarkApplied(actualObjectKey);
+                RemovePendingAmongusNpcEntry(pendingObjectKey, actualObjectKey);
+                LogAmongusPresetAppliedIfNeeded(actualObjectKey, npcName, preset.Name, currentPendingEntry.PreAppliedDuringCreate ? "CharacterBase.Create" : "after humanize redraw");
+                continue;
+            }
+
+            if (result.CustomizeApplied && !result.CustomizeRefreshed && !currentPendingEntry.PreAppliedDuringCreate)
+            {
+                QueueExactNpcRedraw(objectAddress, ReadExactNpcVisibleRenderFlags(objectAddress));
+                LogAmongusCustomizeRefreshFalseIfNeeded(actualObjectKey, npcName, preset.Name);
+            }
+
+            DecrementPendingAmongusAttempt(pendingObjectKey, currentPendingEntry);
+        }
+    }
+
+    private unsafe bool TryFindAmongusNpcForPendingEntry(
+        ulong pendingObjectKey,
+        PendingAmongusNpcEntry pendingEntry,
+        out ulong objectKey,
+        out string npcName,
+        out CharacterStruct* character,
+        out AmongusNpcReplacement replacement,
+        out nint objectAddress,
+        out ObjectKind objectKind,
+        out ulong gameObjectId)
+    {
+        objectKey = 0;
+        npcName = string.Empty;
+        character = null;
+        replacement = null!;
+        objectAddress = 0;
+        objectKind = default;
+        gameObjectId = 0;
+
+        for (var objectIndex = 0; objectIndex < ObjectTable.Length; objectIndex++)
+        {
+            var obj = ObjectTable[objectIndex];
+            if (obj == null || obj.Address == 0 || !IsAmongusObjectKind(obj.ObjectKind))
+                continue;
+
+            var candidateObjectKey = GetAppearanceObjectKey(obj);
+            var candidateName = obj.Name.ToString();
+            var gameObjectIdMatches = pendingEntry.GameObjectId != 0 && obj.GameObjectId == pendingEntry.GameObjectId;
+            var objectKeyMatches = candidateObjectKey == pendingObjectKey;
+            var queuedAddressMatches = pendingEntry.QueuedAddress != 0 && obj.Address == pendingEntry.QueuedAddress;
+            if (!gameObjectIdMatches && !objectKeyMatches && !queuedAddressMatches)
+                continue;
+
+            if (!TryGetAmongusReplacement(candidateName, out replacement))
+                continue;
+
+            objectKey = candidateObjectKey;
+            npcName = candidateName;
+            character = (CharacterStruct*)obj.Address;
+            objectAddress = obj.Address;
+            objectKind = obj.ObjectKind;
+            gameObjectId = obj.GameObjectId;
+            return !string.IsNullOrWhiteSpace(npcName);
+        }
+
+        if (pendingEntry.GameObjectId != 0 || CountPendingAmongusEntriesByName(pendingEntry.NpcName) != 1)
+            return false;
+
+        IGameObject? fallbackObject = null;
+        AmongusNpcReplacement fallbackReplacement = null!;
+        var matchingNameCount = 0;
+        for (var objectIndex = 0; objectIndex < ObjectTable.Length; objectIndex++)
+        {
+            var obj = ObjectTable[objectIndex];
+            if (obj == null || obj.Address == 0 || !IsAmongusObjectKind(obj.ObjectKind))
+                continue;
+
+            var candidateName = obj.Name.ToString();
+            if (!string.Equals(candidateName, pendingEntry.NpcName, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (!TryGetAmongusReplacement(candidateName, out var candidateReplacement))
+                continue;
+
+            matchingNameCount++;
+            if (matchingNameCount == 1)
+            {
+                fallbackObject = obj;
+                fallbackReplacement = candidateReplacement;
+            }
+        }
+
+        if (matchingNameCount != 1 || fallbackObject == null)
+            return false;
+
+        objectKey = GetAppearanceObjectKey(fallbackObject);
+        npcName = fallbackObject.Name.ToString();
+        character = (CharacterStruct*)fallbackObject.Address;
+        replacement = fallbackReplacement;
+        objectAddress = fallbackObject.Address;
+        objectKind = fallbackObject.ObjectKind;
+        gameObjectId = fallbackObject.GameObjectId;
+        return !string.IsNullOrWhiteSpace(npcName);
+    }
+
+    private int CountPendingAmongusEntriesByName(string npcName)
+    {
+        var count = 0;
+        foreach (var pendingEntry in pendingAmongusNpcEntries.Values)
+        {
+            if (string.Equals(pendingEntry.NpcName, npcName, StringComparison.OrdinalIgnoreCase))
+                count++;
+        }
+
+        return count;
+    }
+
+    private static unsafe string GetDrawObjectTypeName(CharacterStruct* character)
+    {
+        var characterBase = character == null ? null : character->DrawObject;
+        return characterBase == null
+            ? "none"
+            : characterBase->GetObjectType().ToString();
+    }
+
+    private static unsafe PendingAmongusNpcEntry CreatePendingAmongusNpcEntry(
+        string npcName,
+        ObjectKind objectKind,
+        ulong gameObjectId,
+        nint queuedAddress,
+        CharacterStruct* character,
+        bool preAppliedDuringCreate = false)
+    {
+        return character == null
+            ? new PendingAmongusNpcEntry(npcName, objectKind, gameObjectId, queuedAddress, ExactNpcHumanizeAttempts, preAppliedDuringCreate)
+            : new PendingAmongusNpcEntry(
+                npcName,
+                objectKind,
+                gameObjectId,
+                queuedAddress,
+                ExactNpcHumanizeAttempts,
+                preAppliedDuringCreate,
+                character->ModelContainer.ModelCharaId,
+                character->ModelContainer.ModelCharaId_2,
+                character->ModelContainer.ModelSkeletonId,
+                character->ModelContainer.ModelSkeletonId_2,
+                GetDrawObjectTypeName(character));
+    }
+
+    private unsafe void UpsertPendingAmongusNpcEntry(
+        ulong objectKey,
+        string npcName,
+        ObjectKind objectKind,
+        ulong gameObjectId,
+        nint queuedAddress,
+        CharacterStruct* character,
+        bool preAppliedDuringCreate)
+    {
+        pendingAmongusObjectKeys.Add(objectKey);
+        var entry = CreatePendingAmongusNpcEntry(npcName, objectKind, gameObjectId, queuedAddress, character, preAppliedDuringCreate);
+        if (!preAppliedDuringCreate || !pendingAmongusNpcEntries.TryGetValue(objectKey, out var existingEntry))
+        {
+            pendingAmongusNpcEntries[objectKey] = entry;
+            return;
+        }
+
+        pendingAmongusNpcEntries[objectKey] = entry.WithPreAppliedDuringCreate().WithRemainingAttempts(existingEntry.RemainingAttempts);
+    }
+
+    private void LogAmongusCustomizeRefreshFalseIfNeeded(ulong objectKey, string npcName, string presetName)
+    {
+        if (loggedAmongusCustomizeRefreshFalseObjectKeys.Add(objectKey))
+            Log.Information($"[Krangler] Amongus exact NPC '{npcName}' customize refresh false; recreate queued; preset='{presetName}'.");
+    }
+
+    private static string FormatPendingModelContainerIds(PendingAmongusNpcEntry pendingEntry)
+        => $"modelCharaId={pendingEntry.LastModelCharaId}, modelCharaId2={pendingEntry.LastModelCharaId2}, modelSkeletonId={pendingEntry.LastModelSkeletonId}, modelSkeletonId2={pendingEntry.LastModelSkeletonId2}";
+
+    private bool TryGetPendingAmongusNpcEntry(
+        ulong objectKey,
+        ulong gameObjectId,
+        nint objectAddress,
+        string npcName,
+        out ulong pendingObjectKey,
+        out PendingAmongusNpcEntry pendingEntry)
+    {
+        if (pendingAmongusNpcEntries.TryGetValue(objectKey, out pendingEntry))
+        {
+            pendingObjectKey = objectKey;
+            return true;
+        }
+
+        foreach (var (candidateObjectKey, candidateEntry) in pendingAmongusNpcEntries)
+        {
+            if (gameObjectId != 0 && candidateEntry.GameObjectId == gameObjectId ||
+                objectAddress != 0 && candidateEntry.QueuedAddress == objectAddress)
+            {
+                pendingObjectKey = candidateObjectKey;
+                pendingEntry = candidateEntry;
+                return true;
+            }
+        }
+
+        if (gameObjectId == 0 && CountPendingAmongusEntriesByName(npcName) == 1)
+        {
+            foreach (var (candidateObjectKey, candidateEntry) in pendingAmongusNpcEntries)
+            {
+                if (!string.Equals(candidateEntry.NpcName, npcName, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                pendingObjectKey = candidateObjectKey;
+                pendingEntry = candidateEntry;
+                return true;
+            }
+        }
+
+        pendingObjectKey = 0;
+        pendingEntry = default;
+        return false;
+    }
+
+    private void DecrementPendingAmongusAttempt(ulong objectKey, PendingAmongusNpcEntry pendingEntry)
+    {
+        var remainingAttempts = pendingEntry.RemainingAttempts - 1;
+        if (remainingAttempts > 0)
+        {
+            pendingAmongusNpcEntries[objectKey] = pendingEntry.WithRemainingAttempts(remainingAttempts);
+            return;
+        }
+
+        RemovePendingAmongusNpcEntry(objectKey);
+        if (loggedExhaustedPendingAmongusObjectKeys.Add(objectKey))
+            Log.Warning($"[Krangler] Amongus exact NPC '{pendingEntry.NpcName}' humanize exhausted after {ExactNpcHumanizeAttempts} framework attempts: objectId={pendingEntry.GameObjectId}, lastAddress={FormatAddress(pendingEntry.QueuedAddress)}, {FormatPendingModelContainerIds(pendingEntry)}, drawType={pendingEntry.LastDrawObjectType}.");
+    }
+
+    private void RemovePendingAmongusNpcEntry(ulong objectKey, ulong? actualObjectKey = null)
+    {
+        pendingAmongusObjectKeys.Remove(objectKey);
+        pendingAmongusNpcEntries.Remove(objectKey);
+
+        if (actualObjectKey.HasValue && actualObjectKey.Value != objectKey)
+        {
+            pendingAmongusObjectKeys.Remove(actualObjectKey.Value);
+            pendingAmongusNpcEntries.Remove(actualObjectKey.Value);
+        }
+    }
+
+    private unsafe void MaintainAmongusNpcVisibility()
+    {
+        if (!ShouldMaintainAmongusNpcVisibility())
+            return;
+
+        for (var objectIndex = 0; objectIndex < ObjectTable.Length; objectIndex++)
+        {
+            var obj = ObjectTable[objectIndex];
+            if (obj == null || obj.Address == 0 || !IsAmongusObjectKind(obj.ObjectKind))
+                continue;
+
+            var name = obj.Name.ToString();
+            if (string.IsNullOrWhiteSpace(name) || !TryGetAmongusReplacement(name, out _))
+                continue;
+
+            var objectKey = GetAppearanceObjectKey(obj);
+            SaveOriginalAppearanceIfNeeded(objectKey, (CharacterStruct*)obj.Address, obj.Address);
+            ForceAmongusNpcVisible(objectKey, name, obj.ObjectKind, obj.GameObjectId, obj.Address);
+        }
+    }
+
+    private bool TryGetAmongusReplacement(string npcName, out AmongusNpcReplacement replacement)
+    {
+        replacement = null!;
+        if (!Configuration.AmongusEnabled ||
+            Configuration.AmongusNpcReplacements == null ||
+            string.IsNullOrWhiteSpace(npcName))
+        {
+            return false;
+        }
+
+        foreach (var candidate in Configuration.AmongusNpcReplacements)
+        {
+            if (candidate == null ||
+                !candidate.Enabled ||
+                string.IsNullOrWhiteSpace(candidate.NpcName) ||
+                string.IsNullOrWhiteSpace(candidate.PresetKey))
+            {
+                continue;
+            }
+
+            if (!string.Equals(candidate.NpcName.Trim(), npcName.Trim(), StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            replacement = candidate;
+            return true;
+        }
+
+        return false;
+    }
+
+    private GlamourerPreset? ResolveAmongusPreset(AmongusNpcReplacement replacement, string npcName)
+    {
+        var presetKey = replacement.PresetKey?.Trim() ?? string.Empty;
+        var preset = GlamourerPresetService.GetPresetByName(presetKey);
+        if (preset != null)
+            return preset;
+
+        var logKey = $"{replacement.NpcName}\u001F{presetKey}";
+        if (loggedMissingAmongusPresetKeys.Add(logKey))
+            Log.Warning($"[Krangler] Amongus preset '{presetKey}' for exact NPC '{npcName}' was not found in local presets.");
+
+        return null;
+    }
+
+    private unsafe bool QueueAmongusNpcRecreation(ulong objectKey, string npcName, ObjectKind objectKind, ulong gameObjectId, nint address, CharacterStruct* character, AmongusNpcReplacement replacement)
+    {
+        SaveOriginalAppearanceIfNeeded(objectKey, character, address);
+        ForceAmongusNpcVisible(objectKey, npcName, objectKind, gameObjectId, address);
+
+        var preset = ResolveAmongusPreset(replacement, npcName);
+        if (preset == null)
+            return false;
+
+        ApplyExactNpcPresetDrawData(character, preset);
+        ForceExactNpcModelContainer(character, preset);
+
+        var visibleRenderFlags = ReadExactNpcVisibleRenderFlags(address);
+
+        var hadPendingEntry = pendingAmongusNpcEntries.TryGetValue(objectKey, out var pendingEntry);
+        var queued = pendingAmongusObjectKeys.Add(objectKey);
+        var nextPendingEntry = CreatePendingAmongusNpcEntry(
+            npcName,
+            objectKind,
+            gameObjectId,
+            address,
+            character,
+            pendingEntry.PreAppliedDuringCreate);
+        if (hadPendingEntry)
+            nextPendingEntry = nextPendingEntry.WithRemainingAttempts(pendingEntry.RemainingAttempts);
+
+        pendingAmongusNpcEntries[objectKey] = nextPendingEntry;
+
+        var redrawQueued = false;
+        if (queued || !hadPendingEntry || pendingEntry.QueuedAddress != address)
+            redrawQueued = QueueExactNpcRedraw(address, visibleRenderFlags);
+
+        if (loggedPendingAmongusObjectKeys.Add(objectKey))
+            Log.Information($"[Krangler] Amongus exact NPC '{npcName}' humanize queued; preset='{preset.Name}', redrawQueued={redrawQueued}, forcedModelIds={FormatModelContainerIds(character)}.");
+
+        return queued || redrawQueued;
+    }
+
+    private unsafe void ApplyExactNpcPresetDrawData(CharacterStruct* character, GlamourerPreset preset)
+    {
+        if (character == null)
+            return;
+
+        ApplyCustomizeData(&character->DrawData.CustomizeData, preset);
+        fixed (EquipmentModelId* equipmentModelPtr = &character->DrawData.EquipmentModelIds[0])
+        {
+            ApplyEquipmentData(equipmentModelPtr, preset, null, true, false);
+        }
+
+        ApplyGlamourerWeapons(character, preset, false);
+        ApplyGlamourerBonusItems(character, preset, false);
+        ApplyGlamourerMetaState(character, preset, false);
+    }
+
+    private static unsafe bool ForceExactNpcModelContainer(CharacterStruct* character, GlamourerPreset preset)
+    {
+        if (character == null)
+            return false;
+
+        var targetModelCharaId = preset.Customize.ModelId > 0 ? preset.Customize.ModelId : 0;
+        var changed =
+            character->ModelContainer.ModelCharaId != targetModelCharaId ||
+            character->ModelContainer.ModelCharaId_2 != -1 ||
+            character->ModelContainer.ModelSkeletonId != 0 ||
+            character->ModelContainer.ModelSkeletonId_2 != 0;
+
+        character->ModelContainer.ModelCharaId = targetModelCharaId;
+        character->ModelContainer.ModelCharaId_2 = -1;
+        character->ModelContainer.ModelSkeletonId = 0;
+        character->ModelContainer.ModelSkeletonId_2 = 0;
+
+        return changed;
+    }
+
+    private static uint GetExactNpcCreateModelId(GlamourerPreset preset)
+        => preset.Customize.ModelId > 0 ? (uint)preset.Customize.ModelId : 0u;
+
+    private static bool IsAmongusObjectKind(ObjectKind objectKind)
+        => objectKind == ObjectKind.BattleNpc || objectKind == ObjectKind.EventNpc;
+
+    private static ulong GetAppearanceObjectKey(IGameObject obj)
+        => obj.GameObjectId != 0 ? obj.GameObjectId : unchecked((ulong)obj.Address.ToInt64());
+
+    private void LogMissingAmongusObjects(HashSet<string> seenAmongusNpcNames)
+    {
+        if (!Configuration.AmongusEnabled || Configuration.AmongusNpcReplacements == null)
+            return;
+
+        foreach (var replacement in Configuration.AmongusNpcReplacements)
+        {
+            if (replacement == null ||
+                !replacement.Enabled ||
+                string.IsNullOrWhiteSpace(replacement.NpcName) ||
+                string.IsNullOrWhiteSpace(replacement.PresetKey))
+            {
+                continue;
+            }
+
+            var npcName = replacement.NpcName.Trim();
+            if (seenAmongusNpcNames.Contains(npcName))
+                continue;
+
+            if (loggedMissingAmongusObjectNames.Add(npcName))
+                Log.Warning($"[Krangler] Amongus exact NPC '{npcName}' is not present in ObjectTable; visibility cannot be fixed without client-side spawning.");
+        }
+    }
+
+    private unsafe void LogAmongusMatchIfNeeded(ulong objectKey, string npcName, ObjectKind objectKind, ulong gameObjectId, nint address)
+    {
+        if (!loggedAmongusMatchObjectKeys.Add(objectKey))
+            return;
+
+        var character = address == 0 ? null : (CharacterStruct*)address;
+        var renderFlags = address == 0 ? 0 : ReadRenderFlags((GameObjectStruct*)address);
+        var supportsHumanCustomize = character != null && SupportsHumanCustomize(character);
+        Log.Information($"[Krangler] Amongus exact NPC match: name='{npcName}', kind={objectKind}, objectId={gameObjectId}, address={FormatAddress(address)}, renderFlags=0x{renderFlags:X8}, {FormatModelContainerIds(character)}, supportsHumanCustomize={supportsHumanCustomize}.");
+    }
+
+    private void LogAmongusPresetAppliedIfNeeded(ulong objectKey, string npcName, string presetName, string source)
+    {
+        if (loggedAppliedPendingAmongusObjectKeys.Add(objectKey))
+            Log.Information($"[Krangler] Amongus exact NPC '{npcName}' preset applied; preset='{presetName}', source={source}.");
+    }
+
+    private unsafe uint? ForceAmongusNpcVisible(ulong objectKey, string npcName, ObjectKind objectKind, ulong gameObjectId, nint address)
+    {
+        amongusKeepVisibleObjectKeys.Add(objectKey);
+        LogAmongusMatchIfNeeded(objectKey, npcName, objectKind, gameObjectId, address);
+
+        if (address == 0)
+            return null;
+
+        var gameObj = (GameObjectStruct*)address;
+        var beforeFlags = ReadRenderFlags(gameObj);
+        var afterFlags = ClearHiddenExactNpcRenderFlags(beforeFlags);
+        if (afterFlags != beforeFlags)
+        {
+            WriteRenderFlags(gameObj, afterFlags);
+
+            if (loggedAmongusVisibilityObjectKeys.Add(objectKey))
+                Log.Information($"[Krangler] Amongus exact NPC '{npcName}' visibility clear: renderFlags=0x{beforeFlags:X8}->0x{afterFlags:X8}.");
+        }
+
+        return afterFlags;
+    }
+
+    private static uint ClearHiddenExactNpcRenderFlags(uint renderFlags)
+        => renderFlags & ~HiddenExactNpcRenderFlagsMask;
+
+    private static string FormatAddress(nint address)
+        => $"0x{address.ToInt64():X}";
+
+    private static unsafe string FormatModelContainerIds(CharacterStruct* character)
+        => character == null
+            ? "modelCharaId=<null>, modelCharaId2=<null>, modelSkeletonId=<null>, modelSkeletonId2=<null>"
+            : $"modelCharaId={character->ModelContainer.ModelCharaId}, modelCharaId2={character->ModelContainer.ModelCharaId_2}, modelSkeletonId={character->ModelContainer.ModelSkeletonId}, modelSkeletonId2={character->ModelContainer.ModelSkeletonId_2}";
+
     private void OnChatMessage(IHandleableChatMessage chatMessage)
     {
         if (!Configuration.Enabled || !Configuration.KrangleChat)
@@ -592,6 +1505,7 @@ public sealed class Plugin : IDalamudPlugin
         var maxAuxiliaryTargetsPerCycle = Math.Max(16, maxPlayersPerCycle * 4);
         var processedPlayersThisCycle = 0;
         var processedAuxiliaryTargetsThisCycle = 0;
+        var seenAmongusNpcNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         // Event activation notification
         if (IsSuperKrangleEventActive && !Configuration.SuperKrangleMaster4000 && !hasLoggedEventActivation)
@@ -610,15 +1524,26 @@ public sealed class Plugin : IDalamudPlugin
             if (string.IsNullOrEmpty(name))
                 continue;
 
-            var objectKey = obj.GameObjectId;
-            if (AppearanceService.IsApplied(objectKey))
-                continue;
-
+            var objectKey = GetAppearanceObjectKey(obj);
             var isPlayer = obj.ObjectKind == ObjectKind.Pc;
             var isChocobo = obj.ObjectKind == ObjectKind.BattleNpc && obj.Name.ToString().Contains("Companion", StringComparison.OrdinalIgnoreCase);
             var isMinion = obj.ObjectKind == ObjectKind.Companion;
             var isNpc = IsAppearanceNpc(obj.ObjectKind, isChocobo, isMinion);
+            AmongusNpcReplacement amongusReplacement = null!;
+            var isAmongusNpc = isNpc && TryGetAmongusReplacement(name, out amongusReplacement);
             var targetLabel = GetAppearanceTargetLabel(isNpc, isChocobo, isMinion);
+
+            if (isAmongusNpc)
+            {
+                seenAmongusNpcNames.Add(amongusReplacement.NpcName.Trim());
+                if (obj.Address != 0)
+                    SaveOriginalAppearanceIfNeeded(objectKey, (CharacterStruct*)obj.Address, obj.Address);
+
+                ForceAmongusNpcVisible(objectKey, name, obj.ObjectKind, obj.GameObjectId, obj.Address);
+            }
+
+            if (AppearanceService.IsApplied(objectKey))
+                continue;
 
             if (!isPlayer && !isNpc && !isChocobo && !isMinion)
                 continue;
@@ -638,7 +1563,7 @@ public sealed class Plugin : IDalamudPlugin
                     continue;
             }
 
-            if (!ShouldProcessAppearanceTarget(isPlayer, isNpc, isChocobo, isMinion))
+            if (!ShouldProcessAppearanceTarget(isPlayer, isNpc, isChocobo, isMinion) && !isAmongusNpc)
                 continue;
 
             try
@@ -646,6 +1571,14 @@ public sealed class Plugin : IDalamudPlugin
                 var character = (CharacterStruct*)obj.Address;
                 if (character == null)
                     continue;
+
+                if (isAmongusNpc)
+                {
+                    if (QueueAmongusNpcRecreation(objectKey, name, obj.ObjectKind, obj.GameObjectId, obj.Address, character, amongusReplacement))
+                        processedAuxiliaryTargetsThisCycle++;
+
+                    continue;
+                }
 
                 if (!SupportsHumanCustomize(character))
                 {
@@ -656,9 +1589,15 @@ public sealed class Plugin : IDalamudPlugin
 
                 var customizePtr = (byte*)&character->DrawData.CustomizeData;
 
-                var (race, tribe, gender) = SuperKrangleMaster4000_Active
-                    ? GetSuperKrangleAppearance(name)
-                    : AppearanceService.GetRandomRaceGender(name);
+                var race = customizePtr[0];
+                var tribe = customizePtr[4];
+                var gender = customizePtr[1];
+                if (!isAmongusNpc)
+                {
+                    (race, tribe, gender) = SuperKrangleMaster4000_Active
+                        ? GetSuperKrangleAppearance(name)
+                        : AppearanceService.GetRandomRaceGender(name);
+                }
                 bool changed = false;
 
                 if (SuperKrangleMaster4000_Active)
@@ -744,7 +1683,11 @@ public sealed class Plugin : IDalamudPlugin
 
                 if (changed)
                 {
-                    QueuePenumbraStyleRedraw(obj.Address);
+                    if (isAmongusNpc)
+                        QueuePenumbraStyleRedraw(obj.Address, ReadExactNpcVisibleRenderFlags(obj.Address));
+                    else
+                        QueuePenumbraStyleRedraw(obj.Address);
+
                     AppearanceService.MarkApplied(objectKey);
                     appliedCount++;
                     if (isPlayer)
@@ -762,6 +1705,8 @@ public sealed class Plugin : IDalamudPlugin
                     Log.Warning($"[Krangler] Failed to modify appearance for '{name}': {ex.Message}");
             }
         }
+
+        LogMissingAmongusObjects(seenAmongusNpcNames);
 
         if (!hasLoggedAppearanceScan && playerCount > 0)
         {
@@ -795,15 +1740,41 @@ public sealed class Plugin : IDalamudPlugin
                 return;
             }
 
-            if (pendingRedraw.MakeVisible)
+            switch (pendingRedraw.Kind)
             {
-                WriteActorVisible(gameObj);
-                pendingRedrawAddresses.Remove(pendingRedraw.Address);
-            }
-            else
-            {
-                WriteActorInvisible(gameObj);
-                redrawQueue.Enqueue(new PendingRedrawEntry(pendingRedraw.Address, true));
+                case PendingRedrawKind.InvisibleThenVisible:
+                    WriteActorInvisible(gameObj);
+                    redrawQueue.Enqueue(new PendingRedrawEntry(pendingRedraw.Address, PendingRedrawKind.VisibleOnly, pendingRedraw.RenderFlags));
+                    break;
+                case PendingRedrawKind.VisibleOnly:
+                    if (pendingRedraw.RenderFlags.HasValue)
+                        WriteRenderFlags(gameObj, pendingRedraw.RenderFlags.Value);
+                    else
+                        WriteActorVisible(gameObj);
+                    pendingRedrawAddresses.Remove(pendingRedraw.Address);
+                    break;
+                case PendingRedrawKind.RestoreRenderFlags:
+                    if (pendingRedraw.RenderFlags.HasValue)
+                        WriteRenderFlags(gameObj, pendingRedraw.RenderFlags.Value);
+                    else
+                        WriteActorVisible(gameObj);
+
+                    pendingRedrawAddresses.Remove(pendingRedraw.Address);
+                    break;
+                case PendingRedrawKind.ExactDisableDraw:
+                    var disableCharacter = (CharacterStruct*)pendingRedraw.Address;
+                    disableCharacter->DisableDraw();
+                    redrawQueue.Enqueue(new PendingRedrawEntry(pendingRedraw.Address, PendingRedrawKind.ExactEnableDraw, pendingRedraw.RenderFlags));
+                    break;
+                case PendingRedrawKind.ExactEnableDraw:
+                    var enableCharacter = (CharacterStruct*)pendingRedraw.Address;
+                    enableCharacter->EnableDraw();
+
+                    if (pendingRedraw.RenderFlags.HasValue)
+                        WriteRenderFlags(gameObj, pendingRedraw.RenderFlags.Value);
+
+                    pendingRedrawAddresses.Remove(pendingRedraw.Address);
+                    break;
             }
         }
         catch (Exception ex)
@@ -822,12 +1793,25 @@ public sealed class Plugin : IDalamudPlugin
         return Math.Clamp(scaledDelay, 1, 20);
     }
 
-    private void QueuePenumbraStyleRedraw(nint address)
+    private bool QueuePenumbraStyleRedraw(nint address, uint? finalVisibleRenderFlags = null)
+        => QueueRedraw(address, PendingRedrawKind.InvisibleThenVisible, finalVisibleRenderFlags);
+
+    private bool QueueExactNpcRedraw(nint address, uint? finalVisibleRenderFlags = null)
+        => QueueRedraw(address, PendingRedrawKind.ExactDisableDraw, finalVisibleRenderFlags);
+
+    private bool QueueVisibleOnlyRedraw(nint address)
+        => QueueRedraw(address, PendingRedrawKind.VisibleOnly);
+
+    private void QueueRenderFlagRestore(nint address, uint renderFlags)
+        => QueueRedraw(address, PendingRedrawKind.RestoreRenderFlags, renderFlags);
+
+    private bool QueueRedraw(nint address, PendingRedrawKind kind, uint? renderFlags = null)
     {
         if (address == 0 || !pendingRedrawAddresses.Add(address))
-            return;
+            return false;
 
-        redrawQueue.Enqueue(new PendingRedrawEntry(address, false));
+        redrawQueue.Enqueue(new PendingRedrawEntry(address, kind, renderFlags));
+        return true;
     }
 
     private void ClearPendingRedraws()
@@ -841,18 +1825,54 @@ public sealed class Plugin : IDalamudPlugin
     {
         pendingCreatedCharacterBaseQueue.Clear();
         pendingCreatedCharacterBaseAddresses.Clear();
+        pendingAmongusObjectKeys.Clear();
+        pendingAmongusNpcEntries.Clear();
+        amongusKeepVisibleObjectKeys.Clear();
+        loggedAmongusCustomizeRefreshFalseObjectKeys.Clear();
     }
 
     private static unsafe void WriteActorInvisible(GameObjectStruct* gameObj)
     {
-        var renderFlags = (uint*)&gameObj->RenderFlags;
-        *renderFlags |= InvisibilityDrawStateFlag;
+        WriteRenderFlags(gameObj, ReadRenderFlags(gameObj) | InvisibilityDrawStateFlag);
     }
 
     private static unsafe void WriteActorVisible(GameObjectStruct* gameObj)
     {
+        WriteRenderFlags(gameObj, ReadRenderFlags(gameObj) & ~InvisibilityDrawStateFlag);
+    }
+
+    private static unsafe uint? ReadExactNpcVisibleRenderFlags(nint address)
+    {
+        if (address == 0)
+            return null;
+
+        return ClearHiddenExactNpcRenderFlags(ReadRenderFlags((GameObjectStruct*)address));
+    }
+
+    private static unsafe uint ReadRenderFlags(GameObjectStruct* gameObj)
+    {
+        if (gameObj == null)
+            return 0;
+
         var renderFlags = (uint*)&gameObj->RenderFlags;
-        *renderFlags &= ~InvisibilityDrawStateFlag;
+        return *renderFlags;
+    }
+
+    private static unsafe void WriteRenderFlags(GameObjectStruct* gameObj, uint flags)
+    {
+        if (gameObj == null)
+            return;
+
+        var renderFlags = (uint*)&gameObj->RenderFlags;
+        *renderFlags = flags;
+    }
+
+    private static unsafe void RestoreRenderFlags(nint address, uint renderFlags)
+    {
+        if (address == 0)
+            return;
+
+        WriteRenderFlags((GameObjectStruct*)address, renderFlags);
     }
 
     private unsafe void RevertAllAppearances()
@@ -866,7 +1886,8 @@ public sealed class Plugin : IDalamudPlugin
             foreach (var obj in ObjectTable)
             {
                 if (obj == null) continue;
-                if (!originalAppearanceData.TryGetValue(obj.GameObjectId, out var originalData)) continue;
+                var objectKey = GetAppearanceObjectKey(obj);
+                if (!originalAppearanceData.TryGetValue(objectKey, out var originalData)) continue;
 
                 try
                 {
@@ -888,10 +1909,25 @@ public sealed class Plugin : IDalamudPlugin
                     RestoreWeaponData(character, originalData);
                     RestoreBonusItems(character, originalData);
                     RestoreDrawMetaState(character, originalData);
+                    RestoreModelContainerIds(character, originalData);
                     RefreshCharacterCustomize(character);
                     RefreshCharacterEquipment(character);
 
-                    QueuePenumbraStyleRedraw(obj.Address);
+                    if (originalData.HasRenderFlags)
+                    {
+                        RestoreRenderFlags(obj.Address, originalData.RenderFlags);
+                        if (IsAmongusObjectKind(obj.ObjectKind))
+                            QueueExactNpcRedraw(obj.Address, originalData.RenderFlags);
+                        else
+                            QueuePenumbraStyleRedraw(obj.Address, originalData.RenderFlags);
+                    }
+                    else
+                    {
+                        if (IsAmongusObjectKind(obj.ObjectKind))
+                            QueueExactNpcRedraw(obj.Address);
+                        else
+                            QueuePenumbraStyleRedraw(obj.Address);
+                    }
                     reverted++;
                 }
                 catch { /* best effort revert */ }
@@ -938,10 +1974,19 @@ public sealed class Plugin : IDalamudPlugin
             RestoreWeaponData(character, originalData);
             RestoreBonusItems(character, originalData);
             RestoreDrawMetaState(character, originalData);
+            RestoreModelContainerIds(character, originalData);
             RefreshCharacterCustomize(character);
             RefreshCharacterEquipment(character);
 
-            QueuePenumbraStyleRedraw(localPlayer.Address);
+            if (originalData.HasRenderFlags)
+            {
+                RestoreRenderFlags(localPlayer.Address, originalData.RenderFlags);
+                QueuePenumbraStyleRedraw(localPlayer.Address, originalData.RenderFlags);
+            }
+            else
+            {
+                QueuePenumbraStyleRedraw(localPlayer.Address);
+            }
             Log.Information("[Krangler] Reverted local player appearance after self-krangle opt-out");
         }
         catch (Exception ex)
@@ -955,10 +2000,17 @@ public sealed class Plugin : IDalamudPlugin
         }
     }
 
-    private unsafe void SaveOriginalAppearanceIfNeeded(ulong objectKey, CharacterStruct* character)
+    private unsafe void SaveOriginalAppearanceIfNeeded(ulong objectKey, CharacterStruct* character, nint gameObjectAddress = 0)
     {
-        if (character == null || originalAppearanceData.ContainsKey(objectKey))
+        if (character == null)
             return;
+
+        if (originalAppearanceData.TryGetValue(objectKey, out var existingData))
+        {
+            SaveOriginalRenderFlagsIfNeeded(existingData, gameObjectAddress);
+            SaveOriginalModelContainerIfNeeded(existingData, character);
+            return;
+        }
 
         var originalData = new OriginalAppearanceData();
         var customizePtr = (byte*)&character->DrawData.CustomizeData;
@@ -980,8 +2032,31 @@ public sealed class Plugin : IDalamudPlugin
         originalData.IsWeaponHidden = character->DrawData.IsWeaponHidden;
         originalData.IsVisorToggled = character->DrawData.IsVisorToggled;
         originalData.VieraEarsHidden = character->DrawData.VieraEarsHidden;
+        SaveOriginalModelContainerIfNeeded(originalData, character);
+        SaveOriginalRenderFlagsIfNeeded(originalData, gameObjectAddress);
 
         originalAppearanceData[objectKey] = originalData;
+    }
+
+    private static unsafe void SaveOriginalModelContainerIfNeeded(OriginalAppearanceData originalData, CharacterStruct* character)
+    {
+        if (originalData.HasModelContainerIds || character == null)
+            return;
+
+        originalData.ModelCharaId = character->ModelContainer.ModelCharaId;
+        originalData.ModelCharaId2 = character->ModelContainer.ModelCharaId_2;
+        originalData.ModelSkeletonId = character->ModelContainer.ModelSkeletonId;
+        originalData.ModelSkeletonId2 = character->ModelContainer.ModelSkeletonId_2;
+        originalData.HasModelContainerIds = true;
+    }
+
+    private static unsafe void SaveOriginalRenderFlagsIfNeeded(OriginalAppearanceData originalData, nint gameObjectAddress)
+    {
+        if (originalData.HasRenderFlags || gameObjectAddress == 0)
+            return;
+
+        originalData.RenderFlags = ReadRenderFlags((GameObjectStruct*)gameObjectAddress);
+        originalData.HasRenderFlags = true;
     }
 
     // ─── Party List Krangling ───────────────────────────────────────────────
@@ -2013,30 +3088,88 @@ public sealed class Plugin : IDalamudPlugin
     ///   +0x1D0: EquipmentModelIds[10] (8 bytes each)
     ///   +0x220: CustomizeData (26 bytes)
     /// </summary>
-    private unsafe bool ApplySuperKranglePreset(CharacterStruct* character, GlamourerPreset preset, bool logRefreshResult)
+    private unsafe bool ApplySuperKranglePreset(CharacterStruct* character, GlamourerPreset preset, bool logRefreshResult, bool exactNpcReplacement = false, bool logDetails = true)
+        => exactNpcReplacement
+            ? ApplySuperKranglePresetDetailed(character, preset, logRefreshResult, exactNpcReplacement, logDetails).ExactSuccess
+            : ApplySuperKranglePresetDetailed(character, preset, logRefreshResult, exactNpcReplacement, logDetails).GeneralSuccess;
+
+    private unsafe PresetApplyResult ApplySuperKranglePresetDetailed(
+        CharacterStruct* character,
+        GlamourerPreset preset,
+        bool logRefreshResult,
+        bool exactNpcReplacement = false,
+        bool logDetails = true,
+        bool preAppliedDuringCreate = false)
     {
         if (character == null)
-            return false;
+            return new PresetApplyResult(false, false, 0, 0, false, false, false);
 
         var customizePtr = (byte*)&character->DrawData.CustomizeData;
-        var appliedAppearance = ApplyGlamourerPreset(character, preset, customizePtr);
-        var refreshedAppearance = appliedAppearance && RefreshCharacterCustomize(character);
-        var appliedEquipment = ApplyGlamourerEquipment(character, preset);
-        var appliedWeapons = ApplyGlamourerWeapons(character, preset);
-        var appliedBonus = ApplyGlamourerBonusItems(character, preset);
-        var appliedMetaState = ApplyGlamourerMetaState(character, preset);
+        var appliedAppearance = preAppliedDuringCreate && exactNpcReplacement
+            ? PresetRequestsCustomize(preset)
+            : ApplyGlamourerPreset(character, preset, customizePtr, logDetails);
+        var refreshedAppearance = appliedAppearance && (preAppliedDuringCreate && exactNpcReplacement || RefreshCharacterCustomize(character));
+        var appliedEquipment = ApplyGlamourerEquipment(character, preset, exactNpcReplacement, logDetails);
+        var appliedWeapons = ApplyGlamourerWeapons(character, preset, logDetails);
+        var appliedBonus = ApplyGlamourerBonusItems(character, preset, logDetails);
+        var appliedMetaState = ApplyGlamourerMetaState(character, preset, logDetails);
         
         // Refresh equipment after applying it to ensure it's properly loaded
         if (appliedEquipment > 0)
             RefreshCharacterEquipment(character);
         
-        var changed = refreshedAppearance || appliedEquipment > 0 || appliedWeapons > 0 || appliedBonus || appliedMetaState;
-
-        if (logRefreshResult && !hasLoggedAppearanceScan && appliedAppearance)
+        if (logDetails && logRefreshResult && !hasLoggedAppearanceScan && appliedAppearance)
             Log.Information($"[Krangler] Native customize refresh for preset '{preset.Name}' returned {refreshedAppearance}");
 
-        return changed;
+        return new PresetApplyResult(
+            appliedAppearance,
+            refreshedAppearance,
+            appliedEquipment,
+            appliedWeapons,
+            appliedBonus,
+            appliedMetaState,
+            preAppliedDuringCreate);
     }
+
+    private bool PresetRequestsCustomize(GlamourerPreset preset)
+        => Configuration.SuperKrangleApplyAppearance &&
+           (preset.Customize.ModelId > 0 ||
+            preset.Customize.Race.Apply ||
+            preset.Customize.Gender.Apply ||
+            preset.Customize.BodyType.Apply ||
+            preset.Customize.Height.Apply ||
+            preset.Customize.Clan.Apply ||
+            preset.Customize.Face.Apply ||
+            preset.Customize.Hairstyle.Apply ||
+            preset.Customize.Highlights.Apply ||
+            preset.Customize.SkinColor.Apply ||
+            preset.Customize.EyeColorRight.Apply ||
+            preset.Customize.HairColor.Apply ||
+            preset.Customize.HighlightsColor.Apply ||
+            preset.Customize.FacialFeature1.Apply ||
+            preset.Customize.FacialFeature2.Apply ||
+            preset.Customize.FacialFeature3.Apply ||
+            preset.Customize.FacialFeature4.Apply ||
+            preset.Customize.FacialFeature5.Apply ||
+            preset.Customize.FacialFeature6.Apply ||
+            preset.Customize.FacialFeature7.Apply ||
+            preset.Customize.LegacyTattoo.Apply ||
+            preset.Customize.TattooColor.Apply ||
+            preset.Customize.Eyebrows.Apply ||
+            preset.Customize.EyeColorLeft.Apply ||
+            preset.Customize.EyeShape.Apply ||
+            preset.Customize.SmallIris.Apply ||
+            preset.Customize.Nose.Apply ||
+            preset.Customize.Jaw.Apply ||
+            preset.Customize.Mouth.Apply ||
+            preset.Customize.Lipstick.Apply ||
+            preset.Customize.LipColor.Apply ||
+            preset.Customize.MuscleMass.Apply ||
+            preset.Customize.TailShape.Apply ||
+            preset.Customize.BustSize.Apply ||
+            preset.Customize.FacePaint.Apply ||
+            preset.Customize.FacePaintReversed.Apply ||
+            preset.Customize.FacePaintColor.Apply);
 
     private unsafe bool ApplyCustomizeData(GameCustomizeData* customizeData, GlamourerPreset preset)
     {
@@ -2095,15 +3228,16 @@ public sealed class Plugin : IDalamudPlugin
         return true;
     }
 
-    private unsafe bool ApplyGlamourerPreset(CharacterStruct* character, GlamourerPreset preset, byte* customizePtr)
+    private unsafe bool ApplyGlamourerPreset(CharacterStruct* character, GlamourerPreset preset, byte* customizePtr, bool logDetails = true)
     {
         // ── Apply customize data (26 bytes) ──
         if (character == null || customizePtr == null || !Configuration.SuperKrangleApplyAppearance)
             return false;
 
-        var applied = ApplyCustomizeData((GameCustomizeData*)customizePtr, preset);
+        var customizeRequested = PresetRequestsCustomize(preset);
+        var applied = customizeRequested && ApplyCustomizeData((GameCustomizeData*)customizePtr, preset);
 
-        if (preset.Customize.ModelId != 0 && !hasLoggedAppearanceScan)
+        if (logDetails && preset.Customize.ModelId != 0 && !hasLoggedAppearanceScan)
             Log.Warning($"[Krangler] Preset '{preset.Name}' requests CharacterBase.Create modelId override {preset.Customize.ModelId}; post-create apply cannot change it.");
 
         // ── Equipment modification DISABLED ──
@@ -2140,35 +3274,35 @@ public sealed class Plugin : IDalamudPlugin
     /// Get special NPC appearance data for Super Krangle Master 4000 mode.
     /// Returns (race, tribe, gender) for iconic NPCs like Gaius, Nero, Louisoix, etc.
     /// </summary>
-    private unsafe int ApplyGlamourerEquipment(CharacterStruct* character, GlamourerPreset preset)
+    private unsafe int ApplyGlamourerEquipment(CharacterStruct* character, GlamourerPreset preset, bool exactNpcReplacement = false, bool logDetails = true)
     {
         if (character == null || preset.Equipment.Count == 0)
             return 0;
 
-        if (!hasLoggedAppearanceScan)
+        if (logDetails && !hasLoggedAppearanceScan)
             Log.Information($"[Krangler] Processing preset '{preset.Name}' with {preset.Equipment.Count} equipment entries");
 
         int appliedCount;
         fixed (EquipmentModelId* equipmentModelPtr = &character->DrawData.EquipmentModelIds[0])
         {
-            appliedCount = ApplyEquipmentData(equipmentModelPtr, preset, character);
+            appliedCount = ApplyEquipmentData(equipmentModelPtr, preset, character, exactNpcReplacement, logDetails);
         }
 
-        if (!hasLoggedAppearanceScan && appliedCount > 0)
+        if (logDetails && !hasLoggedAppearanceScan && appliedCount > 0)
             Log.Information($"[Krangler] Applied {appliedCount} Super Krangle equipment slot(s) from preset '{preset.Name}'");
 
         return appliedCount;
     }
 
-    private unsafe int ApplyEquipmentData(EquipmentModelId* equipmentModelPtr, GlamourerPreset preset, CharacterStruct* character)
+    private unsafe int ApplyEquipmentData(EquipmentModelId* equipmentModelPtr, GlamourerPreset preset, CharacterStruct* character, bool exactNpcReplacement = false, bool logDetails = true)
     {
         if (equipmentModelPtr == null || preset.Equipment.Count == 0)
             return 0;
 
         var appliedCount = 0;
-        var preserveExistingCoreArmor = ShouldPreserveExistingCoreArmor(preset);
+        var preserveExistingCoreArmor = !exactNpcReplacement && ShouldPreserveExistingCoreArmor(preset);
 
-        if (preserveExistingCoreArmor && !hasLoggedAppearanceScan)
+        if (preserveExistingCoreArmor && logDetails && !hasLoggedAppearanceScan)
             Log.Information($"[Krangler] Preset '{preset.Name}' uses deprecated special-NPC core armor encoding. Preserving existing Head/Body/Hands/Legs/Feet while still applying accessories, weapons, bonus items, and meta state.");
 
         foreach (var (slotName, slotData) in preset.Equipment)
@@ -2176,11 +3310,11 @@ public sealed class Plugin : IDalamudPlugin
             var isCoreArmorSlot = IsCoreArmorSlot(slotName);
             if (!slotData.Apply || !ShouldApplyEquipmentSlot(slotName) || (preserveExistingCoreArmor && isCoreArmorSlot))
             {
-                if (!hasLoggedAppearanceScan && !slotData.Apply)
+                if (logDetails && !hasLoggedAppearanceScan && !slotData.Apply)
                     Log.Information($"[Krangler] Skipping preset slot '{slotName}' - Apply flag is false");
-                if (!hasLoggedAppearanceScan && !ShouldApplyEquipmentSlot(slotName))
+                if (logDetails && !hasLoggedAppearanceScan && !ShouldApplyEquipmentSlot(slotName))
                     Log.Information($"[Krangler] Skipping preset slot '{slotName}' - ShouldApplyEquipmentSlot returned false");
-                if (!hasLoggedAppearanceScan && preserveExistingCoreArmor && isCoreArmorSlot)
+                if (logDetails && !hasLoggedAppearanceScan && preserveExistingCoreArmor && isCoreArmorSlot)
                     Log.Information($"[Krangler] Skipping preset slot '{slotName}' for '{preset.Name}' - preserving existing equipped armor for deprecated special-NPC armor path");
                 continue;
             }
@@ -2188,14 +3322,14 @@ public sealed class Plugin : IDalamudPlugin
             var slotIndex = GetEquipmentSlotIndex(slotName);
             if (!slotIndex.HasValue)
             {
-                if (!hasLoggedAppearanceScan)
+                if (logDetails && !hasLoggedAppearanceScan)
                     Log.Warning($"[Krangler] Could not get slot index for '{slotName}'");
                 continue;
             }
 
             if (!TryDecodeGlamourerItemId(slotName, slotData.ItemId, out var setId, out var variant, out var isEmpty))
             {
-                if (!hasLoggedAppearanceScan)
+                if (logDetails && !hasLoggedAppearanceScan)
                     Log.Warning($"[Krangler] Could not decode preset slot '{slotName}' item id {slotData.ItemId}");
                 continue;
             }
@@ -2211,7 +3345,7 @@ public sealed class Plugin : IDalamudPlugin
                 modelId->Stain0 = 0;
                 modelId->Stain1 = 0;
 
-                if (!hasLoggedAppearanceScan)
+                if (logDetails && !hasLoggedAppearanceScan)
                     Log.Information($"[Krangler] Preset slot '{slotName}' uses empty-slot marker itemId={slotData.ItemId}");
             }
             else if (slotData.ApplyStain)
@@ -2223,7 +3357,7 @@ public sealed class Plugin : IDalamudPlugin
             if (character != null)
                 ApplyNativeEquipmentSlot(character, slotIndex.Value, modelId);
 
-            if (!hasLoggedAppearanceScan)
+            if (logDetails && !hasLoggedAppearanceScan)
                 Log.Information($"[Krangler] Applied preset slot '{slotName}': itemId={slotData.ItemId}, setId={setId}, variant={variant}, stains={modelId->Stain0}/{modelId->Stain1} (was setId={oldSetId}, variant={oldVariant})");
 
             appliedCount++;
@@ -2232,7 +3366,7 @@ public sealed class Plugin : IDalamudPlugin
         return appliedCount;
     }
 
-    private unsafe int ApplyGlamourerWeapons(CharacterStruct* character, GlamourerPreset preset)
+    private unsafe int ApplyGlamourerWeapons(CharacterStruct* character, GlamourerPreset preset, bool logDetails = true)
     {
         if (character == null || preset.Equipment.Count == 0 || !Configuration.SuperKrangleApplyWeapons)
             return 0;
@@ -2257,10 +3391,10 @@ public sealed class Plugin : IDalamudPlugin
                 character->DrawData.LoadWeapon(DrawDataContainerStruct.WeaponSlot.MainHand, mainHandWeapon, 1, 0, 1, 0, true);
                 appliedCount++;
 
-                if (!hasLoggedAppearanceScan)
+                if (logDetails && !hasLoggedAppearanceScan)
                     Log.Information($"[Krangler] Applied preset weapon 'MainHand': itemId={mainHandData.ItemId}, id={mainHandWeapon.Id}, type={mainHandWeapon.Type}, variant={mainHandWeapon.Variant}, stains={mainHandWeapon.Stain0}/{mainHandWeapon.Stain1}");
             }
-            else if (!hasLoggedAppearanceScan)
+            else if (logDetails && !hasLoggedAppearanceScan)
             {
                 Log.Warning($"[Krangler] Could not decode preset weapon 'MainHand' item id {mainHandData.ItemId}");
             }
@@ -2284,10 +3418,10 @@ public sealed class Plugin : IDalamudPlugin
                 character->DrawData.LoadWeapon(DrawDataContainerStruct.WeaponSlot.OffHand, offHandWeapon, 1, 0, 1, 0, true);
                 appliedCount++;
 
-                if (!hasLoggedAppearanceScan)
+                if (logDetails && !hasLoggedAppearanceScan)
                     Log.Information($"[Krangler] Applied preset weapon 'OffHand': itemId={offHandData.ItemId}, id={offHandWeapon.Id}, type={offHandWeapon.Type}, variant={offHandWeapon.Variant}, stains={offHandWeapon.Stain0}/{offHandWeapon.Stain1}");
             }
-            else if (!hasLoggedAppearanceScan)
+            else if (logDetails && !hasLoggedAppearanceScan)
             {
                 Log.Warning($"[Krangler] Could not decode preset weapon 'OffHand' item id {offHandData.ItemId}");
             }
@@ -2296,7 +3430,7 @@ public sealed class Plugin : IDalamudPlugin
         return appliedCount;
     }
 
-    private unsafe bool ApplyGlamourerBonusItems(CharacterStruct* character, GlamourerPreset preset)
+    private unsafe bool ApplyGlamourerBonusItems(CharacterStruct* character, GlamourerPreset preset, bool logDetails = true)
     {
         if (character == null || preset.Bonus.Count == 0)
             return false;
@@ -2309,13 +3443,13 @@ public sealed class Plugin : IDalamudPlugin
             applied = true;
         }
 
-        if (!hasLoggedAppearanceScan && applied)
+        if (logDetails && !hasLoggedAppearanceScan && applied)
             Log.Information($"[Krangler] Applied preset bonus items '{preset.Name}': glasses={character->DrawData.GlassesIds[0]}");
 
         return applied;
     }
 
-    private unsafe bool ApplyGlamourerMetaState(CharacterStruct* character, GlamourerPreset preset)
+    private unsafe bool ApplyGlamourerMetaState(CharacterStruct* character, GlamourerPreset preset, bool logDetails = true)
     {
         if (character == null || preset.Equipment.Count == 0)
             return false;
@@ -2340,7 +3474,7 @@ public sealed class Plugin : IDalamudPlugin
             applied = true;
         }
 
-        if (!hasLoggedAppearanceScan && applied)
+        if (logDetails && !hasLoggedAppearanceScan && applied)
             Log.Information($"[Krangler] Applied preset meta state '{preset.Name}': hatHidden={character->DrawData.IsHatHidden}, weaponHidden={character->DrawData.IsWeaponHidden}, visorToggled={character->DrawData.IsVisorToggled}");
 
         return applied;
@@ -2446,6 +3580,17 @@ public sealed class Plugin : IDalamudPlugin
         character->DrawData.HideWeapons(originalData.IsWeaponHidden);
         character->DrawData.SetVisor(originalData.IsVisorToggled);
         character->DrawData.HideVieraEars(originalData.VieraEarsHidden);
+    }
+
+    private static unsafe void RestoreModelContainerIds(CharacterStruct* character, OriginalAppearanceData originalData)
+    {
+        if (character == null || !originalData.HasModelContainerIds)
+            return;
+
+        character->ModelContainer.ModelCharaId = originalData.ModelCharaId;
+        character->ModelContainer.ModelCharaId_2 = originalData.ModelCharaId2;
+        character->ModelContainer.ModelSkeletonId = originalData.ModelSkeletonId;
+        character->ModelContainer.ModelSkeletonId_2 = originalData.ModelSkeletonId2;
     }
 
     private static unsafe void RestoreWeaponData(CharacterStruct* character, OriginalAppearanceData originalData)

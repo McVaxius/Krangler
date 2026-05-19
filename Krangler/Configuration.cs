@@ -1,11 +1,16 @@
 using Dalamud.Configuration;
 using System;
+using System.Collections.Generic;
 
 namespace Krangler;
 
 [Serializable]
 public class Configuration : IPluginConfiguration
 {
+    public const int MaxAmongusNpcReplacements = 100;
+    public const string DefaultAmongusNpcName = "Alpha";
+    public const string DefaultAmongusPresetKey = "e97d1e17-9247-46aa-a9ad-b942ab905d31";
+
     public int Version { get; set; } = 1;
 
     // Master toggle
@@ -22,6 +27,11 @@ public class Configuration : IPluginConfiguration
     public bool KrangleMinions { get; set; } = false;
     public bool SkipSelfKrangling { get; set; } = false;
     public string CustomSelfDisplayName { get; set; } = string.Empty;
+
+    // Exact NPC preset replacements
+    public bool AmongusEnabled { get; set; } = true;
+    public bool AmongusDefaultSeeded { get; set; } = true;
+    public List<AmongusNpcReplacement> AmongusNpcReplacements { get; set; } = CreateDefaultAmongusNpcReplacements();
 
     // Special mode (disabled by default)
     public bool SuperKrangleMaster4000 { get; set; } = false;
@@ -66,4 +76,81 @@ public class Configuration : IPluginConfiguration
     {
         Plugin.PluginInterface.SavePluginConfig(this);
     }
+
+    public bool SanitizeAmongusNpcReplacements()
+    {
+        var changed = false;
+
+        if (AmongusNpcReplacements == null)
+        {
+            AmongusNpcReplacements = CreateDefaultAmongusNpcReplacements();
+            AmongusDefaultSeeded = true;
+            return true;
+        }
+
+        if (!AmongusDefaultSeeded)
+        {
+            if (AmongusNpcReplacements.Count == 0)
+            {
+                AmongusNpcReplacements.Add(CreateDefaultAmongusNpcReplacement());
+                changed = true;
+            }
+
+            AmongusDefaultSeeded = true;
+            changed = true;
+        }
+
+        for (var i = AmongusNpcReplacements.Count - 1; i >= 0; i--)
+        {
+            if (AmongusNpcReplacements[i] != null)
+                continue;
+
+            AmongusNpcReplacements.RemoveAt(i);
+            changed = true;
+        }
+
+        while (AmongusNpcReplacements.Count > MaxAmongusNpcReplacements)
+        {
+            AmongusNpcReplacements.RemoveAt(AmongusNpcReplacements.Count - 1);
+            changed = true;
+        }
+
+        foreach (var replacement in AmongusNpcReplacements)
+        {
+            var npcName = replacement.NpcName?.Trim() ?? string.Empty;
+            if (!string.Equals(replacement.NpcName, npcName, StringComparison.Ordinal))
+            {
+                replacement.NpcName = npcName;
+                changed = true;
+            }
+
+            var presetKey = replacement.PresetKey?.Trim() ?? string.Empty;
+            if (!string.Equals(replacement.PresetKey, presetKey, StringComparison.Ordinal))
+            {
+                replacement.PresetKey = presetKey;
+                changed = true;
+            }
+        }
+
+        return changed;
+    }
+
+    public static AmongusNpcReplacement CreateDefaultAmongusNpcReplacement()
+        => new()
+        {
+            Enabled = true,
+            NpcName = DefaultAmongusNpcName,
+            PresetKey = DefaultAmongusPresetKey,
+        };
+
+    private static List<AmongusNpcReplacement> CreateDefaultAmongusNpcReplacements()
+        => new() { CreateDefaultAmongusNpcReplacement() };
+}
+
+[Serializable]
+public class AmongusNpcReplacement
+{
+    public bool Enabled { get; set; } = true;
+    public string NpcName { get; set; } = string.Empty;
+    public string PresetKey { get; set; } = string.Empty;
 }

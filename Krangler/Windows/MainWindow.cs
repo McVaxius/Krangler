@@ -32,7 +32,9 @@ public class MainWindow : Window, IDisposable
 
         var config = plugin.Configuration;
         var presetNames = plugin.GlamourerPresetService.GetPresetNames();
-        if (EnsureSlotSelections(config))
+        var configChanged = EnsureSlotSelections(config);
+        configChanged |= config.SanitizeAmongusNpcReplacements();
+        if (configChanged)
         {
             config.Save();
         }
@@ -241,6 +243,8 @@ public class MainWindow : Window, IDisposable
         {
             ImGui.SetTooltip("Randomize visible minions into a full random player race, subrace, gender, and appearance.");
         }
+
+        DrawAmongusSection(config, presetNames);
 
         ImGui.Spacing();
         ImGui.Separator();
@@ -637,9 +641,13 @@ public class MainWindow : Window, IDisposable
     }
 
     private bool DrawPresetSelectionCombo(string label, ref string value, IReadOnlyList<string> presetNames, bool includeUseGlobal)
+        => DrawPresetSelectionCombo(label, ref value, presetNames, includeUseGlobal, true);
+
+    private bool DrawPresetSelectionCombo(string label, ref string value, IReadOnlyList<string> presetNames, bool includeUseGlobal, bool includeRandom)
     {
+        var fallbackPreview = includeUseGlobal ? "Use Global" : includeRandom ? "Random" : "Select preset";
         var preview = string.IsNullOrWhiteSpace(value)
-            ? (includeUseGlobal ? "Use Global" : "Random")
+            ? fallbackPreview
             : value;
         var changed = false;
 
@@ -654,7 +662,10 @@ public class MainWindow : Window, IDisposable
                 changed |= DrawSelectionOption("Use Global", ref value);
             }
 
-            changed |= DrawSelectionOption("Random", ref value);
+            if (includeRandom)
+            {
+                changed |= DrawSelectionOption("Random", ref value);
+            }
 
             var filteredPresetNames = string.IsNullOrWhiteSpace(presetSearch)
                 ? presetNames
@@ -673,6 +684,93 @@ public class MainWindow : Window, IDisposable
         }
 
         return changed;
+    }
+
+    private void DrawAmongusSection(Configuration config, IReadOnlyList<string> presetNames)
+    {
+        ImGui.Spacing();
+        ImGui.Text("Amongus");
+        ImGui.Separator();
+
+        var amongusEnabled = config.AmongusEnabled;
+        if (ImGui.Checkbox("Amongus", ref amongusEnabled))
+        {
+            config.AmongusEnabled = amongusEnabled;
+            config.Save();
+        }
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip("Replace exact battle and event NPC names with imported local presets.");
+        }
+
+        if (!config.AmongusEnabled)
+            return;
+
+        ImGui.TextDisabled($"{config.AmongusNpcReplacements.Count}/{Configuration.MaxAmongusNpcReplacements}");
+        ImGui.SameLine();
+
+        if (config.AmongusNpcReplacements.Count < Configuration.MaxAmongusNpcReplacements)
+        {
+            if (ImGui.SmallButton("+"))
+            {
+                config.AmongusNpcReplacements.Add(new AmongusNpcReplacement());
+                config.Save();
+            }
+        }
+        else
+        {
+            ImGui.TextDisabled("+");
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip("Maximum 100 NPC replacements.");
+        }
+
+        var removeIndex = -1;
+        for (var i = 0; i < config.AmongusNpcReplacements.Count; i++)
+        {
+            var replacement = config.AmongusNpcReplacements[i];
+            ImGui.PushID(i);
+
+            var rowEnabled = replacement.Enabled;
+            if (ImGui.Checkbox("##AmongusRowEnabled", ref rowEnabled))
+            {
+                replacement.Enabled = rowEnabled;
+                config.Save();
+            }
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.SetTooltip("Enable this exact NPC replacement.");
+            }
+
+            ImGui.SameLine();
+            ImGui.SetNextItemWidth(150f);
+            var npcName = replacement.NpcName ?? string.Empty;
+            if (ImGui.InputTextWithHint("##AmongusNpcName", "NPC name", ref npcName, 64))
+            {
+                replacement.NpcName = npcName;
+                config.Save();
+            }
+
+            ImGui.SameLine();
+            ImGui.SetNextItemWidth(220f);
+            var presetKey = replacement.PresetKey ?? string.Empty;
+            if (DrawPresetSelectionCombo("Preset##AmongusPreset", ref presetKey, presetNames, false, false))
+            {
+                replacement.PresetKey = presetKey;
+                config.Save();
+            }
+
+            ImGui.SameLine();
+            if (ImGui.SmallButton("-"))
+                removeIndex = i;
+
+            ImGui.PopID();
+        }
+
+        if (removeIndex >= 0)
+        {
+            config.AmongusNpcReplacements.RemoveAt(removeIndex);
+            config.Save();
+        }
     }
 
     private static bool DrawSelectionOption(string option, ref string value)

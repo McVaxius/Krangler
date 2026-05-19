@@ -15,6 +15,7 @@ public class GlamourerPresetService
     private readonly IPluginLog log;
     private readonly IDalamudPluginInterface pluginInterface;
     private readonly Dictionary<string, GlamourerPreset> presets = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, GlamourerPreset> presetAliases = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, PropertyInfo> CustomizePropertyMap = typeof(CustomizeData)
         .GetProperties(BindingFlags.Public | BindingFlags.Instance)
         .Where(property => property.PropertyType == typeof(CustomValue) && property.CanWrite)
@@ -34,6 +35,7 @@ public class GlamourerPresetService
     private void LoadPresets()
     {
         presets.Clear();
+        presetAliases.Clear();
 
         // Create user presets directory if it doesn't exist
         if (!Directory.Exists(UserPresetsDir))
@@ -59,7 +61,10 @@ public class GlamourerPresetService
                 if (preset != null && !string.IsNullOrEmpty(preset.Name))
                 {
                     preset.Name = preset.Name.Trim();
+                    preset.Identifier = preset.Identifier.Trim();
+                    preset.SourceFileName = Path.GetFileName(file);
                     presets[preset.Name] = preset;
+                    RegisterPresetAliases(preset);
                     loadedCount++;
                 }
             }
@@ -132,11 +137,21 @@ public class GlamourerPresetService
 
         var normalizedName = presetName.Trim();
 
-        if (presets.TryGetValue(normalizedName, out var exactMatch))
+        if (presetAliases.TryGetValue(normalizedName, out var exactMatch))
             return exactMatch;
 
+        if (normalizedName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+        {
+            var stem = Path.GetFileNameWithoutExtension(normalizedName);
+            if (!string.IsNullOrWhiteSpace(stem) && presetAliases.TryGetValue(stem, out var stemMatch))
+                return stemMatch;
+        }
+
         return presets.Values.FirstOrDefault(p =>
-            string.Equals(p.Name, normalizedName, StringComparison.OrdinalIgnoreCase));
+            string.Equals(p.Name, normalizedName, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(p.Identifier, normalizedName, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(p.SourceFileName, normalizedName, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(Path.GetFileNameWithoutExtension(p.SourceFileName), normalizedName, StringComparison.OrdinalIgnoreCase));
     }
 
     public GlamourerPreset? ResolvePresetSelection(string playerName, string selection)
@@ -155,6 +170,22 @@ public class GlamourerPresetService
         return presets.Keys
             .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    private void RegisterPresetAliases(GlamourerPreset preset)
+    {
+        AddPresetAlias(preset.Name, preset);
+        AddPresetAlias(preset.Identifier, preset);
+        AddPresetAlias(preset.SourceFileName, preset);
+        AddPresetAlias(Path.GetFileNameWithoutExtension(preset.SourceFileName), preset);
+    }
+
+    private void AddPresetAlias(string alias, GlamourerPreset preset)
+    {
+        if (string.IsNullOrWhiteSpace(alias))
+            return;
+
+        presetAliases[alias.Trim()] = preset;
     }
 
     private static GlamourerPreset? ParsePreset(string json)
