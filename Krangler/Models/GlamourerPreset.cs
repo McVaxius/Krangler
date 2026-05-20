@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Krangler.Models;
 
@@ -7,6 +8,7 @@ public class GlamourerPreset
     public int FileVersion { get; set; }
     public string Identifier { get; set; } = "";
     public string Name { get; set; } = "";
+    [JsonIgnore]
     public string SourceFileName { get; set; } = "";
     public string Description { get; set; } = "";
     public bool ForcedRedraw { get; set; }

@@ -10,6 +10,8 @@ public class Configuration : IPluginConfiguration
     public const int MaxAmongusNpcReplacements = 100;
     public const string DefaultAmongusNpcName = "Alpha";
     public const string DefaultAmongusPresetKey = "e97d1e17-9247-46aa-a9ad-b942ab905d31";
+    public const int MinSoulThiefCaptureIntervalSeconds = 5;
+    public const int MaxSoulThiefCaptureIntervalSeconds = 300;
 
     public int Version { get; set; } = 1;
 
@@ -29,9 +31,19 @@ public class Configuration : IPluginConfiguration
     public string CustomSelfDisplayName { get; set; } = string.Empty;
 
     // Exact NPC preset replacements
-    public bool AmongusEnabled { get; set; } = true;
+    public bool AmongusEnabled { get; set; } = false;
     public bool AmongusDefaultSeeded { get; set; } = true;
-    public List<AmongusNpcReplacement> AmongusNpcReplacements { get; set; } = CreateDefaultAmongusNpcReplacements();
+    public List<AmongusNpcReplacement> AmongusNpcReplacements { get; set; } = new();
+
+    // Soul Thief preset capture (disabled by default)
+    public bool SoulThiefEnabled { get; set; } = false;
+    public bool SoulThiefCapturePlayers { get; set; } = false;
+    public bool SoulThiefCaptureNpcs { get; set; } = false;
+    public bool SoulThiefCaptureChocobos { get; set; } = false;
+    public int SoulThiefCaptureIntervalSeconds { get; set; } = MinSoulThiefCaptureIntervalSeconds;
+    public int SoulThiefLastCapturedPlayers { get; set; } = 0;
+    public int SoulThiefLastCapturedNpcs { get; set; } = 0;
+    public int SoulThiefLastCapturedChocobos { get; set; } = 0;
 
     // Special mode (disabled by default)
     public bool SuperKrangleMaster4000 { get; set; } = false;
@@ -77,25 +89,34 @@ public class Configuration : IPluginConfiguration
         Plugin.PluginInterface.SavePluginConfig(this);
     }
 
+    public static Configuration CreateFirstRun()
+    {
+        var configuration = new Configuration();
+        configuration.AmongusNpcReplacements.Add(CreateDefaultAmongusNpcReplacement());
+        configuration.AmongusDefaultSeeded = true;
+        return configuration;
+    }
+
+    public bool Sanitize()
+    {
+        var changed = SanitizeAmongusNpcReplacements();
+        changed |= SanitizeSoulThiefSettings();
+        return changed;
+    }
+
     public bool SanitizeAmongusNpcReplacements()
     {
         var changed = false;
 
         if (AmongusNpcReplacements == null)
         {
-            AmongusNpcReplacements = CreateDefaultAmongusNpcReplacements();
+            AmongusNpcReplacements = new List<AmongusNpcReplacement>();
             AmongusDefaultSeeded = true;
             return true;
         }
 
         if (!AmongusDefaultSeeded)
         {
-            if (AmongusNpcReplacements.Count == 0)
-            {
-                AmongusNpcReplacements.Add(CreateDefaultAmongusNpcReplacement());
-                changed = true;
-            }
-
             AmongusDefaultSeeded = true;
             changed = true;
         }
@@ -135,6 +156,41 @@ public class Configuration : IPluginConfiguration
         return changed;
     }
 
+    private bool SanitizeSoulThiefSettings()
+    {
+        var changed = false;
+        var interval = Math.Clamp(
+            SoulThiefCaptureIntervalSeconds,
+            MinSoulThiefCaptureIntervalSeconds,
+            MaxSoulThiefCaptureIntervalSeconds);
+
+        if (SoulThiefCaptureIntervalSeconds != interval)
+        {
+            SoulThiefCaptureIntervalSeconds = interval;
+            changed = true;
+        }
+
+        if (SoulThiefLastCapturedPlayers < 0)
+        {
+            SoulThiefLastCapturedPlayers = 0;
+            changed = true;
+        }
+
+        if (SoulThiefLastCapturedNpcs < 0)
+        {
+            SoulThiefLastCapturedNpcs = 0;
+            changed = true;
+        }
+
+        if (SoulThiefLastCapturedChocobos < 0)
+        {
+            SoulThiefLastCapturedChocobos = 0;
+            changed = true;
+        }
+
+        return changed;
+    }
+
     public static AmongusNpcReplacement CreateDefaultAmongusNpcReplacement()
         => new()
         {
@@ -142,9 +198,6 @@ public class Configuration : IPluginConfiguration
             NpcName = DefaultAmongusNpcName,
             PresetKey = DefaultAmongusPresetKey,
         };
-
-    private static List<AmongusNpcReplacement> CreateDefaultAmongusNpcReplacements()
-        => new() { CreateDefaultAmongusNpcReplacement() };
 }
 
 [Serializable]

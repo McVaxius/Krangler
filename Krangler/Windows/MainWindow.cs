@@ -29,15 +29,17 @@ public class MainWindow : Window, IDisposable
     public override void Draw()
     {
         ApplyQueuedWindowPlacement();
+        DrawTabbedInterface();
+    }
 
+    private void DrawTabbedInterface()
+    {
         var config = plugin.Configuration;
         var presetNames = plugin.GlamourerPresetService.GetPresetNames();
         var configChanged = EnsureSlotSelections(config);
-        configChanged |= config.SanitizeAmongusNpcReplacements();
+        configChanged |= config.Sanitize();
         if (configChanged)
-        {
             config.Save();
-        }
 
         var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0.0";
         ImGui.Text($"Krangler v{version}");
@@ -51,12 +53,70 @@ public class MainWindow : Window, IDisposable
             });
         }
         if (ImGui.IsItemHovered())
-        {
             ImGui.SetTooltip("Support development on Ko-fi");
-        }
 
         ImGui.Separator();
 
+        DrawMasterToggle(config);
+
+        if (!ImGui.BeginTabBar("KranglerTabs"))
+            return;
+
+        if (ImGui.BeginTabItem("Overview"))
+        {
+            DrawOverviewTab(config);
+            ImGui.EndTabItem();
+        }
+
+        if (ImGui.BeginTabItem("Names"))
+        {
+            DrawNamesTab(config);
+            ImGui.EndTabItem();
+        }
+
+        if (ImGui.BeginTabItem("Appearance"))
+        {
+            DrawAppearanceTab(config);
+            ImGui.EndTabItem();
+        }
+
+        if (ImGui.BeginTabItem("Presets"))
+        {
+            DrawPresetsTab(config, presetNames);
+            ImGui.EndTabItem();
+        }
+
+        if (ImGui.BeginTabItem("Soul Thief"))
+        {
+            DrawSoulThiefTab(config);
+            ImGui.EndTabItem();
+        }
+
+        if (ImGui.BeginTabItem("Debug"))
+        {
+            DrawDebugTab(config);
+            ImGui.EndTabItem();
+        }
+
+        ImGui.EndTabBar();
+    }
+
+    private void DrawOverviewTab(Configuration config)
+    {
+        ImGui.Spacing();
+
+        DrawStatus(config);
+
+        ImGui.Spacing();
+        ImGui.Text($"Presets loaded: {plugin.GlamourerPresetService.PresetCount}");
+        ImGui.Text($"Soul Thief last capture: {config.SoulThiefLastCapturedPlayers} players, {config.SoulThiefLastCapturedNpcs} NPCs, {config.SoulThiefLastCapturedChocobos} chocobos");
+
+        ImGui.Spacing();
+        DrawDtrSection(config);
+    }
+
+    private void DrawMasterToggle(Configuration config)
+    {
         var enabled = config.Enabled;
         if (ImGui.Checkbox("Enable Krangler", ref enabled))
         {
@@ -66,11 +126,13 @@ public class MainWindow : Window, IDisposable
             config.Save();
         }
         if (ImGui.IsItemHovered())
-        {
             ImGui.SetTooltip("Master toggle - enables or disables all krangling.");
-        }
 
         ImGui.Spacing();
+    }
+
+    private void DrawDtrSection(Configuration config)
+    {
         ImGui.Text("DTR Bar");
         ImGui.Separator();
 
@@ -81,55 +143,52 @@ public class MainWindow : Window, IDisposable
             config.Save();
         }
         if (ImGui.IsItemHovered())
-        {
             ImGui.SetTooltip("Show Krangler status in the server info bar. Click the DTR entry to toggle enable or disable.");
-        }
 
-        if (config.DtrBarEnabled)
+        ImGui.BeginDisabled(!config.DtrBarEnabled);
+
+        var dtrMode = config.DtrBarMode;
+        ImGui.SetNextItemWidth(150);
+        if (ImGui.Combo("DTR Mode", ref dtrMode, "Text Only\0Icon + Text\0Icon Only\0"))
         {
-            var dtrMode = config.DtrBarMode;
-            ImGui.SetNextItemWidth(150);
-            if (ImGui.Combo("DTR Mode", ref dtrMode, "Text Only\0Icon + Text\0Icon Only\0"))
-            {
-                config.DtrBarMode = dtrMode;
-                config.Save();
-            }
-
-            ImGui.Text("DTR Icons (max 3 characters)");
-            ImGui.SameLine();
-            HelpMarker("Customize the glyphs used for enabled and disabled icon modes.");
-            ImGui.SameLine();
-            if (ImGui.SmallButton("Copy Icon Guide Link"))
-            {
-                ImGui.SetClipboardText("https://na.finalfantasyxiv.com/lodestone/character/22423564/blog/4393835");
-                Plugin.Log.Information("Copied icon guide link to clipboard");
-            }
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.SetTooltip("Copies the Lodestone blog link with suggested glyphs.");
-            }
-
-            var enabledIcon = config.DtrIconEnabled;
-            if (DrawIconInputs("Enabled", ref enabledIcon, "\uE03C"))
-            {
-                config.DtrIconEnabled = enabledIcon;
-                config.Save();
-            }
-
-            var disabledIcon = config.DtrIconDisabled;
-            if (DrawIconInputs("Disabled", ref disabledIcon, "\uE03D"))
-            {
-                config.DtrIconDisabled = disabledIcon;
-                config.Save();
-            }
+            config.DtrBarMode = dtrMode;
+            config.Save();
         }
 
-        ImGui.Spacing();
-        ImGui.Text("Krangling Options");
-        ImGui.Separator();
-        ImGui.TextColored(new Vector4(0.7f, 0.7f, 0.7f, 1.0f), "Options are processed in the order shown.");
+        ImGui.Text("DTR Icons (max 3 characters)");
+        ImGui.SameLine();
+        HelpMarker("Customize the glyphs used for enabled and disabled icon modes.");
+        ImGui.SameLine();
+        if (ImGui.SmallButton("Copy Icon Guide Link"))
+        {
+            ImGui.SetClipboardText("https://na.finalfantasyxiv.com/lodestone/character/22423564/blog/4393835");
+            Plugin.Log.Information("Copied icon guide link to clipboard");
+        }
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip("Copies the Lodestone blog link with suggested glyphs.");
 
+        var enabledIcon = config.DtrIconEnabled;
+        if (DrawIconInputs("Enabled", ref enabledIcon, "\uE03C"))
+        {
+            config.DtrIconEnabled = enabledIcon;
+            config.Save();
+        }
+
+        var disabledIcon = config.DtrIconDisabled;
+        if (DrawIconInputs("Disabled", ref disabledIcon, "\uE03D"))
+        {
+            config.DtrIconDisabled = disabledIcon;
+            config.Save();
+        }
+
+        ImGui.EndDisabled();
+    }
+
+    private void DrawNamesTab(Configuration config)
+    {
         ImGui.Spacing();
+        ImGui.Text("Names");
+        ImGui.Separator();
 
         var krangleNames = config.KrangleNames;
         if (ImGui.Checkbox("Krangle Names", ref krangleNames))
@@ -140,32 +199,21 @@ public class MainWindow : Window, IDisposable
             config.Save();
         }
         if (ImGui.IsItemHovered())
-        {
             ImGui.SetTooltip("Randomize visible player names and party list names.");
-        }
 
         var skipSelfKrangling = config.SkipSelfKrangling;
         if (ImGui.Checkbox("Do Not Krangle Self", ref skipSelfKrangling))
-        {
             plugin.SetSkipSelfKrangling(skipSelfKrangling);
-        }
         if (ImGui.IsItemHovered())
-        {
             ImGui.SetTooltip("Keep your own character's appearance stable and optionally use a fixed self display name instead of a randomized one.");
-        }
 
-        if (config.SkipSelfKrangling)
-        {
-            var customSelfDisplayName = config.CustomSelfDisplayName ?? string.Empty;
-            if (ImGui.InputText("Custom Self Display Name", ref customSelfDisplayName, 64))
-            {
-                plugin.SetCustomSelfDisplayName(customSelfDisplayName);
-            }
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.SetTooltip("Optional fixed name to use for your own character. Leave blank to keep your real name.");
-            }
-        }
+        ImGui.BeginDisabled(!config.SkipSelfKrangling);
+        var customSelfDisplayName = config.CustomSelfDisplayName ?? string.Empty;
+        if (ImGui.InputText("Custom Self Display Name", ref customSelfDisplayName, 64))
+            plugin.SetCustomSelfDisplayName(customSelfDisplayName);
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip("Optional fixed name to use for your own character. Leave blank to keep your real name.");
+        ImGui.EndDisabled();
 
         var krangleChat = config.KrangleChat;
         if (ImGui.Checkbox("Krangle Chat", ref krangleChat))
@@ -174,9 +222,14 @@ public class MainWindow : Window, IDisposable
             config.Save();
         }
         if (ImGui.IsItemHovered())
-        {
             ImGui.SetTooltip("Garble chat text for screenshot privacy.");
-        }
+    }
+
+    private void DrawAppearanceTab(Configuration config)
+    {
+        ImGui.Spacing();
+        ImGui.Text("Appearance");
+        ImGui.Separator();
 
         var krangleGenders = config.KrangleGenders;
         if (ImGui.Checkbox("Krangle Genders", ref krangleGenders))
@@ -185,9 +238,7 @@ public class MainWindow : Window, IDisposable
             config.Save();
         }
         if (ImGui.IsItemHovered())
-        {
             ImGui.SetTooltip("Randomize genders for visible player characters.");
-        }
 
         var krangleRaces = config.KrangleRaces;
         if (ImGui.Checkbox("Krangle Races", ref krangleRaces))
@@ -196,9 +247,7 @@ public class MainWindow : Window, IDisposable
             config.Save();
         }
         if (ImGui.IsItemHovered())
-        {
             ImGui.SetTooltip("Randomize races and subraces for visible player characters.");
-        }
 
         var krangleAppearance = config.KrangleAppearance;
         if (ImGui.Checkbox("Krangle Appearance", ref krangleAppearance))
@@ -207,9 +256,11 @@ public class MainWindow : Window, IDisposable
             config.Save();
         }
         if (ImGui.IsItemHovered())
-        {
             ImGui.SetTooltip("Randomize hair, face, eyes, and other appearance fields.");
-        }
+
+        ImGui.Spacing();
+        ImGui.Text("Non-Player Targets");
+        ImGui.Separator();
 
         var krangleNpcs = config.KrangleNpcs;
         if (ImGui.Checkbox("Krangle NPCs", ref krangleNpcs))
@@ -218,9 +269,7 @@ public class MainWindow : Window, IDisposable
             config.Save();
         }
         if (ImGui.IsItemHovered())
-        {
             ImGui.SetTooltip("Randomize visible human battle and event NPCs into full random player race, subrace, gender, and appearance.");
-        }
 
         var krangleChocobos = config.KrangleChocobos;
         if (ImGui.Checkbox("Krangle Chocobos", ref krangleChocobos))
@@ -229,9 +278,7 @@ public class MainWindow : Window, IDisposable
             config.Save();
         }
         if (ImGui.IsItemHovered())
-        {
             ImGui.SetTooltip("Randomize visible chocobo companions into a full random player race, subrace, gender, and appearance.");
-        }
 
         var krangleMinions = config.KrangleMinions;
         if (ImGui.Checkbox("Krangle Minions", ref krangleMinions))
@@ -240,9 +287,13 @@ public class MainWindow : Window, IDisposable
             config.Save();
         }
         if (ImGui.IsItemHovered())
-        {
             ImGui.SetTooltip("Randomize visible minions into a full random player race, subrace, gender, and appearance.");
-        }
+    }
+
+    private void DrawPresetsTab(Configuration config, IReadOnlyList<string> presetNames)
+    {
+        ImGui.Spacing();
+        ImGui.Text($"Presets loaded: {plugin.GlamourerPresetService.PresetCount}");
 
         DrawAmongusSection(config, presetNames);
 
@@ -250,6 +301,11 @@ public class MainWindow : Window, IDisposable
         ImGui.Separator();
         ImGui.Spacing();
 
+        DrawSuperKrangleSection(config, presetNames);
+    }
+
+    private void DrawSuperKrangleSection(Configuration config, IReadOnlyList<string> presetNames)
+    {
         var superKrangle = config.SuperKrangleMaster4000;
         if (ImGui.Checkbox("Super Krangle Master 4000", ref superKrangle))
         {
@@ -264,240 +320,284 @@ public class MainWindow : Window, IDisposable
                 $"Presets loaded: {plugin.GlamourerPresetService.PresetCount}");
         }
 
-        if (superKrangle)
+        ImGui.BeginDisabled(!config.SuperKrangleMaster4000);
+
+        ImGui.SameLine();
+        ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, 1.0f), $"({plugin.GlamourerPresetService.PresetCount} presets)");
+
+        if (presetNames.Count == 0)
+            ImGui.TextColored(new Vector4(1.0f, 0.75f, 0.3f, 1.0f), "No preset files are loaded. Built-in NPC looks will be used instead.");
+
+        var globalSelection = string.IsNullOrWhiteSpace(config.SuperKrangleSelection)
+            ? "Random"
+            : config.SuperKrangleSelection;
+        if (DrawPresetSelectionCombo("Global Preset", ref globalSelection, presetNames, false))
         {
-            ImGui.SameLine();
-            ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, 1.0f), $"({plugin.GlamourerPresetService.PresetCount} presets)");
+            config.SuperKrangleSelection = globalSelection;
+            config.Save();
+        }
 
-            if (presetNames.Count == 0)
-            {
-                ImGui.TextColored(new Vector4(1.0f, 0.75f, 0.3f, 1.0f), "No preset files are loaded. Built-in NPC looks will be used instead.");
-            }
+        ImGui.Spacing();
+        ImGui.Text("Non-Player Preset Targets");
+        ImGui.Separator();
 
-            var globalSelection = string.IsNullOrWhiteSpace(config.SuperKrangleSelection)
-                ? "Random"
-                : config.SuperKrangleSelection;
-            if (DrawPresetSelectionCombo("Global Preset", ref globalSelection, presetNames, false))
+        var superKrangleNpcs = config.SuperKrangleNpcs;
+        if (ImGui.Checkbox("NPCs", ref superKrangleNpcs))
+        {
+            config.SuperKrangleNpcs = superKrangleNpcs;
+            config.Save();
+        }
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip("Apply the selected preset or random preset to visible human battle and event NPCs. The Wuk Lamat date event will still force NPCs during the event window.");
+
+        ImGui.BeginDisabled(!config.SuperKrangleNpcs);
+        var npcSelection = string.IsNullOrWhiteSpace(config.SuperKrangleNpcSelection)
+            ? "Random"
+            : config.SuperKrangleNpcSelection;
+        if (DrawPresetSelectionCombo("NPC Preset", ref npcSelection, presetNames, false))
+        {
+            config.SuperKrangleNpcSelection = npcSelection;
+            config.Save();
+        }
+        ImGui.EndDisabled();
+
+        ImGui.Spacing();
+        ImGui.Text("Companion Preset Targets");
+        ImGui.Separator();
+
+        var superKrangleChocobos = config.SuperKrangleChocobos;
+        if (ImGui.Checkbox("Chocobos", ref superKrangleChocobos))
+        {
+            config.SuperKrangleChocobos = superKrangleChocobos;
+            config.Save();
+        }
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip("Apply the selected preset or random preset to visible chocobo companions.");
+
+        ImGui.BeginDisabled(!config.SuperKrangleChocobos);
+        var chocoboSelection = string.IsNullOrWhiteSpace(config.SuperKrangleChocoboSelection)
+            ? "Random"
+            : config.SuperKrangleChocoboSelection;
+        if (DrawPresetSelectionCombo("Chocobo Preset", ref chocoboSelection, presetNames, false))
+        {
+            config.SuperKrangleChocoboSelection = chocoboSelection;
+            config.Save();
+        }
+        ImGui.EndDisabled();
+
+        var superKrangleMinions = config.SuperKrangleMinions;
+        if (ImGui.Checkbox("Minions", ref superKrangleMinions))
+        {
+            config.SuperKrangleMinions = superKrangleMinions;
+            config.Save();
+        }
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip("Apply the selected preset or random preset to visible minions.");
+
+        ImGui.BeginDisabled(!config.SuperKrangleMinions);
+        var minionSelection = string.IsNullOrWhiteSpace(config.SuperKrangleMinionSelection)
+            ? "Random"
+            : config.SuperKrangleMinionSelection;
+        if (DrawPresetSelectionCombo("Minion Preset", ref minionSelection, presetNames, false))
+        {
+            config.SuperKrangleMinionSelection = minionSelection;
+            config.Save();
+        }
+        ImGui.EndDisabled();
+
+        ImGui.Spacing();
+        ImGui.Text("Party Slot Overrides");
+        ImGui.Separator();
+
+        for (var i = 0; i < config.SuperKranglePartySlotSelections.Count; i++)
+        {
+            var slotSelection = string.IsNullOrWhiteSpace(config.SuperKranglePartySlotSelections[i])
+                ? "Use Global"
+                : config.SuperKranglePartySlotSelections[i];
+
+            if (DrawPresetSelectionCombo(GetPartySlotLabel(i), ref slotSelection, presetNames, true))
             {
-                config.SuperKrangleSelection = globalSelection;
+                config.SuperKranglePartySlotSelections[i] = slotSelection;
                 config.Save();
-            }
-
-            ImGui.Spacing();
-            ImGui.Text("Non-Player Preset Targets");
-            ImGui.Separator();
-
-            var superKrangleNpcs = config.SuperKrangleNpcs;
-            if (ImGui.Checkbox("NPCs", ref superKrangleNpcs))
-            {
-                config.SuperKrangleNpcs = superKrangleNpcs;
-                config.Save();
-            }
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.SetTooltip("Apply the selected preset or random preset to visible human battle and event NPCs. The Wuk Lamat date event will still force NPCs during the event window.");
-            }
-
-            if (superKrangleNpcs)
-            {
-                var npcSelection = string.IsNullOrWhiteSpace(config.SuperKrangleNpcSelection)
-                    ? "Random"
-                    : config.SuperKrangleNpcSelection;
-                if (DrawPresetSelectionCombo("NPC Preset", ref npcSelection, presetNames, false))
-                {
-                    config.SuperKrangleNpcSelection = npcSelection;
-                    config.Save();
-                }
-            }
-
-            ImGui.Spacing();
-            ImGui.Text("Companion Preset Targets");
-            ImGui.Separator();
-
-            var superKrangleChocobos = config.SuperKrangleChocobos;
-            if (ImGui.Checkbox("Chocobos", ref superKrangleChocobos))
-            {
-                config.SuperKrangleChocobos = superKrangleChocobos;
-                config.Save();
-            }
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.SetTooltip("Apply the selected preset or random preset to visible chocobo companions.");
-            }
-
-            if (superKrangleChocobos)
-            {
-                var chocoboSelection = string.IsNullOrWhiteSpace(config.SuperKrangleChocoboSelection)
-                    ? "Random"
-                    : config.SuperKrangleChocoboSelection;
-                if (DrawPresetSelectionCombo("Chocobo Preset", ref chocoboSelection, presetNames, false))
-                {
-                    config.SuperKrangleChocoboSelection = chocoboSelection;
-                    config.Save();
-                }
-            }
-
-            var superKrangleMinions = config.SuperKrangleMinions;
-            if (ImGui.Checkbox("Minions", ref superKrangleMinions))
-            {
-                config.SuperKrangleMinions = superKrangleMinions;
-                config.Save();
-            }
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.SetTooltip("Apply the selected preset or random preset to visible minions.");
-            }
-
-            if (superKrangleMinions)
-            {
-                var minionSelection = string.IsNullOrWhiteSpace(config.SuperKrangleMinionSelection)
-                    ? "Random"
-                    : config.SuperKrangleMinionSelection;
-                if (DrawPresetSelectionCombo("Minion Preset", ref minionSelection, presetNames, false))
-                {
-                    config.SuperKrangleMinionSelection = minionSelection;
-                    config.Save();
-                }
-            }
-
-            ImGui.Spacing();
-            ImGui.Text("Party Slot Overrides");
-            ImGui.Separator();
-
-            for (var i = 0; i < config.SuperKranglePartySlotSelections.Count; i++)
-            {
-                var slotSelection = string.IsNullOrWhiteSpace(config.SuperKranglePartySlotSelections[i])
-                    ? "Use Global"
-                    : config.SuperKranglePartySlotSelections[i];
-
-                if (DrawPresetSelectionCombo(GetPartySlotLabel(i), ref slotSelection, presetNames, true))
-                {
-                    config.SuperKranglePartySlotSelections[i] = slotSelection;
-                    config.Save();
-                }
-            }
-
-            ImGui.Spacing();
-            ImGui.Text("Apply From Preset");
-            ImGui.Separator();
-
-            var applyAppearance = config.SuperKrangleApplyAppearance;
-            if (ImGui.Checkbox("Appearance", ref applyAppearance))
-            {
-                config.SuperKrangleApplyAppearance = applyAppearance;
-                config.Save();
-            }
-            ImGui.SameLine();
-            var applyHead = config.SuperKrangleApplyHead;
-            if (ImGui.Checkbox("Head", ref applyHead))
-            {
-                config.SuperKrangleApplyHead = applyHead;
-                config.Save();
-            }
-            ImGui.SameLine();
-            var applyBody = config.SuperKrangleApplyBody;
-            if (ImGui.Checkbox("Body", ref applyBody))
-            {
-                config.SuperKrangleApplyBody = applyBody;
-                config.Save();
-            }
-
-            var applyHands = config.SuperKrangleApplyHands;
-            if (ImGui.Checkbox("Hands", ref applyHands))
-            {
-                config.SuperKrangleApplyHands = applyHands;
-                config.Save();
-            }
-            ImGui.SameLine();
-            var applyLegs = config.SuperKrangleApplyLegs;
-            if (ImGui.Checkbox("Legs", ref applyLegs))
-            {
-                config.SuperKrangleApplyLegs = applyLegs;
-                config.Save();
-            }
-            ImGui.SameLine();
-            var applyFeet = config.SuperKrangleApplyFeet;
-            if (ImGui.Checkbox("Feet", ref applyFeet))
-            {
-                config.SuperKrangleApplyFeet = applyFeet;
-                config.Save();
-            }
-
-            var applyAccessories = config.SuperKrangleApplyAccessories;
-            if (ImGui.Checkbox("Accessories", ref applyAccessories))
-            {
-                config.SuperKrangleApplyAccessories = applyAccessories;
-                config.Save();
-            }
-            ImGui.SameLine();
-            var applyWeapons = config.SuperKrangleApplyWeapons;
-            if (ImGui.Checkbox("Weapons", ref applyWeapons))
-            {
-                config.SuperKrangleApplyWeapons = applyWeapons;
-                config.Save();
-            }
-
-            ImGui.Spacing();
-            ImGui.Text("Propagation Control");
-            ImGui.Separator();
-
-            var maxPlayersPerCycle = config.SuperKrangleMaxPlayersPerCycle;
-            if (ImGui.SliderInt("Max Players Per Cycle", ref maxPlayersPerCycle, 1, 24))
-            {
-                config.SuperKrangleMaxPlayersPerCycle = maxPlayersPerCycle;
-                config.Save();
-            }
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.SetTooltip("Limit how many visible players are processed during one scan pass.");
-            }
-
-            var redrawDelay = config.SuperKrangleBaseRedrawDelayFrames;
-            if (ImGui.SliderInt("Base Redraw Delay", ref redrawDelay, 1, 10))
-            {
-                config.SuperKrangleBaseRedrawDelayFrames = redrawDelay;
-                config.Save();
-            }
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.SetTooltip("Base frame delay before the next queued redraw. Actual delay scales with crowd size.");
             }
         }
 
         ImGui.Spacing();
+        ImGui.Text("Apply From Preset");
+        ImGui.Separator();
 
+        DrawApplyFromPresetOptions(config);
+
+        ImGui.Spacing();
+        ImGui.Text("Propagation Control");
+        ImGui.Separator();
+
+        var maxPlayersPerCycle = config.SuperKrangleMaxPlayersPerCycle;
+        if (ImGui.SliderInt("Max Players Per Cycle", ref maxPlayersPerCycle, 1, 24))
+        {
+            config.SuperKrangleMaxPlayersPerCycle = maxPlayersPerCycle;
+            config.Save();
+        }
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip("Limit how many visible players are processed during one scan pass.");
+
+        var redrawDelay = config.SuperKrangleBaseRedrawDelayFrames;
+        if (ImGui.SliderInt("Base Redraw Delay", ref redrawDelay, 1, 10))
+        {
+            config.SuperKrangleBaseRedrawDelayFrames = redrawDelay;
+            config.Save();
+        }
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip("Base frame delay before the next queued redraw. Actual delay scales with crowd size.");
+
+        ImGui.EndDisabled();
+    }
+
+    private static void DrawApplyFromPresetOptions(Configuration config)
+    {
+        var applyAppearance = config.SuperKrangleApplyAppearance;
+        if (ImGui.Checkbox("Appearance", ref applyAppearance))
+        {
+            config.SuperKrangleApplyAppearance = applyAppearance;
+            config.Save();
+        }
+        ImGui.SameLine();
+        var applyHead = config.SuperKrangleApplyHead;
+        if (ImGui.Checkbox("Head", ref applyHead))
+        {
+            config.SuperKrangleApplyHead = applyHead;
+            config.Save();
+        }
+        ImGui.SameLine();
+        var applyBody = config.SuperKrangleApplyBody;
+        if (ImGui.Checkbox("Body", ref applyBody))
+        {
+            config.SuperKrangleApplyBody = applyBody;
+            config.Save();
+        }
+
+        var applyHands = config.SuperKrangleApplyHands;
+        if (ImGui.Checkbox("Hands", ref applyHands))
+        {
+            config.SuperKrangleApplyHands = applyHands;
+            config.Save();
+        }
+        ImGui.SameLine();
+        var applyLegs = config.SuperKrangleApplyLegs;
+        if (ImGui.Checkbox("Legs", ref applyLegs))
+        {
+            config.SuperKrangleApplyLegs = applyLegs;
+            config.Save();
+        }
+        ImGui.SameLine();
+        var applyFeet = config.SuperKrangleApplyFeet;
+        if (ImGui.Checkbox("Feet", ref applyFeet))
+        {
+            config.SuperKrangleApplyFeet = applyFeet;
+            config.Save();
+        }
+
+        var applyAccessories = config.SuperKrangleApplyAccessories;
+        if (ImGui.Checkbox("Accessories", ref applyAccessories))
+        {
+            config.SuperKrangleApplyAccessories = applyAccessories;
+            config.Save();
+        }
+        ImGui.SameLine();
+        var applyWeapons = config.SuperKrangleApplyWeapons;
+        if (ImGui.Checkbox("Weapons", ref applyWeapons))
+        {
+            config.SuperKrangleApplyWeapons = applyWeapons;
+            config.Save();
+        }
+    }
+
+    private void DrawSoulThiefTab(Configuration config)
+    {
+        ImGui.Spacing();
+        ImGui.Text("Soul Thief");
+        ImGui.Separator();
+
+        var soulThiefEnabled = config.SoulThiefEnabled;
+        if (ImGui.Checkbox("Enable Soul Thief", ref soulThiefEnabled))
+        {
+            config.SoulThiefEnabled = soulThiefEnabled;
+            config.Save();
+        }
+
+        ImGui.BeginDisabled(!config.SoulThiefEnabled);
+
+        var capturePlayers = config.SoulThiefCapturePlayers;
+        if (ImGui.Checkbox("Capture Players", ref capturePlayers))
+        {
+            config.SoulThiefCapturePlayers = capturePlayers;
+            config.Save();
+        }
+
+        var captureNpcs = config.SoulThiefCaptureNpcs;
+        if (ImGui.Checkbox("Capture NPCs", ref captureNpcs))
+        {
+            config.SoulThiefCaptureNpcs = captureNpcs;
+            config.Save();
+        }
+
+        var captureChocobos = config.SoulThiefCaptureChocobos;
+        if (ImGui.Checkbox("Capture Chocobos", ref captureChocobos))
+        {
+            config.SoulThiefCaptureChocobos = captureChocobos;
+            config.Save();
+        }
+
+        var intervalSeconds = config.SoulThiefCaptureIntervalSeconds;
+        if (ImGui.SliderInt("Capture Interval", ref intervalSeconds, Configuration.MinSoulThiefCaptureIntervalSeconds, Configuration.MaxSoulThiefCaptureIntervalSeconds))
+        {
+            config.SoulThiefCaptureIntervalSeconds = intervalSeconds;
+            config.Save();
+        }
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip("Seconds between Soul Thief capture passes. Appearance scanning still runs on Krangler's 5-second cadence.");
+
+        ImGui.EndDisabled();
+
+        ImGui.Spacing();
+        ImGui.Text($"Last capture: {config.SoulThiefLastCapturedPlayers} players, {config.SoulThiefLastCapturedNpcs} NPCs, {config.SoulThiefLastCapturedChocobos} chocobos");
+        ImGui.TextWrapped($"Preset folders: {plugin.GlamourerPresetService.UserPresetsDir}\\players, \\npcs, \\chocobos");
+    }
+
+    private void DrawDebugTab(Configuration config)
+    {
+        ImGui.Spacing();
+        ImGui.Text("Debug");
+        ImGui.Separator();
+
+        if (!plugin.ShowDebugOptions)
+        {
+            ImGui.TextDisabled("Debug controls hidden. Use /kr debug to toggle.");
+            return;
+        }
+
+        var disableEventOverride = config.DisableDateBasedSuperKrangleEvent;
+        if (ImGui.Checkbox("Disable date-based Wuk Lamat auto-event", ref disableEventOverride))
+            plugin.SetDateBasedSuperKrangleEventSuppressed(disableEventOverride);
+
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip("Suppress the March 31 through April 2 Wuk Lamat auto-event so normal Super Krangle testing is possible.");
+
+        if (plugin.IsDateBasedSuperKrangleWindowActive)
+        {
+            var message = plugin.IsDateBasedSuperKrangleEventCurrentlyForced
+                ? "The date-based Wuk Lamat override is currently active."
+                : "The date-based Wuk Lamat override is currently suppressed by debug settings.";
+            ImGui.TextColored(new Vector4(1.0f, 0.85f, 0.35f, 1.0f), message);
+        }
+    }
+
+    private static void DrawStatus(Configuration config)
+    {
         if (config.Enabled)
-        {
             ImGui.TextColored(new Vector4(0.0f, 1.0f, 0.0f, 1.0f), "Status: KRANGLING ACTIVE");
-        }
         else
-        {
             ImGui.TextColored(new Vector4(0.7f, 0.7f, 0.7f, 1.0f), "Status: Disabled");
-        }
-
-        if (plugin.ShowDebugOptions)
-        {
-            ImGui.Spacing();
-            ImGui.Text("Debug");
-            ImGui.Separator();
-
-            var disableEventOverride = config.DisableDateBasedSuperKrangleEvent;
-            if (ImGui.Checkbox("Disable date-based Wuk Lamat auto-event", ref disableEventOverride))
-                plugin.SetDateBasedSuperKrangleEventSuppressed(disableEventOverride);
-
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.SetTooltip("Suppress the March 31 through April 2 Wuk Lamat auto-event so normal Super Krangle testing is possible.");
-            }
-
-            if (plugin.IsDateBasedSuperKrangleWindowActive)
-            {
-                var message = plugin.IsDateBasedSuperKrangleEventCurrentlyForced
-                    ? "The date-based Wuk Lamat override is currently active."
-                    : "The date-based Wuk Lamat override is currently suppressed by debug settings.";
-                ImGui.TextColored(new Vector4(1.0f, 0.85f, 0.35f, 1.0f), message);
-            }
-        }
     }
 
     public void QueueResetToOrigin()
@@ -703,8 +803,7 @@ public class MainWindow : Window, IDisposable
             ImGui.SetTooltip("Replace exact battle and event NPC names with imported local presets.");
         }
 
-        if (!config.AmongusEnabled)
-            return;
+        ImGui.BeginDisabled(!config.AmongusEnabled);
 
         ImGui.TextDisabled($"{config.AmongusNpcReplacements.Count}/{Configuration.MaxAmongusNpcReplacements}");
         ImGui.SameLine();
@@ -771,6 +870,8 @@ public class MainWindow : Window, IDisposable
             config.AmongusNpcReplacements.RemoveAt(removeIndex);
             config.Save();
         }
+
+        ImGui.EndDisabled();
     }
 
     private static bool DrawSelectionOption(string option, ref string value)

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Objects;
@@ -73,7 +74,9 @@ public sealed class Plugin : IDalamudPlugin
     private bool hasLoggedAppearanceScan;
     private bool hasLoggedPartyList;
     private bool hasLoggedEventActivation;
+    private bool hasLoggedSoulThiefError;
     private DateTime lastEventFlagReset = DateTime.MinValue;
+    private DateTime lastSoulThiefCapture = DateTime.MinValue;
     private const int CustomizeByteCount = 26;
     private const int EquipmentSlotByteCount = 8;
     private const int EquipmentSlotCount = 10;
@@ -288,8 +291,10 @@ public sealed class Plugin : IDalamudPlugin
 
     public Plugin()
     {
-        Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
-        if (Configuration.SanitizeAmongusNpcReplacements())
+        var savedConfiguration = PluginInterface.GetPluginConfig() as Configuration;
+        var isFirstRun = savedConfiguration == null;
+        Configuration = savedConfiguration ?? Configuration.CreateFirstRun();
+        if (isFirstRun || Configuration.Sanitize())
             Configuration.Save();
 
         AppearanceService = new AppearanceService(Log, ObjectTable, Configuration);
@@ -431,7 +436,12 @@ public sealed class Plugin : IDalamudPlugin
         MaintainAmongusNpcVisibility();
 
         // Appearance krangling via direct memory (throttled to every 5 seconds)
-        if (Configuration.KrangleGenders || Configuration.KrangleRaces || Configuration.KrangleAppearance || SuperKrangleMaster4000_Active || HasActiveAmongusReplacements())
+        if (Configuration.KrangleGenders ||
+            Configuration.KrangleRaces ||
+            Configuration.KrangleAppearance ||
+            SuperKrangleMaster4000_Active ||
+            HasActiveAmongusReplacements() ||
+            HasActiveSoulThiefTargets())
         {
             var now = DateTime.UtcNow;
             if ((now - lastAppearanceScan).TotalSeconds >= 5)
@@ -1506,6 +1516,10 @@ public sealed class Plugin : IDalamudPlugin
         var processedPlayersThisCycle = 0;
         var processedAuxiliaryTargetsThisCycle = 0;
         var seenAmongusNpcNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var captureSoulThiefThisScan = ShouldRunSoulThiefCaptureThisScan();
+        var soulThiefCapturedPlayers = 0;
+        var soulThiefCapturedNpcs = 0;
+        var soulThiefCapturedChocobos = 0;
 
         // Event activation notification
         if (IsSuperKrangleEventActive && !Configuration.SuperKrangleMaster4000 && !hasLoggedEventActivation)
@@ -1532,6 +1546,24 @@ public sealed class Plugin : IDalamudPlugin
             AmongusNpcReplacement amongusReplacement = null!;
             var isAmongusNpc = isNpc && TryGetAmongusReplacement(name, out amongusReplacement);
             var targetLabel = GetAppearanceTargetLabel(isNpc, isChocobo, isMinion);
+
+            if (captureSoulThiefThisScan && !IsSoulThiefSourceAlreadyKrangled(objectKey))
+            {
+                if (TryCaptureSoulThiefPreset(obj, name, isPlayer, isNpc, isChocobo, out var soulThiefTargetKind, out var soulThiefError))
+                {
+                    if (soulThiefTargetKind == SoulThiefTargetKind.Player)
+                        soulThiefCapturedPlayers++;
+                    else if (soulThiefTargetKind == SoulThiefTargetKind.Npc)
+                        soulThiefCapturedNpcs++;
+                    else if (soulThiefTargetKind == SoulThiefTargetKind.Chocobo)
+                        soulThiefCapturedChocobos++;
+                }
+                else if (!string.IsNullOrWhiteSpace(soulThiefError) && !hasLoggedSoulThiefError)
+                {
+                    hasLoggedSoulThiefError = true;
+                    Log.Warning($"[Krangler] Soul Thief capture failed: {soulThiefError}");
+                }
+            }
 
             if (isAmongusNpc)
             {
@@ -1707,6 +1739,7 @@ public sealed class Plugin : IDalamudPlugin
         }
 
         LogMissingAmongusObjects(seenAmongusNpcNames);
+        UpdateSoulThiefCaptureCounts(captureSoulThiefThisScan, soulThiefCapturedPlayers, soulThiefCapturedNpcs, soulThiefCapturedChocobos);
 
         if (!hasLoggedAppearanceScan && playerCount > 0)
         {
@@ -1718,6 +1751,446 @@ public sealed class Plugin : IDalamudPlugin
         {
             currentVisiblePlayerCount = playerCount;
         }
+    }
+
+    private enum SoulThiefTargetKind
+    {
+        None,
+        Player,
+        Npc,
+        Chocobo,
+    }
+
+    private bool HasActiveSoulThiefTargets()
+        => Configuration.SoulThiefEnabled &&
+           (Configuration.SoulThiefCapturePlayers ||
+            Configuration.SoulThiefCaptureNpcs ||
+            Configuration.SoulThiefCaptureChocobos);
+
+    private bool ShouldRunSoulThiefCaptureThisScan()
+    {
+        if (!HasActiveSoulThiefTargets())
+            return false;
+
+        var now = DateTime.UtcNow;
+        if ((now - lastSoulThiefCapture).TotalSeconds < GetSoulThiefCaptureIntervalSeconds())
+            return false;
+
+        lastSoulThiefCapture = now;
+        return true;
+    }
+
+    private int GetSoulThiefCaptureIntervalSeconds()
+        => Math.Clamp(
+            Configuration.SoulThiefCaptureIntervalSeconds,
+            Configuration.MinSoulThiefCaptureIntervalSeconds,
+            Configuration.MaxSoulThiefCaptureIntervalSeconds);
+
+    private bool IsSoulThiefSourceAlreadyKrangled(ulong objectKey)
+        => AppearanceService.IsApplied(objectKey) || originalAppearanceData.ContainsKey(objectKey);
+
+    private unsafe bool TryCaptureSoulThiefPreset(
+        IGameObject obj,
+        string name,
+        bool isPlayer,
+        bool isNpc,
+        bool isChocobo,
+        out SoulThiefTargetKind targetKind,
+        out string error)
+    {
+        targetKind = SoulThiefTargetKind.None;
+        error = string.Empty;
+
+        try
+        {
+            if (!TryResolveSoulThiefTargetKind(isPlayer, isNpc, isChocobo, out targetKind))
+                return false;
+
+            if (obj.Address == 0)
+                return false;
+
+            var character = (CharacterStruct*)obj.Address;
+            if (character == null || !SupportsHumanCustomize(character))
+                return false;
+
+            var presetDisplayName = GetSoulThiefPresetDisplayName(obj, name, targetKind);
+            var preset = CreateSoulThiefPreset(presetDisplayName, targetKind, character);
+            var category = GetSoulThiefCategory(targetKind);
+            var fileName = GetSoulThiefFileName(obj, name, targetKind);
+
+            if (string.IsNullOrWhiteSpace(category) || string.IsNullOrWhiteSpace(fileName))
+                return false;
+
+            var exported = GlamourerPresetService.TryExportSoulThiefPreset(
+                category,
+                fileName,
+                preset,
+                out var skippedExisting,
+                out _,
+                out error);
+
+            return exported && !skippedExisting;
+        }
+        catch (Exception ex)
+        {
+            error = $"{name}: {ex.Message}";
+            return false;
+        }
+    }
+
+    private bool TryResolveSoulThiefTargetKind(bool isPlayer, bool isNpc, bool isChocobo, out SoulThiefTargetKind targetKind)
+    {
+        targetKind = SoulThiefTargetKind.None;
+
+        if (isPlayer && Configuration.SoulThiefCapturePlayers)
+            targetKind = SoulThiefTargetKind.Player;
+        else if (isChocobo && Configuration.SoulThiefCaptureChocobos)
+            targetKind = SoulThiefTargetKind.Chocobo;
+        else if (isNpc && Configuration.SoulThiefCaptureNpcs)
+            targetKind = SoulThiefTargetKind.Npc;
+
+        return targetKind != SoulThiefTargetKind.None;
+    }
+
+    private unsafe GlamourerPreset CreateSoulThiefPreset(string name, SoulThiefTargetKind targetKind, CharacterStruct* character)
+    {
+        var presetName = $"Soul Thief: {GetSoulThiefDisplayKind(targetKind)} {name}";
+        var preset = new GlamourerPreset
+        {
+            FileVersion = 2,
+            Identifier = Guid.NewGuid().ToString(),
+            Name = presetName,
+            Description = $"Captured by Krangler Soul Thief from {GetSoulThiefDisplayKind(targetKind).ToLowerInvariant()} '{name}'.",
+            ForcedRedraw = false,
+            Customize = CreateSoulThiefCustomizeData(character),
+        };
+
+        fixed (EquipmentModelId* equipmentModelPtr = &character->DrawData.EquipmentModelIds[0])
+        {
+            AddSoulThiefEquipmentSlot(preset, "Head", equipmentModelPtr + 0);
+            AddSoulThiefEquipmentSlot(preset, "Body", equipmentModelPtr + 1);
+            AddSoulThiefEquipmentSlot(preset, "Hands", equipmentModelPtr + 2);
+            AddSoulThiefEquipmentSlot(preset, "Legs", equipmentModelPtr + 3);
+            AddSoulThiefEquipmentSlot(preset, "Feet", equipmentModelPtr + 4);
+            AddSoulThiefEquipmentSlot(preset, "Ears", equipmentModelPtr + 5);
+            AddSoulThiefEquipmentSlot(preset, "Neck", equipmentModelPtr + 6);
+            AddSoulThiefEquipmentSlot(preset, "Wrists", equipmentModelPtr + 7);
+            AddSoulThiefEquipmentSlot(preset, "RFinger", equipmentModelPtr + 8);
+            AddSoulThiefEquipmentSlot(preset, "LFinger", equipmentModelPtr + 9);
+        }
+
+        AddSoulThiefWeaponSlot(
+            preset,
+            "MainHand",
+            character->DrawData.Weapon(DrawDataContainerStruct.WeaponSlot.MainHand).ModelId);
+        AddSoulThiefWeaponSlot(
+            preset,
+            "OffHand",
+            character->DrawData.Weapon(DrawDataContainerStruct.WeaponSlot.OffHand).ModelId);
+
+        preset.Bonus["Glasses"] = new BonusItemData
+        {
+            BonusId = character->DrawData.GlassesIds[0],
+            Apply = true,
+        };
+        preset.Bonus["Glasses1"] = new BonusItemData
+        {
+            BonusId = character->DrawData.GlassesIds[1],
+            Apply = true,
+        };
+
+        preset.Equipment["Hat"] = new EquipmentSlotData
+        {
+            Apply = true,
+            Show = !character->DrawData.IsHatHidden,
+        };
+        preset.Equipment["Weapon"] = new EquipmentSlotData
+        {
+            Apply = true,
+            Show = !character->DrawData.IsWeaponHidden,
+        };
+        preset.Equipment["Visor"] = new EquipmentSlotData
+        {
+            Apply = true,
+            IsToggled = character->DrawData.IsVisorToggled,
+        };
+
+        return preset;
+    }
+
+    private static unsafe Krangler.Models.CustomizeData CreateSoulThiefCustomizeData(CharacterStruct* character)
+    {
+        var customize = character->DrawData.CustomizeData;
+        return new Krangler.Models.CustomizeData
+        {
+            ModelId = 0,
+            Race = CreateAppliedCustomValue(customize.Race),
+            Gender = CreateAppliedCustomValue(customize.Sex),
+            BodyType = CreateAppliedCustomValue(customize.BodyType),
+            Height = CreateAppliedCustomValue(customize.Height),
+            Clan = CreateAppliedCustomValue(customize.Tribe),
+            Face = CreateAppliedCustomValue(customize.Face),
+            Hairstyle = CreateAppliedCustomValue(customize.Hairstyle),
+            Highlights = CreateAppliedCustomValue(customize.Highlights ? (byte)1 : (byte)0),
+            SkinColor = CreateAppliedCustomValue(customize.SkinColor),
+            EyeColorRight = CreateAppliedCustomValue(customize.EyeColorRight),
+            HairColor = CreateAppliedCustomValue(customize.HairColor),
+            HighlightsColor = CreateAppliedCustomValue(customize.HighlightsColor),
+            FacialFeature1 = CreateAppliedCustomValue(customize.FacialFeature1 ? (byte)1 : (byte)0),
+            FacialFeature2 = CreateAppliedCustomValue(customize.FacialFeature2 ? (byte)1 : (byte)0),
+            FacialFeature3 = CreateAppliedCustomValue(customize.FacialFeature3 ? (byte)1 : (byte)0),
+            FacialFeature4 = CreateAppliedCustomValue(customize.FacialFeature4 ? (byte)1 : (byte)0),
+            FacialFeature5 = CreateAppliedCustomValue(customize.FacialFeature5 ? (byte)1 : (byte)0),
+            FacialFeature6 = CreateAppliedCustomValue(customize.FacialFeature6 ? (byte)1 : (byte)0),
+            FacialFeature7 = CreateAppliedCustomValue(customize.FacialFeature7 ? (byte)1 : (byte)0),
+            LegacyTattoo = CreateAppliedCustomValue(customize.LegacyTattoo ? (byte)1 : (byte)0),
+            TattooColor = CreateAppliedCustomValue(customize.TattooColor),
+            Eyebrows = CreateAppliedCustomValue(customize.Eyebrows),
+            EyeColorLeft = CreateAppliedCustomValue(customize.EyeColorLeft),
+            EyeShape = CreateAppliedCustomValue(customize.EyeShape),
+            SmallIris = CreateAppliedCustomValue(customize.SmallIris ? (byte)1 : (byte)0),
+            Nose = CreateAppliedCustomValue(customize.Nose),
+            Jaw = CreateAppliedCustomValue(customize.Jaw),
+            Mouth = CreateAppliedCustomValue(customize.Mouth),
+            Lipstick = CreateAppliedCustomValue(customize.Lipstick ? (byte)1 : (byte)0),
+            LipColor = CreateAppliedCustomValue(customize.LipColorFurPattern),
+            MuscleMass = CreateAppliedCustomValue(customize.MuscleMass),
+            TailShape = CreateAppliedCustomValue(customize.TailShape),
+            BustSize = CreateAppliedCustomValue(customize.BustSize),
+            FacePaint = CreateAppliedCustomValue(customize.FacePaint),
+            FacePaintReversed = CreateAppliedCustomValue(customize.FacePaintReversed ? (byte)1 : (byte)0),
+            FacePaintColor = CreateAppliedCustomValue(customize.FacePaintColor),
+        };
+    }
+
+    private static CustomValue CreateAppliedCustomValue(byte value)
+        => new()
+        {
+            Value = value,
+            Apply = true,
+        };
+
+    private static unsafe void AddSoulThiefEquipmentSlot(GlamourerPreset preset, string slotName, EquipmentModelId* modelId)
+    {
+        preset.Equipment[slotName] = new EquipmentSlotData
+        {
+            ItemId = PackSoulThiefArmorItemId(modelId),
+            Stain = modelId == null ? 0u : modelId->Stain0,
+            Stain2 = modelId == null ? 0u : modelId->Stain1,
+            Apply = true,
+            ApplyStain = true,
+            Crest = false,
+            ApplyCrest = false,
+            Show = true,
+        };
+    }
+
+    private static void AddSoulThiefWeaponSlot(GlamourerPreset preset, string slotName, WeaponModelId modelId)
+    {
+        preset.Equipment[slotName] = new EquipmentSlotData
+        {
+            ItemId = PackSoulThiefWeaponItemId(modelId),
+            Stain = modelId.Stain0,
+            Stain2 = modelId.Stain1,
+            Apply = true,
+            ApplyStain = true,
+            Crest = false,
+            ApplyCrest = false,
+            Show = true,
+        };
+    }
+
+    private static unsafe ulong PackSoulThiefArmorItemId(EquipmentModelId* modelId)
+    {
+        if (modelId == null || modelId->Id == 0 && modelId->Variant == 0)
+            return uint.MaxValue;
+
+        return ((ulong)modelId->Variant << 48) | ((ulong)modelId->Id << 32);
+    }
+
+    private static ulong PackSoulThiefWeaponItemId(WeaponModelId modelId)
+    {
+        if (modelId.Id == 0 && modelId.Type == 0 && modelId.Variant == 0)
+            return uint.MaxValue;
+
+        return (1UL << 48) |
+               ((ulong)modelId.Variant << 32) |
+               ((ulong)modelId.Type << 16) |
+               modelId.Id;
+    }
+
+    private static string GetSoulThiefCategory(SoulThiefTargetKind targetKind)
+        => targetKind switch
+        {
+            SoulThiefTargetKind.Player => "players",
+            SoulThiefTargetKind.Npc => "npcs",
+            SoulThiefTargetKind.Chocobo => "chocobos",
+            _ => string.Empty,
+        };
+
+    private static string GetSoulThiefDisplayKind(SoulThiefTargetKind targetKind)
+        => targetKind switch
+        {
+            SoulThiefTargetKind.Player => "Player",
+            SoulThiefTargetKind.Npc => "NPC",
+            SoulThiefTargetKind.Chocobo => "Chocobo",
+            _ => "Unknown",
+        };
+
+    private string GetSoulThiefFileName(IGameObject obj, string name, SoulThiefTargetKind targetKind)
+        => targetKind switch
+        {
+            SoulThiefTargetKind.Player => BuildSoulThiefPlayerFileName(obj, name),
+            SoulThiefTargetKind.Npc => $"npc_{SanitizeSoulThiefFileSegment(name)}.json",
+            SoulThiefTargetKind.Chocobo => $"chocobo_{SanitizeSoulThiefFileSegment(name)}.json",
+            _ => string.Empty,
+        };
+
+    private string GetSoulThiefPresetDisplayName(IGameObject obj, string name, SoulThiefTargetKind targetKind)
+    {
+        if (targetKind != SoulThiefTargetKind.Player || name.Contains('@'))
+            return name;
+
+        var worldName = GetPlayerWorldName(obj);
+        return string.IsNullOrWhiteSpace(worldName) ? name : $"{name}@{worldName}";
+    }
+
+    private string BuildSoulThiefPlayerFileName(IGameObject obj, string name)
+    {
+        var serverName = GetPlayerWorldName(obj);
+        var characterName = name;
+        var atIndex = name.IndexOf('@');
+        if (atIndex >= 0)
+        {
+            characterName = name[..atIndex];
+            if (string.IsNullOrWhiteSpace(serverName) && atIndex + 1 < name.Length)
+                serverName = name[(atIndex + 1)..];
+        }
+
+        var nameParts = characterName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var firstName = nameParts.Length > 0 ? nameParts[0] : "unknown";
+        var lastName = nameParts.Length > 1 ? nameParts[1] : "unknown";
+        if (string.IsNullOrWhiteSpace(serverName))
+            serverName = "unknown";
+
+        return $"player_{SanitizeSoulThiefFileSegment(firstName)}_{SanitizeSoulThiefFileSegment(lastName)}_{SanitizeSoulThiefFileSegment(serverName)}.json";
+    }
+
+    private static string GetPlayerWorldName(IGameObject obj)
+    {
+        foreach (var propertyName in new[] { "HomeWorld", "CurrentWorld" })
+        {
+            try
+            {
+                var property = obj.GetType().GetProperty(propertyName);
+                if (property == null || property.GetIndexParameters().Length != 0)
+                    continue;
+
+                var worldName = ExtractReflectedName(property.GetValue(obj));
+                if (!string.IsNullOrWhiteSpace(worldName))
+                    return worldName;
+            }
+            catch
+            {
+            }
+        }
+
+        return string.Empty;
+    }
+
+    private static string ExtractReflectedName(object? value, int depth = 0)
+    {
+        if (value == null || depth > 4)
+            return string.Empty;
+
+        if (value is string stringValue)
+            return stringValue;
+
+        foreach (var propertyName in new[] { "Value", "ValueNullable" })
+        {
+            var property = value.GetType().GetProperty(propertyName);
+            if (property == null || property.GetIndexParameters().Length != 0)
+                continue;
+
+            try
+            {
+                var nestedName = ExtractReflectedName(property.GetValue(value), depth + 1);
+                if (!string.IsNullOrWhiteSpace(nestedName))
+                    return nestedName;
+            }
+            catch
+            {
+            }
+        }
+
+        foreach (var propertyName in new[] { "Name", "InternalName" })
+        {
+            var property = value.GetType().GetProperty(propertyName);
+            if (property == null || property.GetIndexParameters().Length != 0)
+                continue;
+
+            try
+            {
+                var propertyValue = property.GetValue(value);
+                var name = propertyValue?.ToString() ?? string.Empty;
+                if (!string.IsNullOrWhiteSpace(name))
+                    return name;
+            }
+            catch
+            {
+            }
+        }
+
+        return string.Empty;
+    }
+
+    private static string SanitizeSoulThiefFileSegment(string value)
+    {
+        var builder = new StringBuilder();
+        var previousUnderscore = false;
+
+        foreach (var rawChar in value.Trim().ToLowerInvariant())
+        {
+            var ch = rawChar;
+            var isAsciiLetter = ch is >= 'a' and <= 'z';
+            var isDigit = ch is >= '0' and <= '9';
+
+            if (isAsciiLetter || isDigit)
+            {
+                builder.Append(ch);
+                previousUnderscore = false;
+            }
+            else if (!previousUnderscore && builder.Length > 0)
+            {
+                builder.Append('_');
+                previousUnderscore = true;
+            }
+        }
+
+        var result = builder.ToString().Trim('_');
+        return string.IsNullOrWhiteSpace(result) ? "unknown" : result;
+    }
+
+    private void UpdateSoulThiefCaptureCounts(bool captureAttempted, int players, int npcs, int chocobos)
+    {
+        if (!captureAttempted)
+            return;
+
+        var changed = Configuration.SoulThiefLastCapturedPlayers != players ||
+                      Configuration.SoulThiefLastCapturedNpcs != npcs ||
+                      Configuration.SoulThiefLastCapturedChocobos != chocobos;
+
+        if (changed)
+        {
+            Configuration.SoulThiefLastCapturedPlayers = players;
+            Configuration.SoulThiefLastCapturedNpcs = npcs;
+            Configuration.SoulThiefLastCapturedChocobos = chocobos;
+            Configuration.Save();
+        }
+
+        var total = players + npcs + chocobos;
+        if (total > 0)
+            Log.Information($"[Krangler] Soul Thief captured {total} preset(s): players={players}, npcs={npcs}, chocobos={chocobos}");
     }
 
     private unsafe void ProcessRedrawQueue()
@@ -3440,6 +3913,12 @@ public sealed class Plugin : IDalamudPlugin
         if (preset.Bonus.TryGetValue("Glasses", out var glassesData) && glassesData.Apply)
         {
             character->DrawData.SetGlasses(0, (ushort)Math.Min(glassesData.BonusId, ushort.MaxValue));
+            applied = true;
+        }
+
+        if (preset.Bonus.TryGetValue("Glasses1", out var secondGlassesData) && secondGlassesData.Apply)
+        {
+            character->DrawData.SetGlasses(1, (ushort)Math.Min(secondGlassesData.BonusId, ushort.MaxValue));
             applied = true;
         }
 

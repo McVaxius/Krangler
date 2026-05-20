@@ -16,6 +16,10 @@ public class GlamourerPresetService
     private readonly IDalamudPluginInterface pluginInterface;
     private readonly Dictionary<string, GlamourerPreset> presets = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, GlamourerPreset> presetAliases = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly JsonSerializerOptions PresetJsonOptions = new()
+    {
+        WriteIndented = true,
+    };
     private static readonly Dictionary<string, PropertyInfo> CustomizePropertyMap = typeof(CustomizeData)
         .GetProperties(BindingFlags.Public | BindingFlags.Instance)
         .Where(property => property.PropertyType == typeof(CustomValue) && property.CanWrite)
@@ -48,7 +52,7 @@ public class GlamourerPresetService
         InstallBundledPresets();
 
         // Load all presets from user directory
-        var jsonFiles = Directory.GetFiles(UserPresetsDir, "*.json");
+        var jsonFiles = Directory.GetFiles(UserPresetsDir, "*.json", SearchOption.AllDirectories);
         var loadedCount = 0;
 
         foreach (var file in jsonFiles)
@@ -58,19 +62,12 @@ public class GlamourerPresetService
                 var json = File.ReadAllText(file);
                 var preset = ParsePreset(json);
 
-                if (preset != null && !string.IsNullOrEmpty(preset.Name))
-                {
-                    preset.Name = preset.Name.Trim();
-                    preset.Identifier = preset.Identifier.Trim();
-                    preset.SourceFileName = Path.GetFileName(file);
-                    presets[preset.Name] = preset;
-                    RegisterPresetAliases(preset);
+                if (TryRegisterPreset(preset, file))
                     loadedCount++;
-                }
             }
             catch (Exception ex)
             {
-                log.Warning($"[GlamourerPreset] Failed to load {Path.GetFileName(file)}: {ex.Message}");
+                log.Warning($"[GlamourerPreset] Failed to load {GetDisplayFileName(file)}: {ex.Message}");
             }
         }
 
@@ -92,17 +89,21 @@ public class GlamourerPresetService
                 return;
             }
 
-            var bundledFiles = Directory.GetFiles(bundledDir, "*.json");
+            var bundledFiles = Directory.GetFiles(bundledDir, "*.json", SearchOption.AllDirectories);
             var installedCount = 0;
 
             foreach (var bundledFile in bundledFiles)
             {
-                var fileName = Path.GetFileName(bundledFile);
-                var targetFile = Path.Combine(UserPresetsDir, fileName);
+                var relativePath = Path.GetRelativePath(bundledDir, bundledFile);
+                var targetFile = Path.Combine(UserPresetsDir, relativePath);
 
                 // Don't overwrite user files
                 if (!File.Exists(targetFile))
                 {
+                    var targetDirectory = Path.GetDirectoryName(targetFile);
+                    if (!string.IsNullOrWhiteSpace(targetDirectory))
+                        Directory.CreateDirectory(targetDirectory);
+
                     File.Copy(bundledFile, targetFile);
                     installedCount++;
                 }
@@ -114,6 +115,92 @@ public class GlamourerPresetService
         catch (Exception ex)
         {
             log.Warning($"[GlamourerPreset] Failed to install bundled presets: {ex.Message}");
+        }
+    }
+
+    public bool TryExportSoulThiefPreset(
+        string categoryDirectoryName,
+        string fileName,
+        GlamourerPreset preset,
+        out bool skippedExisting,
+        out string targetFile,
+        out string error)
+    {
+        skippedExisting = false;
+        error = string.Empty;
+        targetFile = string.Empty;
+
+        if (!IsKnownSoulThiefCategory(categoryDirectoryName))
+        {
+            error = $"unknown Soul Thief category '{categoryDirectoryName}'";
+            return false;
+        }
+
+        if (preset == null)
+        {
+            error = "preset payload was null";
+            return false;
+        }
+
+        try
+        {
+            var categoryDirectory = Path.Combine(UserPresetsDir, categoryDirectoryName);
+            Directory.CreateDirectory(categoryDirectory);
+
+            var safeFileName = Path.GetFileName(fileName);
+            if (string.IsNullOrWhiteSpace(safeFileName))
+            {
+                error = "preset filename was empty";
+                return false;
+            }
+
+            if (!safeFileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+                safeFileName += ".json";
+
+            targetFile = Path.Combine(categoryDirectory, safeFileName);
+            if (File.Exists(targetFile))
+            {
+                skippedExisting = true;
+                return false;
+            }
+
+            preset.Identifier = string.IsNullOrWhiteSpace(preset.Identifier)
+                ? Guid.NewGuid().ToString()
+                : preset.Identifier.Trim();
+            preset.Name = preset.Name?.Trim() ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(preset.Name))
+            {
+                error = "preset name was empty";
+                return false;
+            }
+
+            using (var stream = new FileStream(targetFile, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            {
+                JsonSerializer.Serialize(stream, preset, PresetJsonOptions);
+            }
+
+            var registeredPreset = ParsePreset(File.ReadAllText(targetFile));
+            if (!TryRegisterPreset(registeredPreset, targetFile))
+            {
+                error = "exported preset could not be parsed";
+                return false;
+            }
+
+            return true;
+        }
+        catch (IOException)
+        {
+            skippedExisting = File.Exists(targetFile);
+            if (!skippedExisting)
+                error = "preset file could not be written";
+
+            return false;
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            return false;
         }
     }
 
@@ -172,12 +259,27 @@ public class GlamourerPresetService
             .ToList();
     }
 
+    private bool TryRegisterPreset(GlamourerPreset? preset, string file)
+    {
+        if (preset == null || string.IsNullOrWhiteSpace(preset.Name))
+            return false;
+
+        preset.Name = preset.Name.Trim();
+        preset.Identifier = preset.Identifier.Trim();
+        preset.SourceFileName = GetDisplayFileName(file);
+        presets[preset.Name] = preset;
+        RegisterPresetAliases(preset);
+        return true;
+    }
+
     private void RegisterPresetAliases(GlamourerPreset preset)
     {
         AddPresetAlias(preset.Name, preset);
         AddPresetAlias(preset.Identifier, preset);
         AddPresetAlias(preset.SourceFileName, preset);
         AddPresetAlias(Path.GetFileNameWithoutExtension(preset.SourceFileName), preset);
+        AddPresetAlias(Path.GetFileName(preset.SourceFileName), preset);
+        AddPresetAlias(Path.GetFileNameWithoutExtension(Path.GetFileName(preset.SourceFileName)), preset);
     }
 
     private void AddPresetAlias(string alias, GlamourerPreset preset)
@@ -347,6 +449,26 @@ public class GlamourerPresetService
             return false;
 
         return property.GetBoolean();
+    }
+
+    private static bool IsKnownSoulThiefCategory(string categoryDirectoryName)
+        => string.Equals(categoryDirectoryName, "players", StringComparison.OrdinalIgnoreCase) ||
+           string.Equals(categoryDirectoryName, "npcs", StringComparison.OrdinalIgnoreCase) ||
+           string.Equals(categoryDirectoryName, "chocobos", StringComparison.OrdinalIgnoreCase);
+
+    private string GetDisplayFileName(string file)
+    {
+        try
+        {
+            var relativePath = Path.GetRelativePath(UserPresetsDir, file);
+            return relativePath.StartsWith("..", StringComparison.Ordinal)
+                ? Path.GetFileName(file)
+                : relativePath;
+        }
+        catch
+        {
+            return Path.GetFileName(file);
+        }
     }
 
     private static int GetStableHash(string input)
