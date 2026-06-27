@@ -267,33 +267,18 @@ public class MainWindow : Window, IDisposable
         ImGui.Spacing();
         ImGui.Text("Non-Player Targets");
         ImGui.Separator();
+        ImGui.TextWrapped("Broad non-player native mutation is currently blocked for crash safety.");
 
-        var krangleNpcs = config.KrangleNpcs;
-        if (ImGui.Checkbox("Krangle NPCs", ref krangleNpcs))
-        {
-            config.KrangleNpcs = krangleNpcs;
-            config.Save();
-        }
-        if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Randomize visible human battle and event NPCs into full random player race, subrace, gender, and appearance.");
+        ImGui.BeginDisabled();
+        var krangleNpcs = false;
+        ImGui.Checkbox("Krangle NPCs", ref krangleNpcs);
 
-        var krangleChocobos = config.KrangleChocobos;
-        if (ImGui.Checkbox("Krangle Chocobos", ref krangleChocobos))
-        {
-            config.KrangleChocobos = krangleChocobos;
-            config.Save();
-        }
-        if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Randomize visible chocobo companions into a full random player race, subrace, gender, and appearance.");
+        var krangleChocobos = false;
+        ImGui.Checkbox("Krangle Chocobos", ref krangleChocobos);
 
-        var krangleMinions = config.KrangleMinions;
-        if (ImGui.Checkbox("Krangle Minions", ref krangleMinions))
-        {
-            config.KrangleMinions = krangleMinions;
-            config.Save();
-        }
-        if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Randomize visible minions into a full random player race, subrace, gender, and appearance.");
+        var krangleMinions = false;
+        ImGui.Checkbox("Krangle Minions", ref krangleMinions);
+        ImGui.EndDisabled();
     }
 
     private void DrawPresetsTab(Configuration config, IReadOnlyList<string> presetNames)
@@ -412,69 +397,24 @@ public class MainWindow : Window, IDisposable
         ImGui.Spacing();
         ImGui.Text("Non-Player Preset Targets");
         ImGui.Separator();
+        ImGui.TextWrapped("Broad non-player native mutation is currently blocked for crash safety.");
 
-        var superKrangleNpcs = config.SuperKrangleNpcs;
-        if (ImGui.Checkbox("NPCs", ref superKrangleNpcs))
-        {
-            config.SuperKrangleNpcs = superKrangleNpcs;
-            config.Save();
-        }
-        if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Apply the selected preset or random preset to visible human battle and event NPCs. The Wuk Lamat date event will still force NPCs during the event window.");
-
-        ImGui.BeginDisabled(!config.SuperKrangleNpcs);
-        var npcSelection = string.IsNullOrWhiteSpace(config.SuperKrangleNpcSelection)
-            ? "Random"
-            : config.SuperKrangleNpcSelection;
-        if (DrawPresetSelectionCombo("NPC Preset", ref npcSelection, presetNames, false))
-        {
-            config.SuperKrangleNpcSelection = npcSelection;
-            config.Save();
-        }
+        ImGui.BeginDisabled();
+        var superKrangleNpcs = false;
+        ImGui.Checkbox("NPCs", ref superKrangleNpcs);
         ImGui.EndDisabled();
 
         ImGui.Spacing();
         ImGui.Text("Companion Preset Targets");
         ImGui.Separator();
+        ImGui.TextWrapped("Broad non-player native mutation is currently blocked for crash safety.");
 
-        var superKrangleChocobos = config.SuperKrangleChocobos;
-        if (ImGui.Checkbox("Chocobos", ref superKrangleChocobos))
-        {
-            config.SuperKrangleChocobos = superKrangleChocobos;
-            config.Save();
-        }
-        if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Apply the selected preset or random preset to visible chocobo companions.");
+        ImGui.BeginDisabled();
+        var superKrangleChocobos = false;
+        ImGui.Checkbox("Chocobos", ref superKrangleChocobos);
 
-        ImGui.BeginDisabled(!config.SuperKrangleChocobos);
-        var chocoboSelection = string.IsNullOrWhiteSpace(config.SuperKrangleChocoboSelection)
-            ? "Random"
-            : config.SuperKrangleChocoboSelection;
-        if (DrawPresetSelectionCombo("Chocobo Preset", ref chocoboSelection, presetNames, false))
-        {
-            config.SuperKrangleChocoboSelection = chocoboSelection;
-            config.Save();
-        }
-        ImGui.EndDisabled();
-
-        var superKrangleMinions = config.SuperKrangleMinions;
-        if (ImGui.Checkbox("Minions", ref superKrangleMinions))
-        {
-            config.SuperKrangleMinions = superKrangleMinions;
-            config.Save();
-        }
-        if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Apply the selected preset or random preset to visible minions.");
-
-        ImGui.BeginDisabled(!config.SuperKrangleMinions);
-        var minionSelection = string.IsNullOrWhiteSpace(config.SuperKrangleMinionSelection)
-            ? "Random"
-            : config.SuperKrangleMinionSelection;
-        if (DrawPresetSelectionCombo("Minion Preset", ref minionSelection, presetNames, false))
-        {
-            config.SuperKrangleMinionSelection = minionSelection;
-            config.Save();
-        }
+        var superKrangleMinions = false;
+        ImGui.Checkbox("Minions", ref superKrangleMinions);
         ImGui.EndDisabled();
 
         ImGui.Spacing();

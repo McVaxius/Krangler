@@ -5,11 +5,13 @@ using Dalamud.Game.ClientState.Conditions;
 using Krangler.Models;
 using BattleChara = FFXIVClientStructs.FFXIV.Client.Game.Character.BattleChara;
 using CharacterStruct = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
+using CharacterBaseStruct = FFXIVClientStructs.FFXIV.Client.Graphics.Scene.CharacterBase;
 using ClientObjectManager = FFXIVClientStructs.FFXIV.Client.Game.Object.ClientObjectManager;
 using GameObjectStruct = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
 using ObjectKind = FFXIVClientStructs.FFXIV.Client.Game.Object.ObjectKind;
 using BattleNpcSubKind = FFXIVClientStructs.FFXIV.Client.Game.Object.BattleNpcSubKind;
 using ObjectTargetableFlags = FFXIVClientStructs.FFXIV.Client.Game.Object.ObjectTargetableFlags;
+using ObjectType = FFXIVClientStructs.FFXIV.Client.Graphics.Scene.ObjectType;
 using Vector3 = FFXIVClientStructs.FFXIV.Common.Math.Vector3;
 
 namespace Krangler.Services;
@@ -18,6 +20,8 @@ public sealed unsafe class ImaginaryFrenService : IDisposable
 {
     private const int MaxNameBytes = 31;
     private const int ObjectTablePressureLimit = 180;
+    private const int HiddenApplyRetryFrames = 30;
+    private const uint InvalidObjectIndex = 0xffffffff;
     private const float FollowBehindDistance = 2.2f;
     private const float FollowSideDistance = 1.05f;
     private const float SnapDistance = 18.0f;
@@ -30,10 +34,13 @@ public sealed unsafe class ImaginaryFrenService : IDisposable
 
     private readonly Plugin plugin;
     private BattleChara* actor;
+    private uint actorObjectIndex = InvalidObjectIndex;
     private ImaginaryFrenDesired? runtimeDesired;
     private string appliedPresetKey = string.Empty;
     private string appliedName = string.Empty;
-    private int applyRetryCountdown;
+    private bool pendingApply;
+    private bool actorRevealed;
+    private int hiddenApplyRetryCountdown;
 
     public ImaginaryFrenService(Plugin plugin)
     {
@@ -45,6 +52,8 @@ public sealed unsafe class ImaginaryFrenService : IDisposable
     public string LastStatus { get; private set; } = "Imaginary Fren idle.";
     public string LastError { get; private set; } = string.Empty;
     public bool IsSpawned => actor != null;
+    public bool IsSpawningActor { get; private set; }
+    public int ActorObjectIndex => actorObjectIndex == InvalidObjectIndex ? -1 : unchecked((int)actorObjectIndex);
 
     public void Dispose()
     {
@@ -53,11 +62,33 @@ public sealed unsafe class ImaginaryFrenService : IDisposable
         Despawn("plugin unload");
     }
 
+    public bool IsManagedActor(nint address)
+    {
+        if (address == 0)
+            return false;
+
+        if (actor != null && (nint)actor == address)
+            return true;
+
+        if (actorObjectIndex == InvalidObjectIndex || actorObjectIndex > ushort.MaxValue)
+            return false;
+
+        try
+        {
+            var objectManager = ClientObjectManager.Instance();
+            var trackedObject = objectManager->GetObjectByIndex((ushort)actorObjectIndex);
+            return trackedObject != null && (nint)trackedObject == address;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     public void UseConfigDesired()
     {
         runtimeDesired = null;
-        appliedPresetKey = string.Empty;
-        appliedName = string.Empty;
+        RequestPresetApply();
     }
 
     public void RequestSpawnFromConfig()
@@ -89,7 +120,10 @@ public sealed unsafe class ImaginaryFrenService : IDisposable
                 SanitizePresetKey(request.PresetKey),
                 string.IsNullOrWhiteSpace(request.Source) ? "ipc" : request.Source.Trim());
 
+            Plugin.Log.Information($"[Krangler] Imaginary Fren IPC request: enabled={desired.Enabled}, name='{desired.Name}', preset='{desired.PresetKey}', source={desired.Source}, persist={request.Persist}");
+
             runtimeDesired = desired;
+            RequestPresetApply();
 
             if (request.Persist)
             {
@@ -213,10 +247,14 @@ public sealed unsafe class ImaginaryFrenService : IDisposable
 
         try
         {
+            HideActorForSafety();
             actor->DisableDraw();
             var objectManager = ClientObjectManager.Instance();
-            var index = objectManager->GetIndexByObject((GameObjectStruct*)actor);
-            if (index >= 0)
+            var index = actorObjectIndex;
+            if (index == InvalidObjectIndex)
+                index = objectManager->GetIndexByObject((GameObjectStruct*)actor);
+
+            if (index != InvalidObjectIndex && index <= ushort.MaxValue)
                 objectManager->DeleteObjectByIndex((ushort)index, 0);
         }
         catch (Exception ex)
@@ -226,9 +264,7 @@ public sealed unsafe class ImaginaryFrenService : IDisposable
         }
         finally
         {
-            actor = null;
-            appliedPresetKey = string.Empty;
-            appliedName = string.Empty;
+            ClearActorState();
             LastStatus = $"Despawned Imaginary Fren: {reason}.";
         }
     }
@@ -255,6 +291,7 @@ public sealed unsafe class ImaginaryFrenService : IDisposable
     {
         try
         {
+            IsSpawningActor = true;
             var objectManager = ClientObjectManager.Instance();
             var objectIndex = objectManager->CreateBattleCharacter();
             if (objectIndex == 0xffffffff)
@@ -273,35 +310,36 @@ public sealed unsafe class ImaginaryFrenService : IDisposable
             }
 
             actor = (BattleChara*)gameObject;
+            actorObjectIndex = objectIndex;
             actor->CharacterSetup.SetupBNpc(0);
             actor->ObjectKind = ObjectKind.BattleNpc;
             actor->BattleNpcSubKind = (BattleNpcSubKind)4;
-            actor->TargetableStatus &= ~ObjectTargetableFlags.IsTargetable;
-            actor->Alpha = 1.0f;
+            HideActorForSafety();
 
             PlaceNearLocalPlayer(snap: true);
             ApplyName(desired.Name);
-            var presetReady = TryApplyPreset(desired, force: true);
-            actor->EnableDraw();
+            pendingApply = true;
+            hiddenApplyRetryCountdown = 0;
 
-            if (presetReady)
+            if (TryApplyPreset(desired))
             {
                 LastStatus = $"Spawned Imaginary Fren '{desired.Name}'.";
                 LastError = string.Empty;
             }
-            else
-            {
-                LastStatus = $"Spawned Imaginary Fren '{desired.Name}' without an applied preset.";
-            }
+
             return true;
         }
         catch (Exception ex)
         {
-            actor = null;
+            ClearActorState();
             LastStatus = "Failed to spawn Imaginary Fren.";
             LastError = ex.Message;
             Plugin.Log.Warning($"[Krangler] Imaginary Fren spawn failed: {ex.Message}");
             return false;
+        }
+        finally
+        {
+            IsSpawningActor = false;
         }
     }
 
@@ -310,58 +348,81 @@ public sealed unsafe class ImaginaryFrenService : IDisposable
         if (actor == null)
             return;
 
-        actor->TargetableStatus &= ~ObjectTargetableFlags.IsTargetable;
+        if (!EnsureActorStillValid())
+            return;
 
-        if (!string.Equals(appliedName, desired.Name, StringComparison.Ordinal))
+        actor->TargetableStatus &= ~ObjectTargetableFlags.IsTargetable;
+        PlaceNearLocalPlayer(snap: false);
+
+        var nameChanged = !string.Equals(appliedName, desired.Name, StringComparison.Ordinal);
+        var presetChanged = !string.Equals(appliedPresetKey, desired.PresetKey, StringComparison.OrdinalIgnoreCase);
+        if (nameChanged)
             ApplyName(desired.Name);
 
-        var presetReady = true;
-        if (!string.Equals(appliedPresetKey, desired.PresetKey, StringComparison.OrdinalIgnoreCase) ||
-            applyRetryCountdown <= 0)
+        if (nameChanged || presetChanged)
+            RequestPresetApply();
+
+        if (pendingApply)
         {
-            presetReady = TryApplyPreset(desired, force: false);
-            applyRetryCountdown = 30;
-        }
-        else
-        {
-            applyRetryCountdown--;
+            if (hiddenApplyRetryCountdown > 0)
+            {
+                hiddenApplyRetryCountdown--;
+            }
+            else
+            {
+                if (!TryApplyPreset(desired))
+                    hiddenApplyRetryCountdown = HiddenApplyRetryFrames;
+            }
         }
 
-        PlaceNearLocalPlayer(snap: false);
-        if (presetReady)
+        if (actorRevealed && !pendingApply)
         {
             LastStatus = $"Following as '{desired.Name}' using preset '{desired.PresetKey}'.";
             LastError = string.Empty;
         }
-        else
-        {
-            LastStatus = $"Following as '{desired.Name}' without an applied preset.";
-        }
     }
 
-    private bool TryApplyPreset(ImaginaryFrenDesired desired, bool force)
+    private bool TryApplyPreset(ImaginaryFrenDesired desired)
     {
         if (actor == null)
             return false;
+
+        HideActorForSafety();
+
+        if (!IsActorHumanReady(out var readinessStatus))
+        {
+            LastError = readinessStatus;
+            LastStatus = $"Imaginary Fren hidden: {readinessStatus}";
+            return false;
+        }
 
         var preset = plugin.GlamourerPresetService.GetPresetByName(desired.PresetKey);
         if (preset == null)
         {
             LastError = $"Preset '{desired.PresetKey}' was not found.";
-            LastStatus = "Imaginary Fren spawned without preset.";
+            LastStatus = "Imaginary Fren hidden: preset was not found.";
+            return false;
+        }
+
+        if (preset.Customize.ModelId > 0)
+        {
+            LastError = $"Preset '{preset.Name}' requests exact NPC modelId {preset.Customize.ModelId}, which is blocked for Imaginary Fren.";
+            LastStatus = "Imaginary Fren hidden: exact NPC model preset is blocked.";
             return false;
         }
 
         var applied = plugin.TryApplyPresetToImaginaryFren((CharacterStruct*)actor, preset, out var applyStatus);
-        if (applied)
-            appliedPresetKey = desired.PresetKey;
-
         if (!applied)
         {
-            LastError = string.IsNullOrWhiteSpace(applyStatus) ? "Preset apply reported no changes." : applyStatus;
+            LastError = string.IsNullOrWhiteSpace(applyStatus) ? "Preset apply reported no ready player-style changes." : applyStatus;
+            LastStatus = $"Imaginary Fren hidden: {LastError}";
             return false;
         }
 
+        appliedPresetKey = desired.PresetKey;
+        pendingApply = false;
+        hiddenApplyRetryCountdown = 0;
+        RevealActor();
         LastError = string.Empty;
         return true;
     }
@@ -406,6 +467,112 @@ public sealed unsafe class ImaginaryFrenService : IDisposable
         var yawToPlayer = DirectionTo(next, localPlayer->Position);
         actor->SetRotation(yawToPlayer);
         actor->DefaultRotation = yawToPlayer;
+    }
+
+    private void RequestPresetApply()
+    {
+        pendingApply = true;
+        hiddenApplyRetryCountdown = 0;
+
+        if (actor != null)
+            HideActorForSafety();
+    }
+
+    private void HideActorForSafety()
+    {
+        if (actor == null)
+            return;
+
+        actor->TargetableStatus &= ~ObjectTargetableFlags.IsTargetable;
+        actor->Alpha = 0.0f;
+        actor->EnableDraw();
+        actorRevealed = false;
+    }
+
+    private void RevealActor()
+    {
+        if (actor == null)
+            return;
+
+        actor->TargetableStatus &= ~ObjectTargetableFlags.IsTargetable;
+        actor->Alpha = 1.0f;
+        actor->EnableDraw();
+        actorRevealed = true;
+    }
+
+    private bool IsActorHumanReady(out string status)
+    {
+        status = string.Empty;
+        if (actor == null)
+        {
+            status = "actor pointer was null.";
+            return false;
+        }
+
+        var character = (CharacterStruct*)actor;
+        if (character->DrawObject == null)
+        {
+            status = "draw object is not ready.";
+            return false;
+        }
+
+        if (character->DrawObject->GetObjectType() != ObjectType.CharacterBase)
+        {
+            status = $"draw object type is {character->DrawObject->GetObjectType()}.";
+            return false;
+        }
+
+        var characterBase = (CharacterBaseStruct*)character->DrawObject;
+        if (characterBase->GetModelType() != CharacterBaseStruct.ModelType.Human)
+        {
+            status = $"draw object model type is {characterBase->GetModelType()}.";
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool EnsureActorStillValid()
+    {
+        if (actor == null)
+            return false;
+
+        try
+        {
+            var objectManager = ClientObjectManager.Instance();
+            if (actorObjectIndex != InvalidObjectIndex && actorObjectIndex <= ushort.MaxValue)
+            {
+                var trackedObject = objectManager->GetObjectByIndex((ushort)actorObjectIndex);
+                if (trackedObject != null && (nint)trackedObject == (nint)actor)
+                    return true;
+            }
+
+            var currentIndex = objectManager->GetIndexByObject((GameObjectStruct*)actor);
+            if (currentIndex != InvalidObjectIndex)
+            {
+                actorObjectIndex = currentIndex;
+                return true;
+            }
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+        }
+
+        ClearActorState();
+        LastStatus = "Imaginary Fren actor was lost.";
+        return false;
+    }
+
+    private void ClearActorState()
+    {
+        actor = null;
+        actorObjectIndex = InvalidObjectIndex;
+        appliedPresetKey = string.Empty;
+        appliedName = string.Empty;
+        pendingApply = false;
+        actorRevealed = false;
+        hiddenApplyRetryCountdown = 0;
     }
 
     private static Vector3 GetFollowPosition(Vector3 playerPosition, float playerRotation)

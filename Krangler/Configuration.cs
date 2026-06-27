@@ -107,8 +107,52 @@ public class Configuration : IPluginConfiguration
     public bool Sanitize()
     {
         var changed = SanitizeAmongusNpcReplacements();
+        changed |= SanitizeNonPlayerAppearanceSafety();
         changed |= SanitizeSoulThiefSettings();
         changed |= SanitizeImaginaryFrenSettings();
+        return changed;
+    }
+
+    private bool SanitizeNonPlayerAppearanceSafety()
+    {
+        var changed = false;
+
+        if (KrangleNpcs)
+        {
+            KrangleNpcs = false;
+            changed = true;
+        }
+
+        if (KrangleChocobos)
+        {
+            KrangleChocobos = false;
+            changed = true;
+        }
+
+        if (KrangleMinions)
+        {
+            KrangleMinions = false;
+            changed = true;
+        }
+
+        if (SuperKrangleNpcs)
+        {
+            SuperKrangleNpcs = false;
+            changed = true;
+        }
+
+        if (SuperKrangleChocobos)
+        {
+            SuperKrangleChocobos = false;
+            changed = true;
+        }
+
+        if (SuperKrangleMinions)
+        {
+            SuperKrangleMinions = false;
+            changed = true;
+        }
+
         return changed;
     }
 

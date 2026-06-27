@@ -316,7 +316,7 @@ public sealed class Plugin : IDalamudPlugin
 
         CommandManager.AddHandler(AliasCommandName, new CommandInfo(OnAliasCommand)
         {
-            HelpMessage = "Krangler: /kr [on|off|debug|ws|j] to control the plugin, or /kr to open UI."
+            HelpMessage = "Krangler: /kr [on|off|debug|fren|ws|j] to control the plugin, or /kr to open UI."
         });
 
         PluginInterface.UiBuilder.Draw += WindowSystem.Draw;
@@ -390,6 +390,10 @@ public sealed class Plugin : IDalamudPlugin
         else if (arg == "debug")
         {
             ToggleDebugOptions();
+        }
+        else if (arg == "fren")
+        {
+            PrintImaginaryFrenStatus();
         }
         else if (arg == "ws")
         {
@@ -504,6 +508,7 @@ public sealed class Plugin : IDalamudPlugin
         if (Configuration.Enabled &&
             (SuperKrangleMaster4000_Active || HasActiveAmongusReplacements()) &&
             !isRevertingAppearances &&
+            !ImaginaryFrenService.IsSpawningActor &&
             customize != null &&
             equipment != null)
         {
@@ -522,7 +527,9 @@ public sealed class Plugin : IDalamudPlugin
         if (!Configuration.Enabled ||
             (!SuperKrangleMaster4000_Active && !HasActiveAmongusReplacements()) ||
             isRevertingAppearances ||
+            ImaginaryFrenService.IsSpawningActor ||
             createdCharacterBase == null ||
+            IsManagedImaginaryFrenDrawObject((nint)createdCharacterBase) ||
             createdCharacterBase->GetModelType() != CharacterBaseStruct.ModelType.Human)
         {
             return createdCharacterBase;
@@ -578,6 +585,9 @@ public sealed class Plugin : IDalamudPlugin
 
     private unsafe bool TryReapplyPresetToCreatedCharacterBase(nint characterBaseAddress)
     {
+        if (IsManagedImaginaryFrenDrawObject(characterBaseAddress))
+            return true;
+
         if (TryFindAmongusNpcByDrawObject(
                 characterBaseAddress,
                 out var amongusObjectKey,
@@ -765,7 +775,7 @@ public sealed class Plugin : IDalamudPlugin
         for (var objectIndex = 0; objectIndex < ObjectTable.Length; objectIndex++)
         {
             var obj = ObjectTable[objectIndex];
-            if (obj == null || obj.Address == 0 || !IsAmongusObjectKind(obj.ObjectKind))
+            if (obj == null || obj.Address == 0 || ImaginaryFrenService.IsManagedActor(obj.Address) || !IsAmongusObjectKind(obj.ObjectKind))
                 continue;
 
             var name = obj.Name.ToString();
@@ -822,7 +832,7 @@ public sealed class Plugin : IDalamudPlugin
         for (var objectIndex = 0; objectIndex < ObjectTable.Length; objectIndex++)
         {
             var obj = ObjectTable[objectIndex];
-            if (obj == null || obj.Address == 0 || !IsAmongusObjectKind(obj.ObjectKind))
+            if (obj == null || obj.Address == 0 || ImaginaryFrenService.IsManagedActor(obj.Address) || !IsAmongusObjectKind(obj.ObjectKind))
                 continue;
 
             var name = obj.Name.ToString();
@@ -857,7 +867,7 @@ public sealed class Plugin : IDalamudPlugin
         for (var objectIndex = 0; objectIndex < ObjectTable.Length; objectIndex++)
         {
             var obj = ObjectTable[objectIndex];
-            if (obj == null || obj.ObjectKind != ObjectKind.Pc || obj.Address == 0)
+            if (obj == null || obj.Address == 0 || ImaginaryFrenService.IsManagedActor(obj.Address) || obj.ObjectKind != ObjectKind.Pc)
                 continue;
 
             var candidate = (CharacterStruct*)obj.Address;
@@ -897,7 +907,7 @@ public sealed class Plugin : IDalamudPlugin
         for (var objectIndex = 0; objectIndex < ObjectTable.Length; objectIndex++)
         {
             var obj = ObjectTable[objectIndex];
-            if (obj == null || obj.ObjectKind != ObjectKind.Pc || obj.Address == 0)
+            if (obj == null || obj.Address == 0 || ImaginaryFrenService.IsManagedActor(obj.Address) || obj.ObjectKind != ObjectKind.Pc)
                 continue;
 
             var candidate = (CharacterStruct*)obj.Address;
@@ -1051,7 +1061,7 @@ public sealed class Plugin : IDalamudPlugin
         for (var objectIndex = 0; objectIndex < ObjectTable.Length; objectIndex++)
         {
             var obj = ObjectTable[objectIndex];
-            if (obj == null || obj.Address == 0 || !IsAmongusObjectKind(obj.ObjectKind))
+            if (obj == null || obj.Address == 0 || ImaginaryFrenService.IsManagedActor(obj.Address) || !IsAmongusObjectKind(obj.ObjectKind))
                 continue;
 
             var candidateObjectKey = GetAppearanceObjectKey(obj);
@@ -1083,7 +1093,7 @@ public sealed class Plugin : IDalamudPlugin
         for (var objectIndex = 0; objectIndex < ObjectTable.Length; objectIndex++)
         {
             var obj = ObjectTable[objectIndex];
-            if (obj == null || obj.Address == 0 || !IsAmongusObjectKind(obj.ObjectKind))
+            if (obj == null || obj.Address == 0 || ImaginaryFrenService.IsManagedActor(obj.Address) || !IsAmongusObjectKind(obj.ObjectKind))
                 continue;
 
             var candidateName = obj.Name.ToString();
@@ -1264,7 +1274,7 @@ public sealed class Plugin : IDalamudPlugin
         for (var objectIndex = 0; objectIndex < ObjectTable.Length; objectIndex++)
         {
             var obj = ObjectTable[objectIndex];
-            if (obj == null || obj.Address == 0 || !IsAmongusObjectKind(obj.ObjectKind))
+            if (obj == null || obj.Address == 0 || ImaginaryFrenService.IsManagedActor(obj.Address) || !IsAmongusObjectKind(obj.ObjectKind))
                 continue;
 
             var name = obj.Name.ToString();
@@ -1542,6 +1552,9 @@ public sealed class Plugin : IDalamudPlugin
         {
             var obj = ObjectTable[objectIndex];
             if (obj == null)
+                continue;
+
+            if (obj.Address != 0 && ImaginaryFrenService.IsManagedActor(obj.Address))
                 continue;
 
             var name = obj.Name.ToString();
@@ -2214,6 +2227,12 @@ public sealed class Plugin : IDalamudPlugin
         if (redrawQueue.Count == 0) return;
 
         var pendingRedraw = redrawQueue.Dequeue();
+        if (ImaginaryFrenService.IsManagedActor(pendingRedraw.Address))
+        {
+            pendingRedrawAddresses.Remove(pendingRedraw.Address);
+            return;
+        }
+
         try
         {
             var gameObj = (GameObjectStruct*)pendingRedraw.Address;
@@ -2290,7 +2309,7 @@ public sealed class Plugin : IDalamudPlugin
 
     private bool QueueRedraw(nint address, PendingRedrawKind kind, uint? renderFlags = null)
     {
-        if (address == 0 || !pendingRedrawAddresses.Add(address))
+        if (address == 0 || ImaginaryFrenService.IsManagedActor(address) || !pendingRedrawAddresses.Add(address))
             return false;
 
         redrawQueue.Enqueue(new PendingRedrawEntry(address, kind, renderFlags));
@@ -2369,6 +2388,8 @@ public sealed class Plugin : IDalamudPlugin
             foreach (var obj in ObjectTable)
             {
                 if (obj == null) continue;
+                if (obj.Address != 0 && ImaginaryFrenService.IsManagedActor(obj.Address)) continue;
+
                 var objectKey = GetAppearanceObjectKey(obj);
                 if (!originalAppearanceData.TryGetValue(objectKey, out var originalData)) continue;
 
@@ -2486,6 +2507,9 @@ public sealed class Plugin : IDalamudPlugin
     private unsafe void SaveOriginalAppearanceIfNeeded(ulong objectKey, CharacterStruct* character, nint gameObjectAddress = 0)
     {
         if (character == null)
+            return;
+
+        if (ImaginaryFrenService.IsManagedActor(gameObjectAddress) || ImaginaryFrenService.IsManagedActor((nint)character))
             return;
 
         if (originalAppearanceData.TryGetValue(objectKey, out var existingData))
@@ -3497,6 +3521,31 @@ public sealed class Plugin : IDalamudPlugin
         ChatGui.Print($"[Krangler] {message}");
     }
 
+    private void PrintImaginaryFrenStatus()
+    {
+        var status = ImaginaryFrenService.GetStatus();
+        var spawned = status.Spawned ? "spawned" : "not spawned";
+        var error = string.IsNullOrWhiteSpace(status.Error) ? string.Empty : $" error='{status.Error}'";
+        PrintStatus($"Fren: enabled={status.Enabled}, {spawned}, name='{status.Name}', preset='{status.PresetKey}', source={status.Source}, persist={status.Persist}, status='{status.Status}'{error}");
+    }
+
+    private unsafe bool IsManagedImaginaryFrenDrawObject(nint drawObjectAddress)
+    {
+        if (drawObjectAddress == 0)
+            return false;
+
+        foreach (var obj in ObjectTable)
+        {
+            if (obj == null || obj.Address == 0 || !ImaginaryFrenService.IsManagedActor(obj.Address))
+                continue;
+
+            var character = (CharacterStruct*)obj.Address;
+            return character != null && (nint)character->DrawObject == drawObjectAddress;
+        }
+
+        return false;
+    }
+
     private void RefreshNameKrangleSurfaces()
     {
         hasLoggedNameplateUpdate = false;
@@ -3580,20 +3629,23 @@ public sealed class Plugin : IDalamudPlugin
             return false;
         }
 
-        ForceExactNpcModelContainer(character, preset);
-        character->DisableDraw();
+        if (preset.Customize.ModelId > 0)
+        {
+            status = $"Blocked preset '{preset.Name}' because Imaginary Fren cannot apply exact NPC modelId {preset.Customize.ModelId}.";
+            return false;
+        }
+
         var result = ApplySuperKranglePresetDetailed(
             character,
             preset,
             logRefreshResult: false,
-            exactNpcReplacement: true,
+            exactNpcReplacement: false,
             logDetails: false,
             preAppliedDuringCreate: false,
             forceAllSlots: true);
-        character->EnableDraw();
 
         status = $"appearance={result.CustomizeApplied}, refresh={result.CustomizeRefreshed}, equipment={result.EquipmentApplied}, weapons={result.WeaponsApplied}, bonus={result.BonusApplied}, meta={result.MetaApplied}";
-        return result.AnyApplied;
+        return result.GeneralSuccess;
     }
 
     private unsafe bool ApplySuperKranglePreset(CharacterStruct* character, GlamourerPreset preset, bool logRefreshResult, bool exactNpcReplacement = false, bool logDetails = true)
@@ -4042,17 +4094,9 @@ public sealed class Plugin : IDalamudPlugin
     private bool ShouldProcessAppearanceTarget(bool isPlayer, bool isNpc, bool isChocobo, bool isMinion)
     {
         if (SuperKrangleMaster4000_Active)
-        {
-            return isPlayer ||
-                   (isNpc && (Configuration.SuperKrangleNpcs || IsSuperKrangleEventActive)) ||
-                   (isChocobo && Configuration.SuperKrangleChocobos) ||
-                   (isMinion && Configuration.SuperKrangleMinions);
-        }
+            return isPlayer;
 
-        return (isPlayer && (Configuration.KrangleRaces || Configuration.KrangleGenders || Configuration.KrangleAppearance)) ||
-               (isNpc && Configuration.KrangleNpcs) ||
-               (isChocobo && Configuration.KrangleChocobos) ||
-               (isMinion && Configuration.KrangleMinions);
+        return isPlayer && (Configuration.KrangleRaces || Configuration.KrangleGenders || Configuration.KrangleAppearance);
     }
 
     private static bool IsAppearanceNpc(ObjectKind objectKind, bool isChocobo, bool isMinion)
