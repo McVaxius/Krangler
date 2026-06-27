@@ -3620,7 +3620,7 @@ public sealed class Plugin : IDalamudPlugin
     ///   +0x1D0: EquipmentModelIds[10] (8 bytes each)
     ///   +0x220: CustomizeData (26 bytes)
     /// </summary>
-    internal unsafe bool TryApplyPresetToImaginaryFren(CharacterStruct* character, GlamourerPreset preset, out string status)
+    internal unsafe bool TryPreparePresetForImaginaryFren(CharacterStruct* character, GlamourerPreset preset, out string status)
     {
         status = string.Empty;
         if (character == null)
@@ -3635,6 +3635,41 @@ public sealed class Plugin : IDalamudPlugin
             return false;
         }
 
+        var customizeRequested = PresetRequestsCustomize(preset, forceAppearance: true);
+        var customizeSeeded = customizeRequested && ApplyCustomizeData(&character->DrawData.CustomizeData, preset, forceAppearance: true);
+        int equipmentSeeded;
+        fixed (EquipmentModelId* equipmentModelPtr = &character->DrawData.EquipmentModelIds[0])
+        {
+            equipmentSeeded = ApplyEquipmentData(
+                equipmentModelPtr,
+                preset,
+                character: null,
+                exactNpcReplacement: false,
+                logDetails: false,
+                forceAllSlots: true);
+        }
+
+        status = $"seededCustomize={customizeSeeded}, requestedCustomize={customizeRequested}, seededEquipment={equipmentSeeded}";
+        return true;
+    }
+
+    internal unsafe bool TryApplyPresetToImaginaryFren(CharacterStruct* character, GlamourerPreset preset, out string status, out bool customizeRefreshFailed)
+    {
+        status = string.Empty;
+        customizeRefreshFailed = false;
+        if (character == null)
+        {
+            status = "Character pointer was null.";
+            return false;
+        }
+
+        if (preset.Customize.ModelId > 0)
+        {
+            status = $"Blocked preset '{preset.Name}' because Imaginary Fren cannot apply exact NPC modelId {preset.Customize.ModelId}.";
+            return false;
+        }
+
+        var customizeRequested = PresetRequestsCustomize(preset, forceAppearance: true);
         var result = ApplySuperKranglePresetDetailed(
             character,
             preset,
@@ -3644,7 +3679,8 @@ public sealed class Plugin : IDalamudPlugin
             preAppliedDuringCreate: false,
             forceAllSlots: true);
 
-        status = $"appearance={result.CustomizeApplied}, refresh={result.CustomizeRefreshed}, equipment={result.EquipmentApplied}, weapons={result.WeaponsApplied}, bonus={result.BonusApplied}, meta={result.MetaApplied}";
+        customizeRefreshFailed = customizeRequested && !result.CustomizeRefreshed;
+        status = $"appearance={result.CustomizeApplied}, requestedCustomize={customizeRequested}, refresh={result.CustomizeRefreshed}, equipment={result.EquipmentApplied}, weapons={result.WeaponsApplied}, bonus={result.BonusApplied}, meta={result.MetaApplied}";
         return result.GeneralSuccess;
     }
 
@@ -4553,9 +4589,9 @@ public sealed class Plugin : IDalamudPlugin
             ((byte)1, (byte)1, (byte)0),   // Hyur Midlander Male (Gaius)
             ((byte)1, (byte)1, (byte)1),   // Hyur Midlander Female (Minfilia)
             ((byte)1, (byte)2, (byte)0),   // Hyur Highlander Male (Raubahn)
-            ((byte)4, (byte)7, (byte)0),   // Roegadyn Sea Wolves Male (Nero)
-            ((byte)5, (byte)9, (byte)0),   // Elezen Wildwood Male (Louisoix)
-            ((byte)5, (byte)10, (byte)1),  // Elezen Duskwight Female (Urianger)
+            ((byte)1, (byte)1, (byte)0),   // Hyur Midlander Male (Nero)
+            ((byte)2, (byte)3, (byte)0),   // Elezen Wildwood Male (Louisoix)
+            ((byte)2, (byte)4, (byte)1),   // Elezen Duskwight Female (Urianger)
             ((byte)6, (byte)11, (byte)0),  // Au Ra Raen Male (Hien)
             ((byte)6, (byte)12, (byte)1),  // Au Ra Xaela Female (Lyse)
             ((byte)7, (byte)13, (byte)0),  // Hrothgar Helions Male (Varis)
@@ -4593,10 +4629,10 @@ public sealed class Plugin : IDalamudPlugin
                 {15, 2}, {16, 0}, {17, 2}, {18, 2}, {19, 2}, {20, 2}, {21, 0},
                 {22, 0}, {23, 0}, {24, 0}, {25, 50}
             },
-            // Louisoix Leveilleur - Elezen Wildwood Male  
+            // Louisoix Leveilleur - Elezen Wildwood Male
             new Dictionary<int, byte>
             {
-                {0, 5}, {1, 0}, {2, 1}, {3, 60}, {4, 9}, {5, 6}, {6, 1}, {7, 0},
+                {0, 2}, {1, 0}, {2, 1}, {3, 60}, {4, 3}, {5, 6}, {6, 1}, {7, 0},
                 {8, 95}, {9, 180}, {10, 180}, {11, 180}, {12, 0}, {13, 0}, {14, 0},
                 {15, 3}, {16, 0}, {17, 3}, {18, 3}, {19, 3}, {20, 3}, {21, 0},
                 {22, 0}, {23, 0}, {24, 0}, {25, 50}

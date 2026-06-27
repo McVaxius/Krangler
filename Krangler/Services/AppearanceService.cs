@@ -18,10 +18,10 @@ public class AppearanceService
     private static readonly Dictionary<byte, (byte, byte)> RaceTribeMap = new()
     {
         { 1, (1, 2) },   // Hyur: Midlander, Highlander
-        { 2, (3, 4) },   // Miqo'te: Seeker, Keeper
+        { 2, (3, 4) },   // Elezen: Wildwood, Duskwight
         { 3, (5, 6) },   // Lalafell: Plainsfolk, Dunesfolk
-        { 4, (7, 8) },   // Roegadyn: Sea Wolves, Hellsguard
-        { 5, (9, 10) },  // Elezen: Wildwood, Duskwight
+        { 4, (7, 8) },   // Miqo'te: Seeker, Keeper
+        { 5, (9, 10) },  // Roegadyn: Sea Wolves, Hellsguard
         { 6, (11, 12) }, // Au Ra: Raen, Xaela
         { 7, (13, 14) }, // Hrothgar: Helions, The Lost
         { 8, (15, 16) }, // Viera: Rava, Veena

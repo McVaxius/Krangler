@@ -37,9 +37,12 @@ public sealed unsafe class ImaginaryFrenService : IDisposable
     private uint actorObjectIndex = InvalidObjectIndex;
     private ImaginaryFrenDesired? runtimeDesired;
     private string appliedPresetKey = string.Empty;
+    private string preparedPresetKey = string.Empty;
     private string appliedName = string.Empty;
     private bool pendingApply;
     private bool actorRevealed;
+    private bool lastApplyPartial;
+    private string lastApplyDetails = string.Empty;
     private int hiddenApplyRetryCountdown;
 
     public ImaginaryFrenService(Plugin plugin)
@@ -247,7 +250,7 @@ public sealed unsafe class ImaginaryFrenService : IDisposable
 
         try
         {
-            HideActorForSafety();
+            HideActorForSpawnPreparation();
             actor->DisableDraw();
             var objectManager = ClientObjectManager.Instance();
             var index = actorObjectIndex;
@@ -314,17 +317,20 @@ public sealed unsafe class ImaginaryFrenService : IDisposable
             actor->CharacterSetup.SetupBNpc(0);
             actor->ObjectKind = ObjectKind.BattleNpc;
             actor->BattleNpcSubKind = (BattleNpcSubKind)4;
-            HideActorForSafety();
+            HideActorForSpawnPreparation();
 
             PlaceNearLocalPlayer(snap: true);
             ApplyName(desired.Name);
             pendingApply = true;
+            preparedPresetKey = string.Empty;
             hiddenApplyRetryCountdown = 0;
 
-            if (TryApplyPreset(desired))
+            if (TryApplyPreset(desired, initialSpawn: true))
             {
-                LastStatus = $"Spawned Imaginary Fren '{desired.Name}'.";
-                LastError = string.Empty;
+                if (lastApplyPartial)
+                    LastStatus = $"Spawned Imaginary Fren '{desired.Name}' with partial preset: body customize refresh failed.";
+                else
+                    LastStatus = $"Spawned Imaginary Fren '{desired.Name}'.";
             }
 
             return true;
@@ -377,17 +383,26 @@ public sealed unsafe class ImaginaryFrenService : IDisposable
 
         if (actorRevealed && !pendingApply)
         {
-            LastStatus = $"Following as '{desired.Name}' using preset '{desired.PresetKey}'.";
-            LastError = string.Empty;
+            if (lastApplyPartial)
+            {
+                LastStatus = $"Following as '{desired.Name}' using partial preset '{desired.PresetKey}': body customize refresh failed.";
+                LastError = lastApplyDetails;
+            }
+            else
+            {
+                LastStatus = $"Following as '{desired.Name}' using preset '{desired.PresetKey}'.";
+                LastError = string.Empty;
+            }
         }
     }
 
-    private bool TryApplyPreset(ImaginaryFrenDesired desired)
+    private bool TryApplyPreset(ImaginaryFrenDesired desired, bool initialSpawn = false)
     {
         if (actor == null)
             return false;
 
-        HideActorForSafety();
+        if (!TryPrepareActorForPresetDraw(desired, out var preset))
+            return false;
 
         if (!IsActorHumanReady(out var readinessStatus))
         {
@@ -396,22 +411,7 @@ public sealed unsafe class ImaginaryFrenService : IDisposable
             return false;
         }
 
-        var preset = plugin.GlamourerPresetService.GetPresetByName(desired.PresetKey);
-        if (preset == null)
-        {
-            LastError = $"Preset '{desired.PresetKey}' was not found.";
-            LastStatus = "Imaginary Fren hidden: preset was not found.";
-            return false;
-        }
-
-        if (preset.Customize.ModelId > 0)
-        {
-            LastError = $"Preset '{preset.Name}' requests exact NPC modelId {preset.Customize.ModelId}, which is blocked for Imaginary Fren.";
-            LastStatus = "Imaginary Fren hidden: exact NPC model preset is blocked.";
-            return false;
-        }
-
-        var applied = plugin.TryApplyPresetToImaginaryFren((CharacterStruct*)actor, preset, out var applyStatus);
+        var applied = plugin.TryApplyPresetToImaginaryFren((CharacterStruct*)actor, preset, out var applyStatus, out var customizeRefreshFailed);
         if (!applied)
         {
             LastError = string.IsNullOrWhiteSpace(applyStatus) ? "Preset apply reported no ready player-style changes." : applyStatus;
@@ -422,8 +422,65 @@ public sealed unsafe class ImaginaryFrenService : IDisposable
         appliedPresetKey = desired.PresetKey;
         pendingApply = false;
         hiddenApplyRetryCountdown = 0;
+        lastApplyPartial = customizeRefreshFailed;
+        lastApplyDetails = applyStatus;
         RevealActor();
-        LastError = string.Empty;
+        if (customizeRefreshFailed)
+        {
+            LastError = applyStatus;
+            LastStatus = initialSpawn
+                ? $"Spawned Imaginary Fren '{desired.Name}' with partial preset: body customize refresh failed."
+                : $"Imaginary Fren partial: body customize refresh failed.";
+        }
+        else
+        {
+            LastError = string.Empty;
+            LastStatus = initialSpawn
+                ? $"Spawned Imaginary Fren '{desired.Name}'."
+                : $"Applied Imaginary Fren preset '{desired.PresetKey}'.";
+        }
+
+        return true;
+    }
+
+    private bool TryPrepareActorForPresetDraw(ImaginaryFrenDesired desired, out GlamourerPreset preset)
+    {
+        preset = null!;
+        if (actor == null)
+            return false;
+
+        var resolvedPreset = plugin.GlamourerPresetService.GetPresetByName(desired.PresetKey);
+        if (resolvedPreset == null)
+        {
+            LastError = $"Preset '{desired.PresetKey}' was not found.";
+            LastStatus = "Imaginary Fren hidden: preset was not found.";
+            return false;
+        }
+
+        preset = resolvedPreset;
+
+        if (preset.Customize.ModelId > 0)
+        {
+            LastError = $"Preset '{preset.Name}' requests exact NPC modelId {preset.Customize.ModelId}, which is blocked for Imaginary Fren.";
+            LastStatus = "Imaginary Fren hidden: exact NPC model preset is blocked.";
+            return false;
+        }
+
+        if (!string.Equals(preparedPresetKey, desired.PresetKey, StringComparison.OrdinalIgnoreCase))
+        {
+            if (!plugin.TryPreparePresetForImaginaryFren((CharacterStruct*)actor, preset, out var prepareStatus))
+            {
+                LastError = string.IsNullOrWhiteSpace(prepareStatus) ? "Preset prepare reported no ready player-style draw data." : prepareStatus;
+                LastStatus = $"Imaginary Fren hidden: {LastError}";
+                return false;
+            }
+
+            preparedPresetKey = desired.PresetKey;
+            lastApplyPartial = false;
+            lastApplyDetails = string.Empty;
+        }
+
+        HideActorPreparedForDraw();
         return true;
     }
 
@@ -472,13 +529,27 @@ public sealed unsafe class ImaginaryFrenService : IDisposable
     private void RequestPresetApply()
     {
         pendingApply = true;
+        preparedPresetKey = string.Empty;
         hiddenApplyRetryCountdown = 0;
+        lastApplyPartial = false;
+        lastApplyDetails = string.Empty;
 
         if (actor != null)
-            HideActorForSafety();
+            HideActorPreparedForDraw();
     }
 
-    private void HideActorForSafety()
+    private void HideActorForSpawnPreparation()
+    {
+        if (actor == null)
+            return;
+
+        actor->TargetableStatus &= ~ObjectTargetableFlags.IsTargetable;
+        actor->Alpha = 0.0f;
+        actor->DisableDraw();
+        actorRevealed = false;
+    }
+
+    private void HideActorPreparedForDraw()
     {
         if (actor == null)
             return;
@@ -569,9 +640,12 @@ public sealed unsafe class ImaginaryFrenService : IDisposable
         actor = null;
         actorObjectIndex = InvalidObjectIndex;
         appliedPresetKey = string.Empty;
+        preparedPresetKey = string.Empty;
         appliedName = string.Empty;
         pendingApply = false;
         actorRevealed = false;
+        lastApplyPartial = false;
+        lastApplyDetails = string.Empty;
         hiddenApplyRetryCountdown = 0;
     }
 
