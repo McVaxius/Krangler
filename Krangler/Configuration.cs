@@ -10,6 +10,8 @@ public class Configuration : IPluginConfiguration
     public const int MaxAmongusNpcReplacements = 100;
     public const string DefaultAmongusNpcName = "Alpha";
     public const string DefaultAmongusPresetKey = "e97d1e17-9247-46aa-a9ad-b942ab905d31";
+    public const string DefaultImaginaryFrenName = "Golden Sven";
+    public const string DefaultImaginaryFrenPresetKey = "e97d1e17-9247-46aa-a9ad-b942ab905d31";
     public const int MinSoulThiefCaptureIntervalSeconds = 5;
     public const int MaxSoulThiefCaptureIntervalSeconds = 300;
 
@@ -44,6 +46,11 @@ public class Configuration : IPluginConfiguration
     public int SoulThiefLastCapturedPlayers { get; set; } = 0;
     public int SoulThiefLastCapturedNpcs { get; set; } = 0;
     public int SoulThiefLastCapturedChocobos { get; set; } = 0;
+
+    // One local-only spawned follower actor.
+    public bool ImaginaryFrenEnabled { get; set; } = false;
+    public string ImaginaryFrenName { get; set; } = DefaultImaginaryFrenName;
+    public string ImaginaryFrenPresetKey { get; set; } = DefaultImaginaryFrenPresetKey;
 
     // Special mode (disabled by default)
     public bool SuperKrangleMaster4000 { get; set; } = false;
@@ -101,6 +108,7 @@ public class Configuration : IPluginConfiguration
     {
         var changed = SanitizeAmongusNpcReplacements();
         changed |= SanitizeSoulThiefSettings();
+        changed |= SanitizeImaginaryFrenSettings();
         return changed;
     }
 
@@ -185,6 +193,33 @@ public class Configuration : IPluginConfiguration
         if (SoulThiefLastCapturedChocobos < 0)
         {
             SoulThiefLastCapturedChocobos = 0;
+            changed = true;
+        }
+
+        return changed;
+    }
+
+    private bool SanitizeImaginaryFrenSettings()
+    {
+        var changed = false;
+
+        var name = ImaginaryFrenName?.Trim() ?? string.Empty;
+        if (name.Length > 31)
+            name = name[..31];
+        if (string.IsNullOrWhiteSpace(name))
+            name = DefaultImaginaryFrenName;
+        if (!string.Equals(ImaginaryFrenName, name, StringComparison.Ordinal))
+        {
+            ImaginaryFrenName = name;
+            changed = true;
+        }
+
+        var presetKey = ImaginaryFrenPresetKey?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(presetKey))
+            presetKey = DefaultImaginaryFrenPresetKey;
+        if (!string.Equals(ImaginaryFrenPresetKey, presetKey, StringComparison.Ordinal))
+        {
+            ImaginaryFrenPresetKey = presetKey;
             changed = true;
         }
 

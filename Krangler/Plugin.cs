@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
+using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.Types;
@@ -55,6 +56,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IChatGui ChatGui { get; private set; } = null!;
     [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
     [PluginService] internal static IToastGui ToastGui { get; private set; } = null!;
+    [PluginService] internal static ICondition Condition { get; private set; } = null!;
     
     private const string CommandName = "/krangler";
     private const string AliasCommandName = "/kr";
@@ -62,6 +64,8 @@ public sealed class Plugin : IDalamudPlugin
     public Configuration Configuration { get; init; }
     public AppearanceService AppearanceService { get; init; }
     public GlamourerPresetService GlamourerPresetService { get; init; }
+    public ImaginaryFrenService ImaginaryFrenService { get; init; }
+    private KranglerIpcService IpcService { get; init; }
 
     public readonly WindowSystem WindowSystem = new("Krangler");
     private MainWindow MainWindow { get; init; }
@@ -299,6 +303,8 @@ public sealed class Plugin : IDalamudPlugin
 
         AppearanceService = new AppearanceService(Log, ObjectTable, Configuration);
         GlamourerPresetService = new GlamourerPresetService(Log, PluginInterface);
+        ImaginaryFrenService = new ImaginaryFrenService(this);
+        IpcService = new KranglerIpcService(PluginInterface, ImaginaryFrenService, GlamourerPresetService);
 
         MainWindow = new MainWindow(this);
         WindowSystem.AddWindow(MainWindow);
@@ -427,6 +433,8 @@ public sealed class Plugin : IDalamudPlugin
             wasEnabled = Configuration.Enabled;
         }
 
+        ImaginaryFrenService.Update();
+
         if (!Configuration.Enabled)
         {
             UpdateDtrBar();
@@ -472,6 +480,8 @@ public sealed class Plugin : IDalamudPlugin
 
     private void OnTerritoryChanged(uint territory)
     {
+        ImaginaryFrenService.Despawn($"territory change {territory}");
+
         if (!Configuration.Enabled) return;
         
         Log.Information($"[Krangler] Territory changed to {territory}, re-applying krangle mode");
@@ -3561,6 +3571,31 @@ public sealed class Plugin : IDalamudPlugin
     ///   +0x1D0: EquipmentModelIds[10] (8 bytes each)
     ///   +0x220: CustomizeData (26 bytes)
     /// </summary>
+    internal unsafe bool TryApplyPresetToImaginaryFren(CharacterStruct* character, GlamourerPreset preset, out string status)
+    {
+        status = string.Empty;
+        if (character == null)
+        {
+            status = "Character pointer was null.";
+            return false;
+        }
+
+        ForceExactNpcModelContainer(character, preset);
+        character->DisableDraw();
+        var result = ApplySuperKranglePresetDetailed(
+            character,
+            preset,
+            logRefreshResult: false,
+            exactNpcReplacement: true,
+            logDetails: false,
+            preAppliedDuringCreate: false,
+            forceAllSlots: true);
+        character->EnableDraw();
+
+        status = $"appearance={result.CustomizeApplied}, refresh={result.CustomizeRefreshed}, equipment={result.EquipmentApplied}, weapons={result.WeaponsApplied}, bonus={result.BonusApplied}, meta={result.MetaApplied}";
+        return result.AnyApplied;
+    }
+
     private unsafe bool ApplySuperKranglePreset(CharacterStruct* character, GlamourerPreset preset, bool logRefreshResult, bool exactNpcReplacement = false, bool logDetails = true)
         => exactNpcReplacement
             ? ApplySuperKranglePresetDetailed(character, preset, logRefreshResult, exactNpcReplacement, logDetails).ExactSuccess
@@ -3572,18 +3607,19 @@ public sealed class Plugin : IDalamudPlugin
         bool logRefreshResult,
         bool exactNpcReplacement = false,
         bool logDetails = true,
-        bool preAppliedDuringCreate = false)
+        bool preAppliedDuringCreate = false,
+        bool forceAllSlots = false)
     {
         if (character == null)
             return new PresetApplyResult(false, false, 0, 0, false, false, false);
 
         var customizePtr = (byte*)&character->DrawData.CustomizeData;
         var appliedAppearance = preAppliedDuringCreate && exactNpcReplacement
-            ? PresetRequestsCustomize(preset)
-            : ApplyGlamourerPreset(character, preset, customizePtr, logDetails);
+            ? PresetRequestsCustomize(preset, forceAllSlots)
+            : ApplyGlamourerPreset(character, preset, customizePtr, logDetails, forceAllSlots);
         var refreshedAppearance = appliedAppearance && (preAppliedDuringCreate && exactNpcReplacement || RefreshCharacterCustomize(character));
-        var appliedEquipment = ApplyGlamourerEquipment(character, preset, exactNpcReplacement, logDetails);
-        var appliedWeapons = ApplyGlamourerWeapons(character, preset, logDetails);
+        var appliedEquipment = ApplyGlamourerEquipment(character, preset, exactNpcReplacement, logDetails, forceAllSlots);
+        var appliedWeapons = ApplyGlamourerWeapons(character, preset, logDetails, forceAllSlots);
         var appliedBonus = ApplyGlamourerBonusItems(character, preset, logDetails);
         var appliedMetaState = ApplyGlamourerMetaState(character, preset, logDetails);
         
@@ -3604,8 +3640,8 @@ public sealed class Plugin : IDalamudPlugin
             preAppliedDuringCreate);
     }
 
-    private bool PresetRequestsCustomize(GlamourerPreset preset)
-        => Configuration.SuperKrangleApplyAppearance &&
+    private bool PresetRequestsCustomize(GlamourerPreset preset, bool forceAppearance = false)
+        => (forceAppearance || Configuration.SuperKrangleApplyAppearance) &&
            (preset.Customize.ModelId > 0 ||
             preset.Customize.Race.Apply ||
             preset.Customize.Gender.Apply ||
@@ -3644,9 +3680,9 @@ public sealed class Plugin : IDalamudPlugin
             preset.Customize.FacePaintReversed.Apply ||
             preset.Customize.FacePaintColor.Apply);
 
-    private unsafe bool ApplyCustomizeData(GameCustomizeData* customizeData, GlamourerPreset preset)
+    private unsafe bool ApplyCustomizeData(GameCustomizeData* customizeData, GlamourerPreset preset, bool forceAppearance = false)
     {
-        if (customizeData == null || !Configuration.SuperKrangleApplyAppearance)
+        if (customizeData == null || (!forceAppearance && !Configuration.SuperKrangleApplyAppearance))
             return false;
 
         ref var customize = ref *customizeData;
@@ -3701,14 +3737,14 @@ public sealed class Plugin : IDalamudPlugin
         return true;
     }
 
-    private unsafe bool ApplyGlamourerPreset(CharacterStruct* character, GlamourerPreset preset, byte* customizePtr, bool logDetails = true)
+    private unsafe bool ApplyGlamourerPreset(CharacterStruct* character, GlamourerPreset preset, byte* customizePtr, bool logDetails = true, bool forceAppearance = false)
     {
         // ── Apply customize data (26 bytes) ──
-        if (character == null || customizePtr == null || !Configuration.SuperKrangleApplyAppearance)
+        if (character == null || customizePtr == null || (!forceAppearance && !Configuration.SuperKrangleApplyAppearance))
             return false;
 
-        var customizeRequested = PresetRequestsCustomize(preset);
-        var applied = customizeRequested && ApplyCustomizeData((GameCustomizeData*)customizePtr, preset);
+        var customizeRequested = PresetRequestsCustomize(preset, forceAppearance);
+        var applied = customizeRequested && ApplyCustomizeData((GameCustomizeData*)customizePtr, preset, forceAppearance);
 
         if (logDetails && preset.Customize.ModelId != 0 && !hasLoggedAppearanceScan)
             Log.Warning($"[Krangler] Preset '{preset.Name}' requests CharacterBase.Create modelId override {preset.Customize.ModelId}; post-create apply cannot change it.");
@@ -3747,7 +3783,7 @@ public sealed class Plugin : IDalamudPlugin
     /// Get special NPC appearance data for Super Krangle Master 4000 mode.
     /// Returns (race, tribe, gender) for iconic NPCs like Gaius, Nero, Louisoix, etc.
     /// </summary>
-    private unsafe int ApplyGlamourerEquipment(CharacterStruct* character, GlamourerPreset preset, bool exactNpcReplacement = false, bool logDetails = true)
+    private unsafe int ApplyGlamourerEquipment(CharacterStruct* character, GlamourerPreset preset, bool exactNpcReplacement = false, bool logDetails = true, bool forceAllSlots = false)
     {
         if (character == null || preset.Equipment.Count == 0)
             return 0;
@@ -3758,7 +3794,7 @@ public sealed class Plugin : IDalamudPlugin
         int appliedCount;
         fixed (EquipmentModelId* equipmentModelPtr = &character->DrawData.EquipmentModelIds[0])
         {
-            appliedCount = ApplyEquipmentData(equipmentModelPtr, preset, character, exactNpcReplacement, logDetails);
+            appliedCount = ApplyEquipmentData(equipmentModelPtr, preset, character, exactNpcReplacement, logDetails, forceAllSlots);
         }
 
         if (logDetails && !hasLoggedAppearanceScan && appliedCount > 0)
@@ -3767,7 +3803,7 @@ public sealed class Plugin : IDalamudPlugin
         return appliedCount;
     }
 
-    private unsafe int ApplyEquipmentData(EquipmentModelId* equipmentModelPtr, GlamourerPreset preset, CharacterStruct* character, bool exactNpcReplacement = false, bool logDetails = true)
+    private unsafe int ApplyEquipmentData(EquipmentModelId* equipmentModelPtr, GlamourerPreset preset, CharacterStruct* character, bool exactNpcReplacement = false, bool logDetails = true, bool forceAllSlots = false)
     {
         if (equipmentModelPtr == null || preset.Equipment.Count == 0)
             return 0;
@@ -3781,11 +3817,11 @@ public sealed class Plugin : IDalamudPlugin
         foreach (var (slotName, slotData) in preset.Equipment)
         {
             var isCoreArmorSlot = IsCoreArmorSlot(slotName);
-            if (!slotData.Apply || !ShouldApplyEquipmentSlot(slotName) || (preserveExistingCoreArmor && isCoreArmorSlot))
+            if (!slotData.Apply || (!forceAllSlots && !ShouldApplyEquipmentSlot(slotName)) || (preserveExistingCoreArmor && isCoreArmorSlot))
             {
                 if (logDetails && !hasLoggedAppearanceScan && !slotData.Apply)
                     Log.Information($"[Krangler] Skipping preset slot '{slotName}' - Apply flag is false");
-                if (logDetails && !hasLoggedAppearanceScan && !ShouldApplyEquipmentSlot(slotName))
+                if (logDetails && !hasLoggedAppearanceScan && !forceAllSlots && !ShouldApplyEquipmentSlot(slotName))
                     Log.Information($"[Krangler] Skipping preset slot '{slotName}' - ShouldApplyEquipmentSlot returned false");
                 if (logDetails && !hasLoggedAppearanceScan && preserveExistingCoreArmor && isCoreArmorSlot)
                     Log.Information($"[Krangler] Skipping preset slot '{slotName}' for '{preset.Name}' - preserving existing equipped armor for deprecated special-NPC armor path");
@@ -3839,9 +3875,9 @@ public sealed class Plugin : IDalamudPlugin
         return appliedCount;
     }
 
-    private unsafe int ApplyGlamourerWeapons(CharacterStruct* character, GlamourerPreset preset, bool logDetails = true)
+    private unsafe int ApplyGlamourerWeapons(CharacterStruct* character, GlamourerPreset preset, bool logDetails = true, bool forceWeapons = false)
     {
-        if (character == null || preset.Equipment.Count == 0 || !Configuration.SuperKrangleApplyWeapons)
+        if (character == null || preset.Equipment.Count == 0 || (!forceWeapons && !Configuration.SuperKrangleApplyWeapons))
             return 0;
 
         var appliedCount = 0;
@@ -4564,6 +4600,8 @@ public sealed class Plugin : IDalamudPlugin
     {
         createCharacterBaseHook?.Disable();
         createCharacterBaseHook?.Dispose();
+        ImaginaryFrenService.Dispose();
+        IpcService.Dispose();
         Framework.Update -= Framework_OnUpdate;
         AddonLifecycle.UnregisterListener(OnPartyMemberListAddon);
         NamePlateGui.OnNamePlateUpdate -= OnNamePlateUpdate;

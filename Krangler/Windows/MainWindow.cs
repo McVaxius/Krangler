@@ -86,6 +86,12 @@ public class MainWindow : Window, IDisposable
             ImGui.EndTabItem();
         }
 
+        if (ImGui.BeginTabItem("Imaginary Fren"))
+        {
+            DrawImaginaryFrenTab(config, presetNames);
+            ImGui.EndTabItem();
+        }
+
         if (ImGui.BeginTabItem("Soul Thief"))
         {
             DrawSoulThiefTab(config);
@@ -302,6 +308,72 @@ public class MainWindow : Window, IDisposable
         ImGui.Spacing();
 
         DrawSuperKrangleSection(config, presetNames);
+    }
+
+    private void DrawImaginaryFrenTab(Configuration config, IReadOnlyList<string> presetNames)
+    {
+        ImGui.Spacing();
+        ImGui.Text("Imaginary Fren");
+        ImGui.Separator();
+        ImGui.Text($"Presets loaded: {plugin.GlamourerPresetService.PresetCount}");
+        ImGui.Spacing();
+
+        var status = plugin.ImaginaryFrenService.GetStatus();
+        var enabled = config.ImaginaryFrenEnabled;
+        if (ImGui.Checkbox("Enabled##ImaginaryFrenEnabled", ref enabled))
+        {
+            config.ImaginaryFrenEnabled = enabled;
+            config.Save();
+            plugin.ImaginaryFrenService.UseConfigDesired();
+        }
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip("Spawn one local-only, non-targetable fake NPC follower while Krangler is enabled.");
+
+        ImGui.SameLine();
+        ImGui.TextDisabled(status.Spawned ? "Spawned" : "Not spawned");
+
+        var displayName = config.ImaginaryFrenName ?? string.Empty;
+        ImGui.SetNextItemWidth(220f);
+        if (ImGui.InputText("Display Name##ImaginaryFrenName", ref displayName, 64))
+        {
+            config.ImaginaryFrenName = displayName;
+            config.Sanitize();
+            config.Save();
+            plugin.ImaginaryFrenService.UseConfigDesired();
+        }
+
+        var presetKey = string.IsNullOrWhiteSpace(config.ImaginaryFrenPresetKey)
+            ? Configuration.DefaultImaginaryFrenPresetKey
+            : config.ImaginaryFrenPresetKey;
+        ImGui.SetNextItemWidth(260f);
+        if (DrawPresetSelectionCombo("Preset##ImaginaryFrenPreset", ref presetKey, presetNames, false, false))
+        {
+            config.ImaginaryFrenPresetKey = presetKey;
+            config.Save();
+            plugin.ImaginaryFrenService.UseConfigDesired();
+        }
+
+        if (ImGui.SmallButton("Test Spawn"))
+        {
+            plugin.ImaginaryFrenService.RequestSpawnFromConfig();
+            plugin.ImaginaryFrenService.Update();
+        }
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip("Enable and try to spawn the configured follower now. Krangler's master toggle still gates spawning.");
+
+        ImGui.SameLine();
+        if (ImGui.SmallButton("Despawn"))
+        {
+            plugin.ImaginaryFrenService.DisableFromConfig();
+        }
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip("Disable and remove the current local-only follower.");
+
+        ImGui.TextWrapped($"Status: {status.Status}");
+        if (!string.IsNullOrWhiteSpace(status.Error))
+            ImGui.TextWrapped($"Warning: {status.Error}");
+        if (!string.Equals(status.Source, "config", StringComparison.OrdinalIgnoreCase))
+            ImGui.TextWrapped($"Runtime source: {status.Source}");
     }
 
     private void DrawSuperKrangleSection(Configuration config, IReadOnlyList<string> presetNames)

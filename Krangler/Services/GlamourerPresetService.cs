@@ -259,6 +259,99 @@ public class GlamourerPresetService
             .ToList();
     }
 
+    public List<GlamourerPresetSummary> GetPresetSummaries()
+    {
+        return presets.Values
+            .OrderBy(preset => preset.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(preset => new GlamourerPresetSummary(
+                preset.Name,
+                string.IsNullOrWhiteSpace(preset.Identifier) ? preset.Name : preset.Identifier,
+                preset.SourceFileName))
+            .ToList();
+    }
+
+    public bool TryExportPresetJson(string presetKey, out string exportJson, out string error)
+    {
+        exportJson = string.Empty;
+        error = string.Empty;
+
+        var preset = GetPresetByName(presetKey);
+        if (preset == null)
+        {
+            error = $"Preset '{presetKey}' was not found.";
+            return false;
+        }
+
+        try
+        {
+            exportJson = JsonSerializer.Serialize(preset, PresetJsonOptions);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            return false;
+        }
+    }
+
+    public bool TryImportPresetJson(string exportJson, out GlamourerPreset? preset, out string error)
+    {
+        preset = null;
+        error = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(exportJson))
+        {
+            error = "Preset JSON was empty.";
+            return false;
+        }
+
+        try
+        {
+            preset = ParsePreset(exportJson);
+            if (preset == null || string.IsNullOrWhiteSpace(preset.Name))
+            {
+                error = "Preset JSON could not be parsed.";
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(preset.Identifier))
+                preset.Identifier = Guid.NewGuid().ToString();
+
+            var safeFileName = SanitizeFileName(string.IsNullOrWhiteSpace(preset.Identifier) ? preset.Name : preset.Identifier);
+            if (string.IsNullOrWhiteSpace(safeFileName))
+                safeFileName = Guid.NewGuid().ToString();
+
+            var targetFile = Path.Combine(UserPresetsDir, $"{safeFileName}.json");
+            var suffix = 2;
+            while (File.Exists(targetFile))
+            {
+                targetFile = Path.Combine(UserPresetsDir, $"{safeFileName}-{suffix}.json");
+                suffix++;
+            }
+
+            Directory.CreateDirectory(UserPresetsDir);
+            using (var stream = new FileStream(targetFile, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            {
+                JsonSerializer.Serialize(stream, preset, PresetJsonOptions);
+            }
+
+            var registeredPreset = ParsePreset(File.ReadAllText(targetFile));
+            if (!TryRegisterPreset(registeredPreset, targetFile))
+            {
+                error = "Imported preset was written but could not be registered.";
+                return false;
+            }
+
+            preset = registeredPreset;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            return false;
+        }
+    }
+
     private bool TryRegisterPreset(GlamourerPreset? preset, string file)
     {
         if (preset == null || string.IsNullOrWhiteSpace(preset.Name))
@@ -456,6 +549,16 @@ public class GlamourerPresetService
            string.Equals(categoryDirectoryName, "npcs", StringComparison.OrdinalIgnoreCase) ||
            string.Equals(categoryDirectoryName, "chocobos", StringComparison.OrdinalIgnoreCase);
 
+    private static string SanitizeFileName(string value)
+    {
+        var invalid = Path.GetInvalidFileNameChars();
+        var sanitized = new string((value ?? string.Empty)
+            .Trim()
+            .Select(ch => invalid.Contains(ch) ? '_' : ch)
+            .ToArray());
+        return sanitized.Length > 80 ? sanitized[..80] : sanitized;
+    }
+
     private string GetDisplayFileName(string file)
     {
         try
@@ -482,3 +585,5 @@ public class GlamourerPresetService
         }
     }
 }
+
+public sealed record GlamourerPresetSummary(string Name, string Key, string SourceFileName);
