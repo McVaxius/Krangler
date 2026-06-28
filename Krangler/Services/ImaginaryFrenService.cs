@@ -37,12 +37,14 @@ public sealed unsafe class ImaginaryFrenService : IDisposable
     private uint actorObjectIndex = InvalidObjectIndex;
     private ImaginaryFrenDesired? runtimeDesired;
     private string appliedPresetKey = string.Empty;
+    private string appliedPresetIdentitySignature = string.Empty;
     private string preparedPresetKey = string.Empty;
     private string appliedName = string.Empty;
     private bool pendingApply;
     private bool actorRevealed;
     private bool lastApplyPartial;
     private string lastApplyDetails = string.Empty;
+    private bool forceRespawnRequested;
     private int hiddenApplyRetryCountdown;
 
     public ImaginaryFrenService(Plugin plugin)
@@ -123,9 +125,11 @@ public sealed unsafe class ImaginaryFrenService : IDisposable
                 SanitizePresetKey(request.PresetKey),
                 string.IsNullOrWhiteSpace(request.Source) ? "ipc" : request.Source.Trim());
 
-            Plugin.Log.Information($"[Krangler] Imaginary Fren IPC request: enabled={desired.Enabled}, name='{desired.Name}', preset='{desired.PresetKey}', source={desired.Source}, persist={request.Persist}");
+            Plugin.Log.Information($"[Krangler] Imaginary Fren IPC request: enabled={desired.Enabled}, name='{desired.Name}', preset='{desired.PresetKey}', source={desired.Source}, persist={request.Persist}, forceRespawn={request.ForceRespawn}");
 
             runtimeDesired = desired;
+            if (request.ForceRespawn && actor != null)
+                forceRespawnRequested = true;
             RequestPresetApply();
 
             if (request.Persist)
@@ -362,8 +366,23 @@ public sealed unsafe class ImaginaryFrenService : IDisposable
 
         var nameChanged = !string.Equals(appliedName, desired.Name, StringComparison.Ordinal);
         var presetChanged = !string.Equals(appliedPresetKey, desired.PresetKey, StringComparison.OrdinalIgnoreCase);
+        var forceRespawn = forceRespawnRequested;
+        forceRespawnRequested = false;
         if (nameChanged)
             ApplyName(desired.Name);
+
+        var respawnReason = string.Empty;
+        var identityRespawn = presetChanged && ShouldRespawnForPresetIdentityChange(desired.PresetKey, out respawnReason);
+        if (forceRespawn || identityRespawn)
+        {
+            var reason = forceRespawn
+                ? $"forced by {desired.Source} preset request"
+                : respawnReason;
+            Plugin.Log.Information($"[Krangler] Recreating Imaginary Fren actor for preset '{desired.PresetKey}': {reason}.");
+            Despawn($"preset change: {reason}");
+            TrySpawn(desired);
+            return;
+        }
 
         if (nameChanged || presetChanged)
             RequestPresetApply();
@@ -420,6 +439,7 @@ public sealed unsafe class ImaginaryFrenService : IDisposable
         }
 
         appliedPresetKey = desired.PresetKey;
+        appliedPresetIdentitySignature = BuildPresetIdentitySignature(preset);
         pendingApply = false;
         hiddenApplyRetryCountdown = 0;
         lastApplyPartial = customizeRefreshFailed;
@@ -640,13 +660,86 @@ public sealed unsafe class ImaginaryFrenService : IDisposable
         actor = null;
         actorObjectIndex = InvalidObjectIndex;
         appliedPresetKey = string.Empty;
+        appliedPresetIdentitySignature = string.Empty;
         preparedPresetKey = string.Empty;
         appliedName = string.Empty;
         pendingApply = false;
         actorRevealed = false;
         lastApplyPartial = false;
         lastApplyDetails = string.Empty;
+        forceRespawnRequested = false;
         hiddenApplyRetryCountdown = 0;
+    }
+
+    private bool ShouldRespawnForPresetIdentityChange(string presetKey, out string reason)
+    {
+        reason = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(appliedPresetIdentitySignature))
+            return false;
+
+        var preset = plugin.GlamourerPresetService.GetPresetByName(presetKey);
+        if (preset == null)
+            return false;
+
+        var nextSignature = BuildPresetIdentitySignature(preset);
+        if (string.Equals(appliedPresetIdentitySignature, nextSignature, StringComparison.Ordinal))
+            return false;
+
+        reason = $"customize identity changed from preset '{appliedPresetKey}'";
+        return true;
+    }
+
+    private static string BuildPresetIdentitySignature(GlamourerPreset preset)
+    {
+        var customize = preset.Customize;
+        var builder = new StringBuilder();
+        builder.Append("model=").Append(customize.ModelId).Append(';');
+        AppendIdentity(builder, "race", customize.Race);
+        AppendIdentity(builder, "gender", customize.Gender);
+        AppendIdentity(builder, "body", customize.BodyType);
+        AppendIdentity(builder, "height", customize.Height);
+        AppendIdentity(builder, "clan", customize.Clan);
+        AppendIdentity(builder, "face", customize.Face);
+        AppendIdentity(builder, "hair", customize.Hairstyle);
+        AppendIdentity(builder, "skin", customize.SkinColor);
+        AppendIdentity(builder, "eyeR", customize.EyeColorRight);
+        AppendIdentity(builder, "eyeL", customize.EyeColorLeft);
+        AppendIdentity(builder, "hairColor", customize.HairColor);
+        AppendIdentity(builder, "highlights", customize.Highlights);
+        AppendIdentity(builder, "highlightsColor", customize.HighlightsColor);
+        AppendIdentity(builder, "feature1", customize.FacialFeature1);
+        AppendIdentity(builder, "feature2", customize.FacialFeature2);
+        AppendIdentity(builder, "feature3", customize.FacialFeature3);
+        AppendIdentity(builder, "feature4", customize.FacialFeature4);
+        AppendIdentity(builder, "feature5", customize.FacialFeature5);
+        AppendIdentity(builder, "feature6", customize.FacialFeature6);
+        AppendIdentity(builder, "feature7", customize.FacialFeature7);
+        AppendIdentity(builder, "legacy", customize.LegacyTattoo);
+        AppendIdentity(builder, "tattoo", customize.TattooColor);
+        AppendIdentity(builder, "brows", customize.Eyebrows);
+        AppendIdentity(builder, "eyeShape", customize.EyeShape);
+        AppendIdentity(builder, "iris", customize.SmallIris);
+        AppendIdentity(builder, "nose", customize.Nose);
+        AppendIdentity(builder, "jaw", customize.Jaw);
+        AppendIdentity(builder, "mouth", customize.Mouth);
+        AppendIdentity(builder, "lipstick", customize.Lipstick);
+        AppendIdentity(builder, "lip", customize.LipColor);
+        AppendIdentity(builder, "muscle", customize.MuscleMass);
+        AppendIdentity(builder, "tail", customize.TailShape);
+        AppendIdentity(builder, "bust", customize.BustSize);
+        AppendIdentity(builder, "paint", customize.FacePaint);
+        AppendIdentity(builder, "paintReversed", customize.FacePaintReversed);
+        AppendIdentity(builder, "paintColor", customize.FacePaintColor);
+        return builder.ToString();
+    }
+
+    private static void AppendIdentity(StringBuilder builder, string key, CustomValue value)
+    {
+        if (!value.Apply)
+            return;
+
+        builder.Append(key).Append('=').Append(value.Value).Append(';');
     }
 
     private static Vector3 GetFollowPosition(Vector3 playerPosition, float playerRotation)
@@ -717,6 +810,7 @@ public sealed class ImaginaryFrenSetRequest
     public string PresetKey { get; set; } = string.Empty;
     public bool Persist { get; set; }
     public string Source { get; set; } = string.Empty;
+    public bool ForceRespawn { get; set; }
 }
 
 public sealed class ImaginaryFrenStatusResult

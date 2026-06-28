@@ -78,7 +78,7 @@ public sealed class Plugin : IDalamudPlugin
     private bool hasLoggedAppearanceScan;
     private bool hasLoggedPartyList;
     private bool hasLoggedEventActivation;
-    private bool hasLoggedSoulThiefError;
+    private readonly HashSet<string> loggedSoulThiefSkipReasons = new(StringComparer.Ordinal);
     private DateTime lastEventFlagReset = DateTime.MinValue;
     private DateTime lastSoulThiefCapture = DateTime.MinValue;
     private const int CustomizeByteCount = 26;
@@ -1581,10 +1581,9 @@ public sealed class Plugin : IDalamudPlugin
                     else if (soulThiefTargetKind == SoulThiefTargetKind.Chocobo)
                         soulThiefCapturedChocobos++;
                 }
-                else if (!string.IsNullOrWhiteSpace(soulThiefError) && !hasLoggedSoulThiefError)
+                else if (!string.IsNullOrWhiteSpace(soulThiefError))
                 {
-                    hasLoggedSoulThiefError = true;
-                    Log.Warning($"[Krangler] Soul Thief capture failed: {soulThiefError}");
+                    LogSoulThiefSkipIfNeeded(obj, name, soulThiefError);
                 }
             }
 
@@ -1830,10 +1829,13 @@ public sealed class Plugin : IDalamudPlugin
                 return false;
 
             if (obj.Address == 0)
+            {
+                error = "object address was zero";
                 return false;
+            }
 
             var character = (CharacterStruct*)obj.Address;
-            if (character == null || !SupportsHumanCustomize(character))
+            if (!TryValidateSoulThiefExportCandidate(obj, character, out error))
                 return false;
 
             var presetDisplayName = GetSoulThiefPresetDisplayName(obj, name, targetKind);
@@ -1842,7 +1844,10 @@ public sealed class Plugin : IDalamudPlugin
             var fileName = GetSoulThiefFileName(obj, name, targetKind);
 
             if (string.IsNullOrWhiteSpace(category) || string.IsNullOrWhiteSpace(fileName))
+            {
+                error = $"category or file name was empty for target kind {targetKind}";
                 return false;
+            }
 
             var exported = GlamourerPresetService.TryExportSoulThiefPreset(
                 category,
@@ -1852,13 +1857,115 @@ public sealed class Plugin : IDalamudPlugin
                 out _,
                 out error);
 
-            return exported && !skippedExisting;
+            if (skippedExisting)
+            {
+                error = string.Empty;
+                return false;
+            }
+
+            if (!exported && string.IsNullOrWhiteSpace(error))
+                error = "preset export returned false";
+
+            return exported;
         }
         catch (Exception ex)
         {
             error = $"{name}: {ex.Message}";
             return false;
         }
+    }
+
+    private void LogSoulThiefSkipIfNeeded(IGameObject obj, string name, string reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+            return;
+
+        var displayName = string.IsNullOrWhiteSpace(name) ? "<unnamed>" : name;
+        var addressText = obj.Address == 0 ? "0x0" : $"0x{obj.Address.ToInt64():X}";
+        var logKey = $"{obj.GameObjectId:X16}:{addressText}:{reason}";
+        if (!loggedSoulThiefSkipReasons.Add(logKey))
+            return;
+
+        Log.Warning(
+            $"[Krangler] Soul Thief skipped '{displayName}' " +
+            $"({obj.ObjectKind}, objectId=0x{obj.GameObjectId:X}, address={addressText}): {reason}");
+    }
+
+    private unsafe bool TryValidateSoulThiefExportCandidate(
+        IGameObject obj,
+        CharacterStruct* character,
+        out string reason)
+    {
+        reason = string.Empty;
+
+        if (character == null)
+        {
+            reason = "character pointer was null";
+            return false;
+        }
+
+        if (obj.ObjectKind is not ObjectKind.Pc and not ObjectKind.BattleNpc and not ObjectKind.EventNpc)
+        {
+            reason = $"object kind {obj.ObjectKind} is not a character actor kind";
+            return false;
+        }
+
+        if (!HasUsableSoulThiefAppearanceData(character, out reason))
+            return false;
+
+        return true;
+    }
+
+    private unsafe bool HasUsableSoulThiefAppearanceData(CharacterStruct* character, out string reason)
+    {
+        reason = string.Empty;
+
+        if (character == null)
+        {
+            reason = "character pointer was null";
+            return false;
+        }
+
+        var modelCharaId = character->ModelContainer.ModelCharaId;
+        var customize = character->DrawData.CustomizeData;
+        var hasModelIdentity = modelCharaId > 0;
+        var hasCustomizeIdentity =
+            customize.Race > 0 ||
+            customize.Tribe > 0 ||
+            customize.Height > 0 ||
+            customize.Face > 0 ||
+            customize.Hairstyle > 0;
+
+        var hasEquipment = false;
+        fixed (EquipmentModelId* equipmentModelPtr = &character->DrawData.EquipmentModelIds[0])
+        {
+            for (var i = 0; i < EquipmentSlotCount; i++)
+            {
+                var slot = equipmentModelPtr + i;
+                if (slot->Id != 0 || slot->Variant != 0 || slot->Stain0 != 0 || slot->Stain1 != 0)
+                {
+                    hasEquipment = true;
+                    break;
+                }
+            }
+        }
+
+        var mainHand = character->DrawData.Weapon(DrawDataContainerStruct.WeaponSlot.MainHand).ModelId;
+        var offHand = character->DrawData.Weapon(DrawDataContainerStruct.WeaponSlot.OffHand).ModelId;
+        var hasWeapon =
+            mainHand.Id != 0 ||
+            mainHand.Type != 0 ||
+            mainHand.Variant != 0 ||
+            offHand.Id != 0 ||
+            offHand.Type != 0 ||
+            offHand.Variant != 0;
+        var hasBonus = character->DrawData.GlassesIds[0] != 0 || character->DrawData.GlassesIds[1] != 0;
+
+        if (hasModelIdentity || hasCustomizeIdentity || hasEquipment || hasWeapon || hasBonus)
+            return true;
+
+        reason = "no usable model, customize, equipment, weapon, or bonus appearance data was available";
+        return false;
     }
 
     private bool TryResolveSoulThiefTargetKind(bool isPlayer, bool isNpc, bool isChocobo, out SoulThiefTargetKind targetKind)
@@ -1885,7 +1992,7 @@ public sealed class Plugin : IDalamudPlugin
             Name = presetName,
             Description = $"Captured by Krangler Soul Thief from {GetSoulThiefDisplayKind(targetKind).ToLowerInvariant()} '{name}'.",
             ForcedRedraw = false,
-            Customize = CreateSoulThiefCustomizeData(character),
+            Customize = CreateSoulThiefCustomizeData(character, GetSoulThiefCaptureModelId(character)),
         };
 
         fixed (EquipmentModelId* equipmentModelPtr = &character->DrawData.EquipmentModelIds[0])
@@ -1941,12 +2048,21 @@ public sealed class Plugin : IDalamudPlugin
         return preset;
     }
 
-    private static unsafe Krangler.Models.CustomizeData CreateSoulThiefCustomizeData(CharacterStruct* character)
+    private unsafe int GetSoulThiefCaptureModelId(CharacterStruct* character)
+    {
+        if (character == null || SupportsHumanCustomize(character))
+            return 0;
+
+        var modelCharaId = character->ModelContainer.ModelCharaId;
+        return modelCharaId > 0 ? modelCharaId : 0;
+    }
+
+    private static unsafe Krangler.Models.CustomizeData CreateSoulThiefCustomizeData(CharacterStruct* character, int modelId)
     {
         var customize = character->DrawData.CustomizeData;
         return new Krangler.Models.CustomizeData
         {
-            ModelId = 0,
+            ModelId = modelId,
             Race = CreateAppliedCustomValue(customize.Race),
             Gender = CreateAppliedCustomValue(customize.Sex),
             BodyType = CreateAppliedCustomValue(customize.BodyType),
@@ -3897,7 +4013,7 @@ public sealed class Plugin : IDalamudPlugin
             return 0;
 
         var appliedCount = 0;
-        var preserveExistingCoreArmor = !exactNpcReplacement && ShouldPreserveExistingCoreArmor(preset);
+        var preserveExistingCoreArmor = !forceAllSlots && !exactNpcReplacement && ShouldPreserveExistingCoreArmor(preset);
 
         if (preserveExistingCoreArmor && logDetails && !hasLoggedAppearanceScan)
             Log.Information($"[Krangler] Preset '{preset.Name}' uses deprecated special-NPC core armor encoding. Preserving existing Head/Body/Hands/Legs/Feet while still applying accessories, weapons, bonus items, and meta state.");
