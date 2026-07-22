@@ -1,4 +1,5 @@
 using Dalamud.Configuration;
+using Krangler.Models;
 using System;
 using System.Collections.Generic;
 
@@ -15,7 +16,7 @@ public class Configuration : IPluginConfiguration
     public const int MinSoulThiefCaptureIntervalSeconds = 5;
     public const int MaxSoulThiefCaptureIntervalSeconds = 300;
 
-    public int Version { get; set; } = 1;
+    public int Version { get; set; } = 2;
 
     // Master toggle
     public bool Enabled { get; set; } = false;
@@ -31,6 +32,10 @@ public class Configuration : IPluginConfiguration
     public bool KrangleMinions { get; set; } = false;
     public bool SkipSelfKrangling { get; set; } = false;
     public string CustomSelfDisplayName { get; set; } = string.Empty;
+
+    // Exact player race/clan/gender rules (disabled by default)
+    public bool RaceGenderRulesEnabled { get; set; } = false;
+    public List<PlayerIdentityRule> PlayerIdentityRules { get; set; } = new();
 
     // Exact NPC preset replacements
     public bool AmongusEnabled { get; set; } = false;
@@ -106,10 +111,63 @@ public class Configuration : IPluginConfiguration
 
     public bool Sanitize()
     {
-        var changed = SanitizeAmongusNpcReplacements();
+        var changed = false;
+        if (Version != 2)
+        {
+            Version = 2;
+            changed = true;
+        }
+
+        changed |= SanitizePlayerIdentityRules();
+        changed |= SanitizeAmongusNpcReplacements();
         changed |= SanitizeNonPlayerAppearanceSafety();
         changed |= SanitizeSoulThiefSettings();
         changed |= SanitizeImaginaryFrenSettings();
+        return changed;
+    }
+
+    public bool SanitizePlayerIdentityRules()
+    {
+        if (PlayerIdentityRules == null)
+        {
+            PlayerIdentityRules = new List<PlayerIdentityRule>();
+            return true;
+        }
+
+        var sanitized = new List<PlayerIdentityRule>(Math.Min(PlayerIdentityRules.Count, PlayerIdentityCatalog.Entries.Count));
+        var seenSources = new HashSet<int>();
+
+        foreach (var source in PlayerIdentityRules)
+        {
+            if (!PlayerIdentityCatalog.TryNormalize(source, out var normalized))
+                continue;
+
+            var sourceKey = PlayerIdentityCatalog.GetSourceKey(
+                normalized.SourceRace,
+                normalized.SourceClan,
+                normalized.SourceGender);
+            if (!seenSources.Add(sourceKey))
+                continue;
+
+            sanitized.Add(normalized);
+        }
+
+        var changed = sanitized.Count != PlayerIdentityRules.Count;
+        if (!changed)
+        {
+            for (var index = 0; index < sanitized.Count; index++)
+            {
+                if (PlayerIdentityCatalog.ContentEquals(PlayerIdentityRules[index], sanitized[index]))
+                    continue;
+
+                changed = true;
+                break;
+            }
+        }
+
+        if (changed)
+            PlayerIdentityRules = sanitized;
+
         return changed;
     }
 

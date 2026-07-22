@@ -6,6 +6,7 @@ using System.Numerics;
 using System.Reflection;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Windowing;
+using Krangler.Models;
 
 namespace Krangler.Windows;
 
@@ -15,6 +16,9 @@ public class MainWindow : Window, IDisposable
     private string presetSearch = string.Empty;
     private Vector2? queuedPosition;
     private bool queuedRandomVisibleJump;
+    private bool identityRuleDraftLoaded;
+    private bool identityRuleDraftEnabled;
+    private List<PlayerIdentityRule> identityRuleDraft = new();
 
     public MainWindow(Plugin plugin)
         : base("Krangler###KranglerMain")
@@ -80,6 +84,12 @@ public class MainWindow : Window, IDisposable
             ImGui.EndTabItem();
         }
 
+        if (ImGui.BeginTabItem("Racism"))
+        {
+            DrawRacismTab(config);
+            ImGui.EndTabItem();
+        }
+
         if (ImGui.BeginTabItem("Presets"))
         {
             DrawPresetsTab(config, presetNames);
@@ -116,6 +126,12 @@ public class MainWindow : Window, IDisposable
         ImGui.Spacing();
         ImGui.Text($"Presets loaded: {plugin.GlamourerPresetService.PresetCount}");
         ImGui.Text($"Soul Thief last capture: {config.SoulThiefLastCapturedPlayers} players, {config.SoulThiefLastCapturedNpcs} NPCs, {config.SoulThiefLastCapturedChocobos} chocobos");
+
+        ImGui.Spacing();
+        if (ImGui.Button("Open Setup Wizard"))
+            plugin.OpenSetupWizard();
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip("Reopen the three-step quick setup without changing advanced settings or Racism rules.");
 
         ImGui.Spacing();
         DrawDtrSection(config);
@@ -279,6 +295,140 @@ public class MainWindow : Window, IDisposable
         var krangleMinions = false;
         ImGui.Checkbox("Krangle Minions", ref krangleMinions);
         ImGui.EndDisabled();
+    }
+
+    private void DrawRacismTab(Configuration config)
+    {
+        if (!identityRuleDraftLoaded)
+            ReloadIdentityRuleDraft(config);
+
+        ImGui.Spacing();
+        ImGui.Text("Exact Race / Clan / Gender Rules");
+        ImGui.TextWrapped("Rules match the actor's original local identity. Hide removes the matching 3D actor and in-world nameplate; Replace pseudonymizes supported names and applies the chosen clan and gender after other appearance work.");
+        ImGui.Spacing();
+
+        ImGui.Checkbox("Enable Racism Rules", ref identityRuleDraftEnabled);
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip("This is part of the draft. Use Apply Rules to save or disable the tab.");
+
+        var tableFlags = ImGuiTableFlags.Borders |
+                         ImGuiTableFlags.RowBg |
+                         ImGuiTableFlags.ScrollY |
+                         ImGuiTableFlags.SizingFixedFit;
+        if (ImGui.BeginTable("##PlayerIdentityRules", 8, tableFlags, new Vector2(0, 475)))
+        {
+            ImGui.TableSetupScrollFreeze(0, 1);
+            ImGui.TableSetupColumn("Active");
+            ImGui.TableSetupColumn("Race");
+            ImGui.TableSetupColumn("Clan/Subrace");
+            ImGui.TableSetupColumn("Gender");
+            ImGui.TableSetupColumn("Hide");
+            ImGui.TableSetupColumn("Replace");
+            ImGui.TableSetupColumn("Replacement Clan");
+            ImGui.TableSetupColumn("Replacement Gender");
+            ImGui.TableHeadersRow();
+
+            for (var index = 0; index < identityRuleDraft.Count; index++)
+            {
+                var rule = identityRuleDraft[index];
+                var descriptor = PlayerIdentityCatalog.Entries[index];
+
+                ImGui.PushID(index);
+                ImGui.TableNextRow();
+
+                ImGui.TableSetColumnIndex(0);
+                var active = rule.Active;
+                if (ImGui.Checkbox("##active", ref active))
+                {
+                    rule.Active = active;
+                    if (active)
+                        rule.Action = PlayerIdentityRuleAction.Hide;
+                }
+
+                ImGui.TableSetColumnIndex(1);
+                ImGui.TextUnformatted(descriptor.RaceName);
+
+                ImGui.TableSetColumnIndex(2);
+                ImGui.TextUnformatted(descriptor.ClanName);
+
+                ImGui.TableSetColumnIndex(3);
+                ImGui.TextUnformatted(descriptor.GenderName);
+
+                ImGui.TableSetColumnIndex(4);
+                if (ImGui.RadioButton("##hide", rule.Action == PlayerIdentityRuleAction.Hide))
+                    rule.Action = PlayerIdentityRuleAction.Hide;
+
+                ImGui.TableSetColumnIndex(5);
+                if (ImGui.RadioButton("##replace", rule.Action == PlayerIdentityRuleAction.Replace))
+                    rule.Action = PlayerIdentityRuleAction.Replace;
+
+                var replacementEnabled = rule.Active && rule.Action == PlayerIdentityRuleAction.Replace;
+                ImGui.BeginDisabled(!replacementEnabled);
+
+                ImGui.TableSetColumnIndex(6);
+                DrawReplacementClanCombo(rule);
+
+                ImGui.TableSetColumnIndex(7);
+                DrawReplacementGenderCombo(rule);
+
+                ImGui.EndDisabled();
+                ImGui.PopID();
+            }
+
+            ImGui.EndTable();
+        }
+
+        var activeRules = identityRuleDraft.Count(rule => rule.Active);
+        ImGui.Text($"Draft: {activeRules} active rule(s). Currently hidden by Krangler: {plugin.IdentityRuleService.HiddenActorCount} actor(s).");
+
+        if (ImGui.Button("Apply Rules"))
+        {
+            plugin.ApplyPlayerIdentityRules(identityRuleDraftEnabled, identityRuleDraft);
+            ReloadIdentityRuleDraft(config);
+        }
+
+        ImGui.SameLine();
+        if (ImGui.Button("Discard Edits"))
+            ReloadIdentityRuleDraft(config);
+    }
+
+    private static void DrawReplacementClanCombo(PlayerIdentityRule rule)
+    {
+        PlayerIdentityCatalog.TryGetRaceForClan(rule.ReplacementClan, out var replacementRace);
+        var raceName = PlayerIdentityCatalog.Entries.First(entry => entry.Race == replacementRace).RaceName;
+        var preview = $"{raceName} / {PlayerIdentityCatalog.GetClanName(rule.ReplacementClan)}";
+
+        ImGui.SetNextItemWidth(180);
+        if (!ImGui.BeginCombo("##replacementClan", preview))
+            return;
+
+        foreach (var (clan, clanName) in PlayerIdentityCatalog.ClanOptions)
+        {
+            PlayerIdentityCatalog.TryGetRaceForClan(clan, out var race);
+            var optionRaceName = PlayerIdentityCatalog.Entries.First(entry => entry.Race == race).RaceName;
+            var selected = rule.ReplacementClan == clan;
+            if (ImGui.Selectable($"{optionRaceName} / {clanName}", selected))
+                rule.ReplacementClan = clan;
+            if (selected)
+                ImGui.SetItemDefaultFocus();
+        }
+
+        ImGui.EndCombo();
+    }
+
+    private static void DrawReplacementGenderCombo(PlayerIdentityRule rule)
+    {
+        var replacementGender = (int)rule.ReplacementGender;
+        ImGui.SetNextItemWidth(100);
+        if (ImGui.Combo("##replacementGender", ref replacementGender, "Male\0Female\0"))
+            rule.ReplacementGender = (byte)replacementGender;
+    }
+
+    private void ReloadIdentityRuleDraft(Configuration config)
+    {
+        identityRuleDraftEnabled = config.RaceGenderRulesEnabled;
+        identityRuleDraft = PlayerIdentityCatalog.CreateDraftRules(config.PlayerIdentityRules);
+        identityRuleDraftLoaded = true;
     }
 
     private void DrawPresetsTab(Configuration config, IReadOnlyList<string> presetNames)

@@ -1,5 +1,12 @@
 # Krangler Changelog
 
+## Unreleased
+
+- Added a first-run, reopenable three-step setup wizard for core privacy, self-display, and DTR choices.
+- Added configuration v2 and the 32-row `Racism` tab for exact race/clan/gender Hide or Replace rules, including deterministic sanitation and self opt-out.
+- Added local actor/nameplate suppression with owned restoration, plus rule-aware nameplate, party-list, target, focus-target, and identity-last appearance replacement hooks.
+- Rewrote the README, manifests, and Aethertek copy around Krangler's current local-only features and limitations; Glamourer is no longer listed as a requirement.
+
 ## v0.0.0.1 — 2026-03-23
 
 ### Initial Release

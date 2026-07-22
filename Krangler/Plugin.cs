@@ -65,10 +65,12 @@ public sealed class Plugin : IDalamudPlugin
     public AppearanceService AppearanceService { get; init; }
     public GlamourerPresetService GlamourerPresetService { get; init; }
     public ImaginaryFrenService ImaginaryFrenService { get; init; }
+    public PlayerIdentityRuleService IdentityRuleService { get; init; }
     private KranglerIpcService IpcService { get; init; }
 
     public readonly WindowSystem WindowSystem = new("Krangler");
     private MainWindow MainWindow { get; init; }
+    private SetupWizardWindow SetupWizardWindow { get; init; }
 
     private IDtrBarEntry? dtrEntry;
     private bool wasEnabled;
@@ -298,16 +300,19 @@ public sealed class Plugin : IDalamudPlugin
         var savedConfiguration = PluginInterface.GetPluginConfig() as Configuration;
         var isFirstRun = savedConfiguration == null;
         Configuration = savedConfiguration ?? Configuration.CreateFirstRun();
-        if (isFirstRun || Configuration.Sanitize())
+        if (!isFirstRun && Configuration.Sanitize())
             Configuration.Save();
 
         AppearanceService = new AppearanceService(Log, ObjectTable, Configuration);
         GlamourerPresetService = new GlamourerPresetService(Log, PluginInterface);
         ImaginaryFrenService = new ImaginaryFrenService(this);
+        IdentityRuleService = new PlayerIdentityRuleService(ObjectTable, Log);
         IpcService = new KranglerIpcService(PluginInterface, ImaginaryFrenService, GlamourerPresetService);
 
         MainWindow = new MainWindow(this);
+        SetupWizardWindow = new SetupWizardWindow(this);
         WindowSystem.AddWindow(MainWindow);
+        WindowSystem.AddWindow(SetupWizardWindow);
 
         CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
         {
@@ -316,7 +321,7 @@ public sealed class Plugin : IDalamudPlugin
 
         CommandManager.AddHandler(AliasCommandName, new CommandInfo(OnAliasCommand)
         {
-            HelpMessage = "Krangler: /kr [on|off|debug|fren|ws|j] to control the plugin, or /kr to open UI."
+            HelpMessage = "Krangler: /kr [on|off|wizard|setup|debug|fren|ws|j] to control the plugin, or /kr to open UI."
         });
 
         PluginInterface.UiBuilder.Draw += WindowSystem.Draw;
@@ -362,6 +367,9 @@ public sealed class Plugin : IDalamudPlugin
 
         wasEnabled = Configuration.Enabled;
 
+        if (isFirstRun)
+            SetupWizardWindow.OpenWithFreshDraft();
+
         Log.Information("===Krangler loaded===");
     }
 
@@ -386,6 +394,10 @@ public sealed class Plugin : IDalamudPlugin
             Configuration.Save();
             Log.Information("[Krangler] Disabled via command");
             PrintStatus("Disabled.");
+        }
+        else if (arg is "wizard" or "setup")
+        {
+            OpenSetupWizard();
         }
         else if (arg == "debug")
         {
@@ -417,6 +429,7 @@ public sealed class Plugin : IDalamudPlugin
         ProcessRedrawQueue();
         ProcessCreatedCharacterBaseQueue();
         ProcessPendingAmongusNpcEntries();
+        IdentityRuleService.Update(Configuration);
 
         // Track enable/disable transitions for logging
         if (Configuration.Enabled != wasEnabled)
@@ -431,7 +444,9 @@ public sealed class Plugin : IDalamudPlugin
             else
             {
                 Log.Information("[Krangler] Krangling deactivated");
+                IdentityRuleService.RestoreAll();
                 RevertAllAppearances();
+                IdentityRuleService.ResetIdentityCache();
                 RestoreTargetInfoSurfaces();
             }
             wasEnabled = Configuration.Enabled;
@@ -453,7 +468,8 @@ public sealed class Plugin : IDalamudPlugin
             Configuration.KrangleAppearance ||
             SuperKrangleMaster4000_Active ||
             HasActiveAmongusReplacements() ||
-            HasActiveSoulThiefTargets())
+            HasActiveSoulThiefTargets() ||
+            Services.PlayerIdentityRuleService.HasActiveReplacementRules(Configuration))
         {
             var now = DateTime.UtcNow;
             if ((now - lastAppearanceScan).TotalSeconds >= 5)
@@ -463,8 +479,13 @@ public sealed class Plugin : IDalamudPlugin
             }
         }
 
+        // Identity replacements are always the final appearance write for loaded players.
+        ApplyPlayerIdentityRuleReplacements();
+
         // Party list krangling (throttled to every 1 second)
-        if (Configuration.KrangleNames || SuperKrangleMaster4000_Active)
+        if (Configuration.KrangleNames ||
+            SuperKrangleMaster4000_Active ||
+            Services.PlayerIdentityRuleService.HasActiveReplacementRules(Configuration))
         {
             UpdateTargetInfoSurfaces();
 
@@ -485,6 +506,7 @@ public sealed class Plugin : IDalamudPlugin
     private void OnTerritoryChanged(uint territory)
     {
         ImaginaryFrenService.Despawn($"territory change {territory}");
+        IdentityRuleService.ResetIdentityCache();
 
         if (!Configuration.Enabled) return;
         
@@ -684,6 +706,8 @@ public sealed class Plugin : IDalamudPlugin
 
         if (!TryFindPlayerCharacterByCreateBuffers(customize, equipment, out var objectKey, out var playerName, out var character))
             return false;
+
+        IdentityRuleService.CaptureOriginalIdentity(objectKey, (nint)character, customize);
 
         var selection = ResolveSuperKrangleSelection(playerName);
         var preset = GlamourerPresetService.ResolvePresetSelection(playerName, selection);
@@ -1587,6 +1611,13 @@ public sealed class Plugin : IDalamudPlugin
                 }
             }
 
+            if (isPlayer)
+            {
+                IdentityRuleService.CaptureOriginalIdentity(obj);
+                if (IdentityRuleService.IsHidden(obj))
+                    continue;
+            }
+
             if (isAmongusNpc)
             {
                 seenAmongusNpcNames.Add(amongusReplacement.NpcName.Trim());
@@ -1772,6 +1803,63 @@ public sealed class Plugin : IDalamudPlugin
         else
         {
             currentVisiblePlayerCount = playerCount;
+        }
+    }
+
+    private unsafe void ApplyPlayerIdentityRuleReplacements()
+    {
+        if (!Configuration.Enabled ||
+            !Services.PlayerIdentityRuleService.HasActiveReplacementRules(Configuration))
+        {
+            return;
+        }
+
+        for (var objectIndex = 0; objectIndex < ObjectTable.Length; objectIndex++)
+        {
+            var obj = ObjectTable[objectIndex];
+            if (obj == null || obj.ObjectKind != ObjectKind.Pc || obj.Address == nint.Zero ||
+                IdentityRuleService.IsHidden(obj) ||
+                !IdentityRuleService.TryGetMatchingRule(obj, Configuration, out var rule) ||
+                rule.Action != PlayerIdentityRuleAction.Replace ||
+                !PlayerIdentityCatalog.TryGetRaceForClan(rule.ReplacementClan, out var replacementRace))
+            {
+                continue;
+            }
+
+            try
+            {
+                var character = (CharacterStruct*)obj.Address;
+                if (character == null || !SupportsHumanCustomize(character))
+                    continue;
+
+                var objectKey = GetAppearanceObjectKey(obj);
+                SaveOriginalAppearanceIfNeeded(objectKey, character, obj.Address);
+
+                ref var customize = ref character->DrawData.CustomizeData;
+                if (customize.Race == replacementRace &&
+                    customize.Tribe == rule.ReplacementClan &&
+                    customize.Sex == rule.ReplacementGender)
+                {
+                    continue;
+                }
+
+                customize.Race = replacementRace;
+                customize.Tribe = rule.ReplacementClan;
+                customize.Sex = rule.ReplacementGender;
+
+                var refreshed = RefreshCharacterCustomize(character);
+                QueuePenumbraStyleRedraw(obj.Address);
+                if (!hasLoggedAppearanceScan)
+                {
+                    Log.Information(
+                        $"[Krangler] Identity rule replaced '{obj.Name}': race={replacementRace}, clan={rule.ReplacementClan}, gender={rule.ReplacementGender}, refresh={refreshed}");
+                }
+            }
+            catch (Exception ex)
+            {
+                if (!hasLoggedAppearanceScan)
+                    Log.Warning($"[Krangler] Failed to apply identity replacement to '{obj.Name}': {ex.Message}");
+            }
         }
     }
 
@@ -2703,74 +2791,9 @@ public sealed class Plugin : IDalamudPlugin
         
         // Log.Information("[Krangler] _PartyList addon found and visible - scanning party members");
 
-        // Build lookup of original party member names -> krangled names
-        var nameMap = new Dictionary<string, string>();
-        // Log.Information($"[Krangler] PartyList.Length = {PartyList.Length}");
-        
-        // Check if we have party members
-        var hasPartyMembers = false;
-        for (int i = 0; i < PartyList.Length; i++)
-        {
-            var member = PartyList[i];
-            if (member == null) 
-            {
-                Log.Information($"[Krangler] PartyList member {i} is null");
-                continue;
-            }
-            var orig = member.Name.ToString();
-            if (string.IsNullOrEmpty(orig))
-            {
-                Log.Information($"[Krangler] PartyList member {i} has empty name");
-                continue;
-            }
-            
-            hasPartyMembers = true;
-            var replacementName = GetNameReplacement(orig);
-            if (!string.Equals(orig, replacementName, StringComparison.Ordinal))
-                nameMap[orig] = replacementName;
-
-            var krangledName = KrangleService.KrangleName(orig);
-            if (!string.Equals(krangledName, replacementName, StringComparison.Ordinal))
-                nameMap[krangledName] = replacementName;
-
-            if (IsLocalPlayerName(orig))
-            {
-                var configuredSelfName = GetConfiguredSelfDisplayName();
-                if (!string.IsNullOrWhiteSpace(configuredSelfName) &&
-                    !string.Equals(configuredSelfName, replacementName, StringComparison.Ordinal))
-                {
-                    nameMap[configuredSelfName] = replacementName;
-                }
-            }
-
-            Log.Information($"[Krangler] PartyList member {i}: '{orig}' -> '{replacementName}'");
-        }
-
-        // SOLO PARTY: If no party members, try to krangle the player's own name
-        if (!hasPartyMembers && ObjectTable.LocalPlayer != null)
-        {
-            var playerName = ObjectTable.LocalPlayer.Name.ToString();
-            if (!string.IsNullOrEmpty(playerName))
-            {
-                var replacementName = GetNameReplacement(playerName);
-                if (!string.Equals(playerName, replacementName, StringComparison.Ordinal))
-                    nameMap[playerName] = replacementName;
-
-                var krangledName = KrangleService.KrangleName(playerName);
-                if (!string.Equals(krangledName, replacementName, StringComparison.Ordinal))
-                    nameMap[krangledName] = replacementName;
-
-                var configuredSelfName = GetConfiguredSelfDisplayName();
-                if (!string.IsNullOrWhiteSpace(configuredSelfName) &&
-                    !string.Equals(configuredSelfName, replacementName, StringComparison.Ordinal))
-                {
-                    nameMap[configuredSelfName] = replacementName;
-                }
-
-                if (nameMap.Count > 0)
-                    Log.Information($"[Krangler] Solo party: '{playerName}' -> '{replacementName}'");
-            }
-        }
+        // Rule-only replacement maps are built from locally loaded players. Party members
+        // that are not loaded cannot be classified safely and are intentionally left alone.
+        var nameMap = BuildPlayerNameMap();
 
         if (nameMap.Count == 0)
         {
@@ -3106,7 +3129,9 @@ public sealed class Plugin : IDalamudPlugin
         }
 
         if (!Configuration.Enabled ||
-            (!Configuration.KrangleNames && !SuperKrangleMaster4000_Active))
+            (!Configuration.KrangleNames &&
+             !SuperKrangleMaster4000_Active &&
+             !Services.PlayerIdentityRuleService.HasActiveReplacementRules(Configuration)))
         {
             ResetPartyMemberListFallbackState();
             return;
@@ -3209,7 +3234,7 @@ public sealed class Plugin : IDalamudPlugin
         if (forceOriginal)
             return originalName;
 
-        return target.ObjectKind == ObjectKind.Pc
+        return target.ObjectKind == ObjectKind.Pc && ShouldKranglePlayerName(target)
             ? GetNameReplacement(originalName)
             : originalName;
     }
@@ -3221,22 +3246,25 @@ public sealed class Plugin : IDalamudPlugin
         for (var i = 0; i < ObjectTable.Length; i++)
         {
             var obj = ObjectTable[i];
-            if (obj == null || obj.ObjectKind != ObjectKind.Pc)
+            if (obj == null || obj.ObjectKind != ObjectKind.Pc || !ShouldKranglePlayerName(obj))
                 continue;
 
             AddNameReplacement(nameMap, obj.Name.ToString());
         }
 
-        for (var i = 0; i < PartyList.Length; i++)
+        if (Configuration.KrangleNames || SuperKrangleMaster4000_Active)
         {
-            var member = PartyList[i];
-            if (member == null)
-                continue;
+            for (var i = 0; i < PartyList.Length; i++)
+            {
+                var member = PartyList[i];
+                if (member == null)
+                    continue;
 
-            AddNameReplacement(nameMap, member.Name.ToString());
+                AddNameReplacement(nameMap, member.Name.ToString());
+            }
         }
 
-        if (ObjectTable.LocalPlayer != null)
+        if (ObjectTable.LocalPlayer != null && ShouldKranglePlayerName(ObjectTable.LocalPlayer))
             AddNameReplacement(nameMap, ObjectTable.LocalPlayer.Name.ToString());
 
         return nameMap;
@@ -3419,7 +3447,10 @@ public sealed class Plugin : IDalamudPlugin
 
     private void OnNamePlateUpdate(INamePlateUpdateContext context, IReadOnlyList<INamePlateUpdateHandler> handlers)
     {
-        if (!Configuration.Enabled)
+        if (!Configuration.Enabled ||
+            (!Configuration.KrangleNames &&
+             !SuperKrangleMaster4000_Active &&
+             !Services.PlayerIdentityRuleService.HasActiveReplacementRules(Configuration)))
             return;
 
         var playerCount = 0;
@@ -3434,9 +3465,10 @@ public sealed class Plugin : IDalamudPlugin
             playerCount++;
             var originalName = handler.Name.ToString();
             var skipSelfKrangling = ShouldSkipSelfKrangling(originalName);
+            var replaceByIdentityRule = IdentityRuleService.ShouldReplace(handler.GameObjectId, Configuration);
 
             // Krangle name
-            if (Configuration.KrangleNames)
+            if (Configuration.KrangleNames || replaceByIdentityRule)
             {
                 if (!string.IsNullOrEmpty(originalName))
                 {
@@ -3447,7 +3479,7 @@ public sealed class Plugin : IDalamudPlugin
                 }
             }
 
-            if (skipSelfKrangling)
+            if (skipSelfKrangling || !Configuration.KrangleNames)
                 continue;
 
             // Krangle FC tag
@@ -3550,6 +3582,69 @@ public sealed class Plugin : IDalamudPlugin
     }
 
     public void ToggleMainUi() => MainWindow.Toggle();
+
+    public void OpenSetupWizard()
+    {
+        SetupWizardWindow.OpenWithFreshDraft();
+    }
+
+    public void ApplyPlayerIdentityRules(bool enabled, IReadOnlyList<PlayerIdentityRule> rules)
+    {
+        IdentityRuleService.RestoreAll();
+        RestoreNameKrangleSurfaces();
+        if (Configuration.Enabled)
+            RevertAllAppearances();
+
+        Configuration.RaceGenderRulesEnabled = enabled;
+        Configuration.PlayerIdentityRules = new List<PlayerIdentityRule>(rules.Count);
+        foreach (var rule in rules)
+            Configuration.PlayerIdentityRules.Add(rule.Clone());
+        Configuration.SanitizePlayerIdentityRules();
+
+        IdentityRuleService.ResetIdentityCache();
+        RefreshNameKrangleSurfaces();
+        hasLoggedAppearanceScan = false;
+        lastAppearanceScan = DateTime.MinValue;
+        Configuration.Save();
+    }
+
+    public void ApplySetupWizardSettings(
+        bool enabled,
+        bool krangleNames,
+        bool krangleChat,
+        bool krangleRaces,
+        bool krangleGenders,
+        bool krangleAppearance,
+        bool skipSelfKrangling,
+        string customSelfDisplayName,
+        bool dtrBarEnabled,
+        int dtrBarMode)
+    {
+        IdentityRuleService.RestoreAll();
+        RestoreNameKrangleSurfaces();
+        if (Configuration.Enabled)
+            RevertAllAppearances();
+
+        Configuration.Enabled = enabled;
+        Configuration.KrangleNames = krangleNames;
+        Configuration.KrangleChat = krangleChat;
+        Configuration.KrangleRaces = krangleRaces;
+        Configuration.KrangleGenders = krangleGenders;
+        Configuration.KrangleAppearance = krangleAppearance;
+        Configuration.SkipSelfKrangling = skipSelfKrangling;
+        Configuration.CustomSelfDisplayName = SanitizeCustomSelfDisplayName(customSelfDisplayName);
+        Configuration.DtrBarEnabled = dtrBarEnabled;
+        Configuration.DtrBarMode = Math.Clamp(dtrBarMode, 0, 2);
+
+        IdentityRuleService.ResetIdentityCache();
+        AppearanceService.Reset();
+        RefreshNameKrangleSurfaces();
+        hasLoggedAppearanceScan = false;
+        lastAppearanceScan = DateTime.MinValue;
+        wasEnabled = Configuration.Enabled;
+        Configuration.Save();
+        UpdateDtrBar();
+    }
 
     public bool ShowDebugOptions => Configuration.ShowDebugOptions;
     public bool DisableDateBasedSuperKrangleEvent => Configuration.DisableDateBasedSuperKrangleEvent;
@@ -3662,6 +3757,57 @@ public sealed class Plugin : IDalamudPlugin
         return false;
     }
 
+    private unsafe void RestoreNameKrangleSurfaces()
+    {
+        RestoreTargetInfoSurfaces();
+
+        var restoreMap = new Dictionary<string, string>(StringComparer.Ordinal);
+        void AddRestoreName(string originalName)
+        {
+            if (string.IsNullOrWhiteSpace(originalName))
+                return;
+
+            var krangled = KrangleService.KrangleName(originalName);
+            if (!string.Equals(krangled, originalName, StringComparison.Ordinal))
+                restoreMap.TryAdd(krangled, originalName);
+
+            if (IsLocalPlayerName(originalName))
+            {
+                var configured = GetConfiguredSelfDisplayName();
+                if (!string.IsNullOrWhiteSpace(configured) &&
+                    !string.Equals(configured, originalName, StringComparison.Ordinal))
+                {
+                    restoreMap.TryAdd(configured, originalName);
+                }
+            }
+        }
+
+        for (var index = 0; index < ObjectTable.Length; index++)
+        {
+            var obj = ObjectTable[index];
+            if (obj != null && obj.ObjectKind == ObjectKind.Pc)
+                AddRestoreName(obj.Name.ToString());
+        }
+
+        for (var index = 0; index < PartyList.Length; index++)
+        {
+            var member = PartyList[index];
+            if (member != null)
+                AddRestoreName(member.Name.ToString());
+        }
+
+        if (restoreMap.Count == 0)
+            return;
+
+        var partyList = Instance()->GetAddonByName("_PartyList");
+        if (partyList != null && partyList->IsVisible)
+            WalkUldManagerNodeListAndReplaceTextNodes(partyList, restoreMap);
+
+        var partyMemberList = Instance()->GetAddonByName("PartyMemberList");
+        if (partyMemberList != null && partyMemberList->IsVisible)
+            TryKranglePartyMemberListNodes(partyMemberList, restoreMap);
+    }
+
     private void RefreshNameKrangleSurfaces()
     {
         hasLoggedNameplateUpdate = false;
@@ -3710,6 +3856,16 @@ public sealed class Plugin : IDalamudPlugin
             return GetResolvedSelfDisplayName(originalName);
 
         return KrangleService.KrangleName(originalName);
+    }
+
+    private bool ShouldKranglePlayerName(IGameObject? player)
+    {
+        if (player == null || player.ObjectKind != ObjectKind.Pc)
+            return false;
+
+        return Configuration.KrangleNames ||
+               SuperKrangleMaster4000_Active ||
+               IdentityRuleService.ShouldReplace(player, Configuration);
     }
 
     private string GetResolvedSelfDisplayName(string fallbackName)
@@ -4796,6 +4952,7 @@ public sealed class Plugin : IDalamudPlugin
     {
         createCharacterBaseHook?.Disable();
         createCharacterBaseHook?.Dispose();
+        IdentityRuleService.Dispose();
         ImaginaryFrenService.Dispose();
         IpcService.Dispose();
         Framework.Update -= Framework_OnUpdate;
