@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Conditions;
@@ -66,6 +67,7 @@ public sealed class Plugin : IDalamudPlugin
     public GlamourerPresetService GlamourerPresetService { get; init; }
     public ImaginaryFrenService ImaginaryFrenService { get; init; }
     public PlayerIdentityRuleService IdentityRuleService { get; init; }
+    public DadPrivacyLeaseService DadPrivacyLease { get; init; }
     private KranglerIpcService IpcService { get; init; }
 
     public readonly WindowSystem WindowSystem = new("Krangler");
@@ -291,6 +293,7 @@ public sealed class Plugin : IDalamudPlugin
     private int currentVisiblePlayerCount;
     private bool isRevertingAppearances;
     private bool hasShownPartyMemberListFallbackWarning;
+    private int dadPrivacyLeaseRefreshPending;
     private const int CharacterBaseReapplyAttempts = 5;
 
     private unsafe delegate CharacterBaseStruct* CreateCharacterBaseDelegate(uint modelId, GameCustomizeData* customize, EquipmentModelId* equipment, byte unk);
@@ -307,7 +310,8 @@ public sealed class Plugin : IDalamudPlugin
         GlamourerPresetService = new GlamourerPresetService(Log, PluginInterface);
         ImaginaryFrenService = new ImaginaryFrenService(this);
         IdentityRuleService = new PlayerIdentityRuleService(ObjectTable, Log);
-        IpcService = new KranglerIpcService(PluginInterface, ImaginaryFrenService, GlamourerPresetService);
+        DadPrivacyLease = new DadPrivacyLeaseService(OnDadPrivacyLeaseActivityChanged);
+        IpcService = new KranglerIpcService(PluginInterface, ImaginaryFrenService, GlamourerPresetService, DadPrivacyLease);
 
         MainWindow = new MainWindow(this);
         SetupWizardWindow = new SetupWizardWindow(this);
@@ -423,6 +427,7 @@ public sealed class Plugin : IDalamudPlugin
 
     private void Framework_OnUpdate(IFramework framework)
     {
+        ApplyPendingDadPrivacyLeaseRefresh();
         ResetEventFlags();
         
         // Process staggered redraws — one character per N frames
@@ -454,38 +459,40 @@ public sealed class Plugin : IDalamudPlugin
 
         ImaginaryFrenService.Update();
 
-        if (!Configuration.Enabled)
+        var nameSurfacesActive = AreNameKrangleSurfacesActive;
+        if (!Configuration.Enabled && !nameSurfacesActive)
         {
             UpdateDtrBar();
             return;
         }
 
-        MaintainAmongusNpcVisibility();
-
-        // Appearance krangling via direct memory (throttled to every 5 seconds)
-        if (Configuration.KrangleGenders ||
-            Configuration.KrangleRaces ||
-            Configuration.KrangleAppearance ||
-            SuperKrangleMaster4000_Active ||
-            HasActiveAmongusReplacements() ||
-            HasActiveSoulThiefTargets() ||
-            Services.PlayerIdentityRuleService.HasActiveReplacementRules(Configuration))
+        if (Configuration.Enabled)
         {
-            var now = DateTime.UtcNow;
-            if ((now - lastAppearanceScan).TotalSeconds >= 5)
+            MaintainAmongusNpcVisibility();
+
+            // Appearance krangling via direct memory (throttled to every 5 seconds)
+            if (Configuration.KrangleGenders ||
+                Configuration.KrangleRaces ||
+                Configuration.KrangleAppearance ||
+                SuperKrangleMaster4000_Active ||
+                HasActiveAmongusReplacements() ||
+                HasActiveSoulThiefTargets() ||
+                Services.PlayerIdentityRuleService.HasActiveReplacementRules(Configuration))
             {
-                lastAppearanceScan = now;
-                ScanAndKrangleAppearances();
+                var now = DateTime.UtcNow;
+                if ((now - lastAppearanceScan).TotalSeconds >= 5)
+                {
+                    lastAppearanceScan = now;
+                    ScanAndKrangleAppearances();
+                }
             }
+
+            // Identity replacements are always the final appearance write for loaded players.
+            ApplyPlayerIdentityRuleReplacements();
         }
 
-        // Identity replacements are always the final appearance write for loaded players.
-        ApplyPlayerIdentityRuleReplacements();
-
         // Party list krangling (throttled to every 1 second)
-        if (Configuration.KrangleNames ||
-            SuperKrangleMaster4000_Active ||
-            Services.PlayerIdentityRuleService.HasActiveReplacementRules(Configuration))
+        if (nameSurfacesActive)
         {
             UpdateTargetInfoSurfaces();
 
@@ -508,16 +515,19 @@ public sealed class Plugin : IDalamudPlugin
         ImaginaryFrenService.Despawn($"territory change {territory}");
         IdentityRuleService.ResetIdentityCache();
 
-        if (!Configuration.Enabled) return;
+        if (!Configuration.Enabled && !DadPrivacyLease.IsActive) return;
         
         Log.Information($"[Krangler] Territory changed to {territory}, re-applying krangle mode");
 
-        RevertAllAppearances();
-        
-        // Force immediate scan to re-apply krangling
-        lastAppearanceScan = DateTime.MinValue;
+        if (Configuration.Enabled)
+        {
+            RevertAllAppearances();
+            lastAppearanceScan = DateTime.MinValue;
+            hasLoggedAppearanceScan = false;
+        }
+
+        // Force immediate name-surface scan to re-apply krangling.
         lastPartyListScan = DateTime.MinValue;
-        hasLoggedAppearanceScan = false;
         hasLoggedPartyList = false;
     }
 
@@ -1514,7 +1524,7 @@ public sealed class Plugin : IDalamudPlugin
 
     private void OnChatMessage(IHandleableChatMessage chatMessage)
     {
-        if (!Configuration.Enabled || !Configuration.KrangleChat)
+        if (!IsEffectiveChatKranglingEnabled)
             return;
 
         try
@@ -3128,10 +3138,7 @@ public sealed class Plugin : IDalamudPlugin
                 return;
         }
 
-        if (!Configuration.Enabled ||
-            (!Configuration.KrangleNames &&
-             !SuperKrangleMaster4000_Active &&
-             !Services.PlayerIdentityRuleService.HasActiveReplacementRules(Configuration)))
+        if (!AreNameKrangleSurfacesActive)
         {
             ResetPartyMemberListFallbackState();
             return;
@@ -3252,7 +3259,8 @@ public sealed class Plugin : IDalamudPlugin
             AddNameReplacement(nameMap, obj.Name.ToString());
         }
 
-        if (Configuration.KrangleNames || SuperKrangleMaster4000_Active)
+        if (IsEffectiveNameKranglingEnabled ||
+            (Configuration.Enabled && SuperKrangleMaster4000_Active))
         {
             for (var i = 0; i < PartyList.Length; i++)
             {
@@ -3447,10 +3455,7 @@ public sealed class Plugin : IDalamudPlugin
 
     private void OnNamePlateUpdate(INamePlateUpdateContext context, IReadOnlyList<INamePlateUpdateHandler> handlers)
     {
-        if (!Configuration.Enabled ||
-            (!Configuration.KrangleNames &&
-             !SuperKrangleMaster4000_Active &&
-             !Services.PlayerIdentityRuleService.HasActiveReplacementRules(Configuration)))
+        if (!AreNameKrangleSurfacesActive)
             return;
 
         var playerCount = 0;
@@ -3468,7 +3473,7 @@ public sealed class Plugin : IDalamudPlugin
             var replaceByIdentityRule = IdentityRuleService.ShouldReplace(handler.GameObjectId, Configuration);
 
             // Krangle name
-            if (Configuration.KrangleNames || replaceByIdentityRule)
+            if (IsEffectiveNameKranglingEnabled || replaceByIdentityRule)
             {
                 if (!string.IsNullOrEmpty(originalName))
                 {
@@ -3479,7 +3484,7 @@ public sealed class Plugin : IDalamudPlugin
                 }
             }
 
-            if (skipSelfKrangling || !Configuration.KrangleNames)
+            if (skipSelfKrangling || !IsEffectiveNameKranglingEnabled)
                 continue;
 
             // Krangle FC tag
@@ -3815,6 +3820,39 @@ public sealed class Plugin : IDalamudPlugin
         lastPartyListScan = DateTime.MinValue;
     }
 
+    private bool IsEffectiveNameKranglingEnabled
+        => EffectiveDadPrivacyLeaseEffects.NameKranglingEnabled;
+
+    private bool IsEffectiveChatKranglingEnabled
+        => EffectiveDadPrivacyLeaseEffects.ChatKranglingEnabled;
+
+    private DadPrivacyLeaseEffects EffectiveDadPrivacyLeaseEffects
+        => DadPrivacyLeasePolicy.Resolve(
+            DadPrivacyLease.IsActive,
+            Configuration.Enabled,
+            Configuration.KrangleNames,
+            Configuration.KrangleChat,
+            Configuration.SkipSelfKrangling);
+
+    private bool AreNameKrangleSurfacesActive
+        => IsEffectiveNameKranglingEnabled ||
+           (Configuration.Enabled &&
+            (SuperKrangleMaster4000_Active ||
+             Services.PlayerIdentityRuleService.HasActiveReplacementRules(Configuration)));
+
+    private void OnDadPrivacyLeaseActivityChanged()
+        => Interlocked.Exchange(ref dadPrivacyLeaseRefreshPending, 1);
+
+    private void ApplyPendingDadPrivacyLeaseRefresh()
+    {
+        if (Interlocked.Exchange(ref dadPrivacyLeaseRefreshPending, 0) == 0)
+            return;
+
+        RestoreNameKrangleSurfaces();
+        RestoreTargetInfoSurfaces();
+        RefreshNameKrangleSurfaces();
+    }
+
     private void RefreshSelfKrangleState(bool revertLocalAppearance)
     {
         RefreshNameKrangleSurfaces();
@@ -3837,7 +3875,8 @@ public sealed class Plugin : IDalamudPlugin
 
     private bool ShouldSkipSelfKrangling(string playerName)
     {
-        return Configuration.SkipSelfKrangling && IsLocalPlayerName(playerName);
+        return EffectiveDadPrivacyLeaseEffects.SkipSelfNameKrangling &&
+               IsLocalPlayerName(playerName);
     }
 
     private bool IsLocalPlayerName(string playerName)
@@ -3863,9 +3902,10 @@ public sealed class Plugin : IDalamudPlugin
         if (player == null || player.ObjectKind != ObjectKind.Pc)
             return false;
 
-        return Configuration.KrangleNames ||
-               SuperKrangleMaster4000_Active ||
-               IdentityRuleService.ShouldReplace(player, Configuration);
+        return IsEffectiveNameKranglingEnabled ||
+               (Configuration.Enabled &&
+                (SuperKrangleMaster4000_Active ||
+                 IdentityRuleService.ShouldReplace(player, Configuration)));
     }
 
     private string GetResolvedSelfDisplayName(string fallbackName)
@@ -4950,11 +4990,11 @@ public sealed class Plugin : IDalamudPlugin
 
     public void Dispose()
     {
+        IpcService.Dispose();
         createCharacterBaseHook?.Disable();
         createCharacterBaseHook?.Dispose();
         IdentityRuleService.Dispose();
         ImaginaryFrenService.Dispose();
-        IpcService.Dispose();
         Framework.Update -= Framework_OnUpdate;
         AddonLifecycle.UnregisterListener(OnPartyMemberListAddon);
         NamePlateGui.OnNamePlateUpdate -= OnNamePlateUpdate;

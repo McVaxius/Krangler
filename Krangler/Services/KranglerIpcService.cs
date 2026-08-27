@@ -21,29 +21,41 @@ public sealed class KranglerIpcService : IDisposable
 
     private readonly ImaginaryFrenService imaginaryFrenService;
     private readonly GlamourerPresetService presetService;
+    private readonly DadPrivacyLeaseService dadPrivacyLeaseService;
     private readonly List<Action> unregister = new();
 
     public KranglerIpcService(
         IDalamudPluginInterface pluginInterface,
         ImaginaryFrenService imaginaryFrenService,
-        GlamourerPresetService presetService)
+        GlamourerPresetService presetService,
+        DadPrivacyLeaseService dadPrivacyLeaseService)
     {
         this.imaginaryFrenService = imaginaryFrenService;
         this.presetService = presetService;
+        this.dadPrivacyLeaseService = dadPrivacyLeaseService;
 
         Register(pluginInterface.GetIpcProvider<string, string>(ImaginaryFrenSetName), imaginaryFrenService.SetFromJson);
         Register(pluginInterface.GetIpcProvider<string>(ImaginaryFrenStatusName), () => imaginaryFrenService.GetStatusJson());
         Register(pluginInterface.GetIpcProvider<string>(ImaginaryFrenPresetNamesName), GetPresetNamesJson);
         Register(pluginInterface.GetIpcProvider<string, string>(PresetExportName), ExportPresetJson);
         Register(pluginInterface.GetIpcProvider<string, string>(PresetImportName), ImportPresetJson);
+        Register(pluginInterface.GetIpcProvider<string, string>(DadPrivacyLeaseContract.AcquireIpcName), dadPrivacyLeaseService.AcquireFromJson);
+        Register(pluginInterface.GetIpcProvider<string, string>(DadPrivacyLeaseContract.ReleaseIpcName), dadPrivacyLeaseService.ReleaseFromJson);
+        Register(pluginInterface.GetIpcProvider<string, string>(DadPrivacyLeaseContract.StatusIpcName), dadPrivacyLeaseService.GetStatusJson);
     }
 
     public void Dispose()
     {
-        foreach (var action in unregister)
-            action();
-
-        unregister.Clear();
+        try
+        {
+            foreach (var action in unregister)
+                action();
+        }
+        finally
+        {
+            unregister.Clear();
+            dadPrivacyLeaseService.Dispose();
+        }
     }
 
     private string GetPresetNamesJson()

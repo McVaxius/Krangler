@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added runtime-only DAD privacy lease IPC that temporarily forces name and chat krangling to include self, with exact-token ownership, status, stale-owner replacement, and no configuration changes.
 - Added a first-run, reopenable three-step setup wizard for core privacy, self-display, and DTR choices.
 - Added configuration v2 and the 32-row `Racism` tab for exact race/clan/gender Hide or Replace rules, including deterministic sanitation and self opt-out.
 - Added local actor/nameplate suppression with owned restoration, plus rule-aware nameplate, party-list, target, focus-target, and identity-last appearance replacement hooks.

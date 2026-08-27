@@ -5,7 +5,7 @@
     "Punchline": "Local screenshot privacy: hide, rename, or restyle visible characters.",
     "Description": "Krangler is a local-only screenshot privacy and appearance tool. Garble chat, pseudonymize player names, randomize or preset appearances, hide or replace exact race/clan/gender combinations, capture visible looks as presets, and spawn an optional local follower. Use /kr to configure.",
     "InternalName": "Krangler",
-    "AssemblyVersion": "1.1.0.0",
+    "AssemblyVersion": "1.1.0.1",
     "RepoUrl": "https://github.com/McVaxius/Krangler",
     "ApplicableVersion": "any",
     "Tags": [
@@ -15,8 +15,8 @@
       "randomize"
     ],
     "DalamudApiLevel": 15,
-    "DownloadLinkInstall": "https://github.com/McVaxius/Krangler/releases/download/v1.1.0.0/latest.zip",
-    "DownloadLinkUpdate": "https://github.com/McVaxius/Krangler/releases/download/v1.1.0.0/latest.zip",
+    "DownloadLinkInstall": "https://github.com/McVaxius/Krangler/releases/download/v1.1.0.1/latest.zip",
+    "DownloadLinkUpdate": "https://github.com/McVaxius/Krangler/releases/download/v1.1.0.1/latest.zip",
     "IconUrl": "https://raw.githubusercontent.com/McVaxius/Krangler/master/Krangler/images/icon.png",
     "ImageUrls": []
   }
