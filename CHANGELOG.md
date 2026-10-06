@@ -1,5 +1,9 @@
 # Krangler Changelog
 
+## Unreleased - GitHub Actions dependency alignment
+
+- Pin the existing AethertekUI Actions checkout to published revision `6c193cf06ac67f954c549cafc2033ac0efdd630a`, which includes the Hindi text host and renderer. This fixes missing-text-API compilation after a consumer is published before its library; local workflow validation and hosted build results are separate.
+
 ## Unreleased - Hindi UI text
 
 - Append Hindi after the fourteen existing language choices with all 239 catalog entries translated, including displayed authored service and diagnostic templates. Shape Devanagari through a consumer-owned text host across the complete main/setup/font-status lifecycle, retaining native glyph checks for other scripts and original font-role heights.
