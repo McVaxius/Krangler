@@ -1,0 +1,719 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms</value>
+  </resheader>
+  <data name="K000" xml:space="preserve">
+    <value>({0} presets)</value>
+  </data>
+  <data name="K001" xml:space="preserve">
+    <value>{0} Icon</value>
+  </data>
+  <data name="K002" xml:space="preserve">
+    <value>{0} Icon Code</value>
+  </data>
+  <data name="K003" xml:space="preserve">
+    <value>♡ Ko-fi ♡</value>
+  </data>
+  <data name="K004" xml:space="preserve">
+    <value>Accessories</value>
+  </data>
+  <data name="K005" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="K006" xml:space="preserve">
+    <value>Amongus</value>
+  </data>
+  <data name="K007" xml:space="preserve">
+    <value>Appearance</value>
+  </data>
+  <data name="K008" xml:space="preserve">
+    <value>Apply From Preset</value>
+  </data>
+  <data name="K009" xml:space="preserve">
+    <value>Apply Rules</value>
+  </data>
+  <data name="K010" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="K011" xml:space="preserve">
+    <value>Base frame delay before the next queued redraw. Actual delay scales with crowd size.</value>
+  </data>
+  <data name="K012" xml:space="preserve">
+    <value>Base Redraw Delay</value>
+  </data>
+  <data name="K013" xml:space="preserve">
+    <value>Blue</value>
+  </data>
+  <data name="K014" xml:space="preserve">
+    <value>Body</value>
+  </data>
+  <data name="K015" xml:space="preserve">
+    <value>Broad non-player native mutation is currently blocked for crash safety.</value>
+  </data>
+  <data name="K016" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="K017" xml:space="preserve">
+    <value>Capture Chocobos</value>
+  </data>
+  <data name="K018" xml:space="preserve">
+    <value>Capture Interval</value>
+  </data>
+  <data name="K019" xml:space="preserve">
+    <value>Capture NPCs</value>
+  </data>
+  <data name="K020" xml:space="preserve">
+    <value>Capture Players</value>
+  </data>
+  <data name="K021" xml:space="preserve">
+    <value>Chat</value>
+  </data>
+  <data name="K022" xml:space="preserve">
+    <value>Chocobos</value>
+  </data>
+  <data name="K023" xml:space="preserve">
+    <value>Choose the broad local-only surfaces you want Krangler to change. You can refine every option later in the main window.</value>
+  </data>
+  <data name="K024" xml:space="preserve">
+    <value>Clan/Subrace</value>
+  </data>
+  <data name="K025" xml:space="preserve">
+    <value>Color</value>
+  </data>
+  <data name="K026" xml:space="preserve">
+    <value>Compact mode</value>
+  </data>
+  <data name="K027" xml:space="preserve">
+    <value>Companion Preset Targets</value>
+  </data>
+  <data name="K028" xml:space="preserve">
+    <value>Copies the Lodestone blog link with suggested glyphs.</value>
+  </data>
+  <data name="K029" xml:space="preserve">
+    <value>Copy Icon Guide Link</value>
+  </data>
+  <data name="K030" xml:space="preserve">
+    <value>Core privacy choices</value>
+  </data>
+  <data name="K031" xml:space="preserve">
+    <value>Custom RGB</value>
+  </data>
+  <data name="K032" xml:space="preserve">
+    <value>Custom Self Display Name</value>
+  </data>
+  <data name="K033" xml:space="preserve">
+    <value>Customize the glyphs used for enabled and disabled icon modes.</value>
+  </data>
+  <data name="K034" xml:space="preserve">
+    <value>Debug</value>
+  </data>
+  <data name="K035" xml:space="preserve">
+    <value>Debug controls hidden. Use /kr debug to toggle.</value>
+  </data>
+  <data name="K036" xml:space="preserve">
+    <value>Despawn</value>
+  </data>
+  <data name="K037" xml:space="preserve">
+    <value>Disable and remove the current local-only follower.</value>
+  </data>
+  <data name="K038" xml:space="preserve">
+    <value>Disable date-based Wuk Lamat auto-event</value>
+  </data>
+  <data name="K039" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="K040" xml:space="preserve">
+    <value>Discard Edits</value>
+  </data>
+  <data name="K041" xml:space="preserve">
+    <value>Display Name</value>
+  </data>
+  <data name="K042" xml:space="preserve">
+    <value>Do Not Krangle Self</value>
+  </data>
+  <data name="K043" xml:space="preserve">
+    <value>Draft: {0} active rule(s). Currently hidden by Krangler: {1} actor(s).</value>
+  </data>
+  <data name="K044" xml:space="preserve">
+    <value>DTR Bar</value>
+  </data>
+  <data name="K045" xml:space="preserve">
+    <value>DTR entry</value>
+  </data>
+  <data name="K046" xml:space="preserve">
+    <value>DTR Icons (max 3 characters)</value>
+  </data>
+  <data name="K047" xml:space="preserve">
+    <value>DTR Mode</value>
+  </data>
+  <data name="K048" xml:space="preserve">
+    <value>DTR mode: {0}</value>
+  </data>
+  <data name="K049" xml:space="preserve">
+    <value>Enable and try to spawn the configured follower now. Krangler's master toggle still gates spawning.</value>
+  </data>
+  <data name="K050" xml:space="preserve">
+    <value>Enable Krangler</value>
+  </data>
+  <data name="K051" xml:space="preserve">
+    <value>Enable Racism Rules</value>
+  </data>
+  <data name="K052" xml:space="preserve">
+    <value>Enable Soul Thief</value>
+  </data>
+  <data name="K053" xml:space="preserve">
+    <value>Enable this exact NPC replacement.</value>
+  </data>
+  <data name="K054" xml:space="preserve">
+    <value>Enabled</value>
+  </data>
+  <data name="K055" xml:space="preserve">
+    <value>Exact Race / Clan / Gender Rules</value>
+  </data>
+  <data name="K056" xml:space="preserve">
+    <value>Feet</value>
+  </data>
+  <data name="K057" xml:space="preserve">
+    <value>Female</value>
+  </data>
+  <data name="K058" xml:space="preserve">
+    <value>Finish</value>
+  </data>
+  <data name="K059" xml:space="preserve">
+    <value>Finish saves these choices once. Presets, Soul Thief, Amongus, Imaginary Fren, advanced appearance settings, and Racism rules are not changed by this wizard.</value>
+  </data>
+  <data name="K060" xml:space="preserve">
+    <value>Garble chat</value>
+  </data>
+  <data name="K061" xml:space="preserve">
+    <value>Garble chat text for screenshot privacy.</value>
+  </data>
+  <data name="K062" xml:space="preserve">
+    <value>Gender</value>
+  </data>
+  <data name="K063" xml:space="preserve">
+    <value>Global Preset</value>
+  </data>
+  <data name="K064" xml:space="preserve">
+    <value>Hands</value>
+  </data>
+  <data name="K065" xml:space="preserve">
+    <value>Head</value>
+  </data>
+  <data name="K066" xml:space="preserve">
+    <value>Hide</value>
+  </data>
+  <data name="K067" xml:space="preserve">
+    <value>Icon + Text</value>
+  </data>
+  <data name="K068" xml:space="preserve">
+    <value>Icon Only</value>
+  </data>
+  <data name="K069" xml:space="preserve">
+    <value>Imaginary Fren</value>
+  </data>
+  <data name="K070" xml:space="preserve">
+    <value>Keep original</value>
+  </data>
+  <data name="K071" xml:space="preserve">
+    <value>Keep your own character stable if desired, and choose how Krangler appears in the server info bar.</value>
+  </data>
+  <data name="K072" xml:space="preserve">
+    <value>Keep your own character's appearance stable and optionally use a fixed self display name instead of a randomized one.</value>
+  </data>
+  <data name="K073" xml:space="preserve">
+    <value>Krangle Appearance</value>
+  </data>
+  <data name="K074" xml:space="preserve">
+    <value>Krangle Chat</value>
+  </data>
+  <data name="K075" xml:space="preserve">
+    <value>Krangle Chocobos</value>
+  </data>
+  <data name="K076" xml:space="preserve">
+    <value>Krangle Genders</value>
+  </data>
+  <data name="K077" xml:space="preserve">
+    <value>Krangle Minions</value>
+  </data>
+  <data name="K078" xml:space="preserve">
+    <value>Krangle Names</value>
+  </data>
+  <data name="K079" xml:space="preserve">
+    <value>Krangle NPCs</value>
+  </data>
+  <data name="K080" xml:space="preserve">
+    <value>Krangle player names</value>
+  </data>
+  <data name="K081" xml:space="preserve">
+    <value>Krangle Races</value>
+  </data>
+  <data name="K082" xml:space="preserve">
+    <value>Krangler</value>
+  </data>
+  <data name="K083" xml:space="preserve">
+    <value>Krangler Setup</value>
+  </data>
+  <data name="K084" xml:space="preserve">
+    <value>KRANGLING ACTIVE</value>
+  </data>
+  <data name="K085" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="K086" xml:space="preserve">
+    <value>Last capture: {0} players, {1} NPCs, {2} chocobos</value>
+  </data>
+  <data name="K087" xml:space="preserve">
+    <value>Legs</value>
+  </data>
+  <data name="K088" xml:space="preserve">
+    <value>Limit how many visible players are processed during one scan pass.</value>
+  </data>
+  <data name="K089" xml:space="preserve">
+    <value>Loading UI fonts...</value>
+  </data>
+  <data name="K090" xml:space="preserve">
+    <value>Male</value>
+  </data>
+  <data name="K091" xml:space="preserve">
+    <value>Master</value>
+  </data>
+  <data name="K092" xml:space="preserve">
+    <value>Master toggle - enables or disables all krangling.</value>
+  </data>
+  <data name="K093" xml:space="preserve">
+    <value>Max Players Per Cycle</value>
+  </data>
+  <data name="K094" xml:space="preserve">
+    <value>Maximum 100 NPC replacements.</value>
+  </data>
+  <data name="K095" xml:space="preserve">
+    <value>Minions</value>
+  </data>
+  <data name="K096" xml:space="preserve">
+    <value>Names</value>
+  </data>
+  <data name="K097" xml:space="preserve">
+    <value>Next</value>
+  </data>
+  <data name="K098" xml:space="preserve">
+    <value>No preset files are loaded. Built-in NPC looks will be used instead.</value>
+  </data>
+  <data name="K099" xml:space="preserve">
+    <value>No presets match the current search.</value>
+  </data>
+  <data name="K100" xml:space="preserve">
+    <value>Non-Player Preset Targets</value>
+  </data>
+  <data name="K101" xml:space="preserve">
+    <value>Non-Player Targets</value>
+  </data>
+  <data name="K102" xml:space="preserve">
+    <value>Not spawned</value>
+  </data>
+  <data name="K103" xml:space="preserve">
+    <value>NPC name</value>
+  </data>
+  <data name="K104" xml:space="preserve">
+    <value>NPCs</value>
+  </data>
+  <data name="K105" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="K106" xml:space="preserve">
+    <value>On</value>
+  </data>
+  <data name="K107" xml:space="preserve">
+    <value>Open Setup Wizard</value>
+  </data>
+  <data name="K108" xml:space="preserve">
+    <value>Optional fixed name to use for your own character. Leave blank to keep your real name.</value>
+  </data>
+  <data name="K109" xml:space="preserve">
+    <value>Overview</value>
+  </data>
+  <data name="K110" xml:space="preserve">
+    <value>Party {0}</value>
+  </data>
+  <data name="K111" xml:space="preserve">
+    <value>Party {0} ({1})</value>
+  </data>
+  <data name="K112" xml:space="preserve">
+    <value>Party Slot Overrides</value>
+  </data>
+  <data name="K113" xml:space="preserve">
+    <value>Pink</value>
+  </data>
+  <data name="K114" xml:space="preserve">
+    <value>Preset</value>
+  </data>
+  <data name="K115" xml:space="preserve">
+    <value>Preset folders: {0}\players, \npcs, \chocobos</value>
+  </data>
+  <data name="K116" xml:space="preserve">
+    <value>Presets</value>
+  </data>
+  <data name="K117" xml:space="preserve">
+    <value>Presets loaded: {0}</value>
+  </data>
+  <data name="K118" xml:space="preserve">
+    <value>Propagation Control</value>
+  </data>
+  <data name="K119" xml:space="preserve">
+    <value>Race</value>
+  </data>
+  <data name="K120" xml:space="preserve">
+    <value>Race / clan</value>
+  </data>
+  <data name="K121" xml:space="preserve">
+    <value>Racism</value>
+  </data>
+  <data name="K122" xml:space="preserve">
+    <value>Random</value>
+  </data>
+  <data name="K123" xml:space="preserve">
+    <value>Randomize appearance details</value>
+  </data>
+  <data name="K124" xml:space="preserve">
+    <value>Randomize genders</value>
+  </data>
+  <data name="K125" xml:space="preserve">
+    <value>Randomize genders for visible player characters.</value>
+  </data>
+  <data name="K126" xml:space="preserve">
+    <value>Randomize hair, face, eyes, and other appearance fields.</value>
+  </data>
+  <data name="K127" xml:space="preserve">
+    <value>Randomize races and clans</value>
+  </data>
+  <data name="K128" xml:space="preserve">
+    <value>Randomize races and subraces for visible player characters.</value>
+  </data>
+  <data name="K129" xml:space="preserve">
+    <value>Randomize visible player names and party list names.</value>
+  </data>
+  <data name="K130" xml:space="preserve">
+    <value>Reopen the three-step quick setup without changing advanced settings or Racism rules.</value>
+  </data>
+  <data name="K131" xml:space="preserve">
+    <value>Replace</value>
+  </data>
+  <data name="K132" xml:space="preserve">
+    <value>Replace exact battle and event NPC names with imported local presets.</value>
+  </data>
+  <data name="K133" xml:space="preserve">
+    <value>Replacement Clan</value>
+  </data>
+  <data name="K134" xml:space="preserve">
+    <value>Replacement Gender</value>
+  </data>
+  <data name="K135" xml:space="preserve">
+    <value>Review and apply</value>
+  </data>
+  <data name="K136" xml:space="preserve">
+    <value>Rules match the actor's original local identity. Hide removes the matching 3D actor and in-world nameplate; Replace pseudonymizes supported names and applies the chosen clan and gender after other appearance work.</value>
+  </data>
+  <data name="K137" xml:space="preserve">
+    <value>Runtime source: {0}</value>
+  </data>
+  <data name="K138" xml:space="preserve">
+    <value>Search presets...</value>
+  </data>
+  <data name="K139" xml:space="preserve">
+    <value>Seconds between Soul Thief capture passes. Appearance scanning still runs on Krangler's 5-second cadence.</value>
+  </data>
+  <data name="K140" xml:space="preserve">
+    <value>Select preset</value>
+  </data>
+  <data name="K141" xml:space="preserve">
+    <value>Selection can be global, random, or overridden by party slot.
+
+</value>
+  </data>
+  <data name="K142" xml:space="preserve">
+    <value>Self display and DTR</value>
+  </data>
+  <data name="K143" xml:space="preserve">
+    <value>Self display name: {0}</value>
+  </data>
+  <data name="K144" xml:space="preserve">
+    <value>Show DTR Bar Entry</value>
+  </data>
+  <data name="K145" xml:space="preserve">
+    <value>Show Krangler status in the server info bar. Click the DTR entry to toggle enable or disable.</value>
+  </data>
+  <data name="K146" xml:space="preserve">
+    <value>Shown when Krangler is {0}</value>
+  </data>
+  <data name="K147" xml:space="preserve">
+    <value>Soul Thief</value>
+  </data>
+  <data name="K148" xml:space="preserve">
+    <value>Soul Thief last capture: {0} players, {1} NPCs, {2} chocobos</value>
+  </data>
+  <data name="K149" xml:space="preserve">
+    <value>Spawn one local-only, non-targetable fake NPC follower while Krangler is enabled.</value>
+  </data>
+  <data name="K150" xml:space="preserve">
+    <value>Spawned</value>
+  </data>
+  <data name="K151" xml:space="preserve">
+    <value>Status: {0}</value>
+  </data>
+  <data name="K152" xml:space="preserve">
+    <value>Step {0} of 3</value>
+  </data>
+  <data name="K153" xml:space="preserve">
+    <value>Super Krangle Master 4000</value>
+  </data>
+  <data name="K154" xml:space="preserve">
+    <value>Support development on Ko-fi</value>
+  </data>
+  <data name="K155" xml:space="preserve">
+    <value>Suppress the March 31 through April 2 Wuk Lamat auto-event so normal Super Krangle testing is possible.</value>
+  </data>
+  <data name="K156" xml:space="preserve">
+    <value>Teal</value>
+  </data>
+  <data name="K157" xml:space="preserve">
+    <value>Test Spawn</value>
+  </data>
+  <data name="K158" xml:space="preserve">
+    <value>Text Only</value>
+  </data>
+  <data name="K159" xml:space="preserve">
+    <value>The date-based Wuk Lamat override is currently active.</value>
+  </data>
+  <data name="K160" xml:space="preserve">
+    <value>The date-based Wuk Lamat override is currently suppressed by debug settings.</value>
+  </data>
+  <data name="K161" xml:space="preserve">
+    <value>This is part of the draft. Use Apply Rules to save or disable the tab.</value>
+  </data>
+  <data name="K162" xml:space="preserve">
+    <value>UI fonts failed to load. See the plugin log.</value>
+  </data>
+  <data name="K163" xml:space="preserve">
+    <value>Use Global</value>
+  </data>
+  <data name="K164" xml:space="preserve">
+    <value>Use imported Glamourer presets in place of normal appearance krangling.
+</value>
+  </data>
+  <data name="K165" xml:space="preserve">
+    <value>Warning: {0}</value>
+  </data>
+  <data name="K166" xml:space="preserve">
+    <value>Weapons</value>
+  </data>
+  <data name="K167" xml:space="preserve">
+    <value>You</value>
+  </data>
+  <data name="K168" xml:space="preserve">
+    <value>You ({0})</value>
+  </data>
+  <data name="K169" xml:space="preserve">
+    <value>Imaginary Fren idle.</value>
+  </data>
+  <data name="K170" xml:space="preserve">
+    <value>Imaginary Fren IPC request failed.</value>
+  </data>
+  <data name="K171" xml:space="preserve">
+    <value>Imaginary Fren disabled.</value>
+  </data>
+  <data name="K172" xml:space="preserve">
+    <value>Blocked: Krangler is disabled.</value>
+  </data>
+  <data name="K173" xml:space="preserve">
+    <value>Waiting for local player.</value>
+  </data>
+  <data name="K174" xml:space="preserve">
+    <value>Blocked: zone transition or cutscene.</value>
+  </data>
+  <data name="K175" xml:space="preserve">
+    <value>Blocked: object table pressure.</value>
+  </data>
+  <data name="K176" xml:space="preserve">
+    <value>Despawned Imaginary Fren: {0}.</value>
+  </data>
+  <data name="K177" xml:space="preserve">
+    <value>Failed to spawn Imaginary Fren.</value>
+  </data>
+  <data name="K178" xml:space="preserve">
+    <value>CreateBattleCharacter returned no free object slot.</value>
+  </data>
+  <data name="K179" xml:space="preserve">
+    <value>Created object could not be resolved.</value>
+  </data>
+  <data name="K180" xml:space="preserve">
+    <value>Spawned Imaginary Fren '{0}' with partial preset: body customize refresh failed.</value>
+  </data>
+  <data name="K181" xml:space="preserve">
+    <value>Spawned Imaginary Fren '{0}'.</value>
+  </data>
+  <data name="K182" xml:space="preserve">
+    <value>Following as '{0}' using partial preset '{1}': body customize refresh failed.</value>
+  </data>
+  <data name="K183" xml:space="preserve">
+    <value>Following as '{0}' using preset '{1}'.</value>
+  </data>
+  <data name="K184" xml:space="preserve">
+    <value>Imaginary Fren hidden: {0}</value>
+  </data>
+  <data name="K185" xml:space="preserve">
+    <value>Preset apply reported no ready player-style changes.</value>
+  </data>
+  <data name="K186" xml:space="preserve">
+    <value>Imaginary Fren partial: body customize refresh failed.</value>
+  </data>
+  <data name="K187" xml:space="preserve">
+    <value>Applied Imaginary Fren preset '{0}'.</value>
+  </data>
+  <data name="K188" xml:space="preserve">
+    <value>Preset '{0}' was not found.</value>
+  </data>
+  <data name="K189" xml:space="preserve">
+    <value>Imaginary Fren hidden: preset was not found.</value>
+  </data>
+  <data name="K190" xml:space="preserve">
+    <value>Preset '{0}' requests exact NPC modelId {1}, which is blocked for Imaginary Fren.</value>
+  </data>
+  <data name="K191" xml:space="preserve">
+    <value>Imaginary Fren hidden: exact NPC model preset is blocked.</value>
+  </data>
+  <data name="K192" xml:space="preserve">
+    <value>Preset prepare reported no ready player-style draw data.</value>
+  </data>
+  <data name="K193" xml:space="preserve">
+    <value>actor pointer was null.</value>
+  </data>
+  <data name="K194" xml:space="preserve">
+    <value>draw object is not ready.</value>
+  </data>
+  <data name="K195" xml:space="preserve">
+    <value>draw object type is {0}.</value>
+  </data>
+  <data name="K196" xml:space="preserve">
+    <value>draw object model type is {0}.</value>
+  </data>
+  <data name="K197" xml:space="preserve">
+    <value>Imaginary Fren actor was lost.</value>
+  </data>
+  <data name="K198" xml:space="preserve">
+    <value>Character pointer was null.</value>
+  </data>
+  <data name="K199" xml:space="preserve">
+    <value>Blocked preset '{0}' because Imaginary Fren cannot apply exact NPC modelId {1}.</value>
+  </data>
+  <data name="K200" xml:space="preserve">
+    <value>seededCustomize={0}, requestedCustomize={1}, seededEquipment={2}</value>
+  </data>
+  <data name="K201" xml:space="preserve">
+    <value>appearance={0}, requestedCustomize={1}, refresh={2}, equipment={3}, weapons={4}, bonus={5}, meta={6}</value>
+  </data>
+  <data name="K202" xml:space="preserve">
+    <value>plugin unload</value>
+  </data>
+  <data name="K203" xml:space="preserve">
+    <value>manual disable</value>
+  </data>
+  <data name="K204" xml:space="preserve">
+    <value>disabled by {0}</value>
+  </data>
+  <data name="K205" xml:space="preserve">
+    <value>Krangler disabled</value>
+  </data>
+  <data name="K206" xml:space="preserve">
+    <value>not logged in</value>
+  </data>
+  <data name="K207" xml:space="preserve">
+    <value>zone transition or cutscene</value>
+  </data>
+  <data name="K208" xml:space="preserve">
+    <value>object table pressure</value>
+  </data>
+  <data name="K209" xml:space="preserve">
+    <value>logout</value>
+  </data>
+  <data name="K210" xml:space="preserve">
+    <value>territory change {0}</value>
+  </data>
+  <data name="K211" xml:space="preserve">
+    <value>forced by {0} preset request</value>
+  </data>
+  <data name="K212" xml:space="preserve">
+    <value>preset change: {0}</value>
+  </data>
+  <data name="K213" xml:space="preserve">
+    <value>True</value>
+  </data>
+  <data name="K214" xml:space="preserve">
+    <value>False</value>
+  </data>
+  <data name="K215" xml:space="preserve">
+    <value>Object</value>
+  </data>
+  <data name="K216" xml:space="preserve">
+    <value>Terrain</value>
+  </data>
+  <data name="K217" xml:space="preserve">
+    <value>BgObject</value>
+  </data>
+  <data name="K218" xml:space="preserve">
+    <value>CharacterBase</value>
+  </data>
+  <data name="K219" xml:space="preserve">
+    <value>VfxObject</value>
+  </data>
+  <data name="K220" xml:space="preserve">
+    <value>Light</value>
+  </data>
+  <data name="K221" xml:space="preserve">
+    <value>UnkType6</value>
+  </data>
+  <data name="K222" xml:space="preserve">
+    <value>EnvSpace</value>
+  </data>
+  <data name="K223" xml:space="preserve">
+    <value>EnvLocation</value>
+  </data>
+  <data name="K224" xml:space="preserve">
+    <value>Decal</value>
+  </data>
+  <data name="K225" xml:space="preserve">
+    <value>UnkType10</value>
+  </data>
+  <data name="K226" xml:space="preserve">
+    <value>Human</value>
+  </data>
+  <data name="K227" xml:space="preserve">
+    <value>DemiHuman</value>
+  </data>
+  <data name="K228" xml:space="preserve">
+    <value>Monster</value>
+  </data>
+  <data name="K229" xml:space="preserve">
+    <value>Weapon</value>
+  </data>
+  <data name="K230" xml:space="preserve">
+    <value>customize identity changed from preset '{0}'</value>
+  </data>
+  <data name="Window appearance" xml:space="preserve"><value>Window appearance</value></data>
+  <data name="Compact visible on main window" xml:space="preserve"><value>Compact visible on main window</value></data>
+  <data name="Language visible on main window" xml:space="preserve"><value>Language visible on main window</value></data>
+  <data name="Transparency" xml:space="preserve"><value>Transparency</value></data>
+  <data name="Opacity (%)" xml:space="preserve"><value>Opacity (%)</value></data>
+  <data name="Auto-fade when unfocused" xml:space="preserve"><value>Auto-fade when unfocused</value></data>
+  <data name="Unfocused opacity (%)" xml:space="preserve"><value>Unfocused opacity (%)</value></data>
+  <data name="Unfocused delay (seconds)" xml:space="preserve"><value>Unfocused delay (seconds)</value></data>
+</root>

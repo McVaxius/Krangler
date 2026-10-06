@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="K000" xml:space="preserve"><value>({0} ön ayar)</value></data>
+  <data name="K001" xml:space="preserve"><value>{0} Simgesi</value></data>
+  <data name="K002" xml:space="preserve"><value>{0} Simge Kodu</value></data>
+  <data name="K003" xml:space="preserve"><value>♡ Ko-fi ♡</value></data>
+  <data name="K004" xml:space="preserve"><value>Aksesuarlar</value></data>
+  <data name="K005" xml:space="preserve"><value>Etkin</value></data>
+  <data name="K006" xml:space="preserve"><value>Amongus</value></data>
+  <data name="K007" xml:space="preserve"><value>Görünüm</value></data>
+  <data name="K008" xml:space="preserve"><value>Ön Ayardan Uygula</value></data>
+  <data name="K009" xml:space="preserve"><value>Kuralları Uygula</value></data>
+  <data name="K010" xml:space="preserve"><value>Geri</value></data>
+  <data name="K011" xml:space="preserve"><value>Sıradaki yeniden çizimden önceki temel gecikme. Gerçek gecikme kalabalığın büyüklüğüne göre artar.</value></data>
+  <data name="K012" xml:space="preserve"><value>Temel Yeniden Çizim Gecikmesi</value></data>
+  <data name="K013" xml:space="preserve"><value>Mavi</value></data>
+  <data name="K014" xml:space="preserve"><value>Gövde</value></data>
+  <data name="K015" xml:space="preserve"><value>Çökmeleri önlemek için oyuncu olmayan nesnelerde kapsamlı yerel değişiklikler şu anda engelleniyor.</value></data>
+  <data name="K016" xml:space="preserve"><value>İptal</value></data>
+  <data name="K017" xml:space="preserve"><value>Chocobo Yakala</value></data>
+  <data name="K018" xml:space="preserve"><value>Yakalama Aralığı</value></data>
+  <data name="K019" xml:space="preserve"><value>NPC Yakala</value></data>
+  <data name="K020" xml:space="preserve"><value>Oyuncu Yakala</value></data>
+  <data name="K021" xml:space="preserve"><value>Sohbet</value></data>
+  <data name="K022" xml:space="preserve"><value>Chocobolar</value></data>
+  <data name="K023" xml:space="preserve"><value>Krangler'ın yalnızca bilgisayarınızda değiştirmesini istediğiniz genel alanları seçin. Her seçeneği daha sonra ana pencerede ayrıntılı olarak ayarlayabilirsiniz.</value></data>
+  <data name="K024" xml:space="preserve"><value>Klan/Alt Irk</value></data>
+  <data name="K025" xml:space="preserve"><value>Renk</value></data>
+  <data name="K026" xml:space="preserve"><value>Kompakt mod</value></data>
+  <data name="K027" xml:space="preserve"><value>Yoldaş Ön Ayarı Hedefleri</value></data>
+  <data name="K028" xml:space="preserve"><value>Önerilen simgeleri içeren Lodestone blog bağlantısını kopyalar.</value></data>
+  <data name="K029" xml:space="preserve"><value>Simge Kılavuzu Bağlantısını Kopyala</value></data>
+  <data name="K030" xml:space="preserve"><value>Temel gizlilik tercihleri</value></data>
+  <data name="K031" xml:space="preserve"><value>Özel RGB</value></data>
+  <data name="K032" xml:space="preserve"><value>Özel Görünen Adınız</value></data>
+  <data name="K033" xml:space="preserve"><value>Etkin ve devre dışı simge modlarında kullanılan karakterleri özelleştirin.</value></data>
+  <data name="K034" xml:space="preserve"><value>Hata Ayıklama</value></data>
+  <data name="K035" xml:space="preserve"><value>Hata ayıklama kontrolleri gizli. Açmak veya kapatmak için /kr debug kullanın.</value></data>
+  <data name="K036" xml:space="preserve"><value>Nesneyi Kaldır</value></data>
+  <data name="K037" xml:space="preserve"><value>Yalnızca bilgisayarınızda görünen mevcut takipçiyi devre dışı bırakın ve kaldırın.</value></data>
+  <data name="K038" xml:space="preserve"><value>Tarihe bağlı otomatik Wuk Lamat etkinliğini kapat</value></data>
+  <data name="K039" xml:space="preserve"><value>Devre Dışı</value></data>
+  <data name="K040" xml:space="preserve"><value>Düzenlemeleri Sil</value></data>
+  <data name="K041" xml:space="preserve"><value>Görünen Ad</value></data>
+  <data name="K042" xml:space="preserve"><value>Kendi Karakterimi Değiştirme</value></data>
+  <data name="K043" xml:space="preserve"><value>Taslak: {0} etkin kural. Krangler'ın şu anda gizlediği nesne sayısı: {1}.</value></data>
+  <data name="K044" xml:space="preserve"><value>DTR Çubuğu</value></data>
+  <data name="K045" xml:space="preserve"><value>DTR girdisi</value></data>
+  <data name="K046" xml:space="preserve"><value>DTR Simgeleri (en fazla 3 karakter)</value></data>
+  <data name="K047" xml:space="preserve"><value>DTR Modu</value></data>
+  <data name="K048" xml:space="preserve"><value>DTR modu: {0}</value></data>
+  <data name="K049" xml:space="preserve"><value>Yapılandırılmış takipçiyi etkinleştirip şimdi oluşturmayı deneyin. Krangler'ın ana anahtarı oluşturma işlemini hâlâ denetler.</value></data>
+  <data name="K050" xml:space="preserve"><value>Krangler'ı Etkinleştir</value></data>
+  <data name="K051" xml:space="preserve"><value>Irkçılık Kurallarını Etkinleştir</value></data>
+  <data name="K052" xml:space="preserve"><value>Ruh Hırsızını Etkinleştir</value></data>
+  <data name="K053" xml:space="preserve"><value>Tam olarak bu NPC değiştirmesini etkinleştirin.</value></data>
+  <data name="K054" xml:space="preserve"><value>Etkinleştirilmiş</value></data>
+  <data name="K055" xml:space="preserve"><value>Tam Irk / Klan / Cinsiyet Kuralları</value></data>
+  <data name="K056" xml:space="preserve"><value>Ayaklar</value></data>
+  <data name="K057" xml:space="preserve"><value>Kadın</value></data>
+  <data name="K058" xml:space="preserve"><value>Bitir</value></data>
+  <data name="K059" xml:space="preserve"><value>Bitir, bu tercihleri bir kez kaydeder. Bu sihirbaz ön ayarları, Ruh Hırsızını, Amongus'u, Hayali Arkadaşı, gelişmiş görünüm ayarlarını ve Irkçılık kurallarını değiştirmez.</value></data>
+  <data name="K060" xml:space="preserve"><value>Sohbeti karıştır</value></data>
+  <data name="K061" xml:space="preserve"><value>Ekran görüntülerinde gizlilik için sohbet metnini karıştırın.</value></data>
+  <data name="K062" xml:space="preserve"><value>Cinsiyet</value></data>
+  <data name="K063" xml:space="preserve"><value>Genel Ön Ayar</value></data>
+  <data name="K064" xml:space="preserve"><value>Eller</value></data>
+  <data name="K065" xml:space="preserve"><value>Baş</value></data>
+  <data name="K066" xml:space="preserve"><value>Gizle</value></data>
+  <data name="K067" xml:space="preserve"><value>Simge + Metin</value></data>
+  <data name="K068" xml:space="preserve"><value>Yalnızca Simge</value></data>
+  <data name="K069" xml:space="preserve"><value>Hayali Arkadaş</value></data>
+  <data name="K070" xml:space="preserve"><value>Özgün hâli koru</value></data>
+  <data name="K071" xml:space="preserve"><value>İsterseniz kendi karakterinizi sabit tutun ve Krangler'ın sunucu bilgi çubuğunda nasıl görüneceğini seçin.</value></data>
+  <data name="K072" xml:space="preserve"><value>Kendi karakterinizin görünümünü sabit tutun ve isterseniz rastgele ad yerine sabit bir görünen ad kullanın.</value></data>
+  <data name="K073" xml:space="preserve"><value>Görünümü Değiştir</value></data>
+  <data name="K074" xml:space="preserve"><value>Sohbeti Değiştir</value></data>
+  <data name="K075" xml:space="preserve"><value>Chocoboları Değiştir</value></data>
+  <data name="K076" xml:space="preserve"><value>Cinsiyetleri Değiştir</value></data>
+  <data name="K077" xml:space="preserve"><value>Minionları Değiştir</value></data>
+  <data name="K078" xml:space="preserve"><value>Adları Değiştir</value></data>
+  <data name="K079" xml:space="preserve"><value>NPC'leri Değiştir</value></data>
+  <data name="K080" xml:space="preserve"><value>Oyuncu adlarını değiştir</value></data>
+  <data name="K081" xml:space="preserve"><value>Irkları Değiştir</value></data>
+  <data name="K082" xml:space="preserve"><value>Krangler</value></data>
+  <data name="K083" xml:space="preserve"><value>Krangler Kurulumu</value></data>
+  <data name="K084" xml:space="preserve"><value>DEĞİŞTİRME ETKİN</value></data>
+  <data name="K085" xml:space="preserve"><value>Dil</value></data>
+  <data name="K086" xml:space="preserve"><value>Son yakalama: {0} oyuncu, {1} NPC, {2} chocobo</value></data>
+  <data name="K087" xml:space="preserve"><value>Bacaklar</value></data>
+  <data name="K088" xml:space="preserve"><value>Tek bir tarama geçişinde işlenen görünür oyuncu sayısını sınırlayın.</value></data>
+  <data name="K089" xml:space="preserve"><value>Arayüz yazı tipleri yükleniyor...</value></data>
+  <data name="K090" xml:space="preserve"><value>Erkek</value></data>
+  <data name="K091" xml:space="preserve"><value>Ana Kontrol</value></data>
+  <data name="K092" xml:space="preserve"><value>Ana anahtar - tüm değiştirme işlemlerini açar veya kapatır.</value></data>
+  <data name="K093" xml:space="preserve"><value>Döngü Başına En Fazla Oyuncu</value></data>
+  <data name="K094" xml:space="preserve"><value>En fazla 100 NPC değiştirmesi.</value></data>
+  <data name="K095" xml:space="preserve"><value>Minionlar</value></data>
+  <data name="K096" xml:space="preserve"><value>Adlar</value></data>
+  <data name="K097" xml:space="preserve"><value>İleri</value></data>
+  <data name="K098" xml:space="preserve"><value>Ön ayar dosyası yüklenmedi. Bunun yerine yerleşik NPC görünümleri kullanılacak.</value></data>
+  <data name="K099" xml:space="preserve"><value>Geçerli aramayla eşleşen ön ayar yok.</value></data>
+  <data name="K100" xml:space="preserve"><value>Oyuncu Olmayan Ön Ayar Hedefleri</value></data>
+  <data name="K101" xml:space="preserve"><value>Oyuncu Olmayan Hedefler</value></data>
+  <data name="K102" xml:space="preserve"><value>Oluşturulmadı</value></data>
+  <data name="K103" xml:space="preserve"><value>NPC adı</value></data>
+  <data name="K104" xml:space="preserve"><value>NPC'ler</value></data>
+  <data name="K105" xml:space="preserve"><value>Kapalı</value></data>
+  <data name="K106" xml:space="preserve"><value>Açık</value></data>
+  <data name="K107" xml:space="preserve"><value>Kurulum Sihirbazını Aç</value></data>
+  <data name="K108" xml:space="preserve"><value>Kendi karakteriniz için isteğe bağlı sabit ad. Gerçek adınızı korumak için boş bırakın.</value></data>
+  <data name="K109" xml:space="preserve"><value>Genel Bakış</value></data>
+  <data name="K110" xml:space="preserve"><value>Grup {0}</value></data>
+  <data name="K111" xml:space="preserve"><value>Grup {0} ({1})</value></data>
+  <data name="K112" xml:space="preserve"><value>Grup Yuvası Geçersiz Kılmaları</value></data>
+  <data name="K113" xml:space="preserve"><value>Pembe</value></data>
+  <data name="K114" xml:space="preserve"><value>Ön Ayar</value></data>
+  <data name="K115" xml:space="preserve"><value>Ön ayar klasörleri: {0}\players, \npcs, \chocobos</value></data>
+  <data name="K116" xml:space="preserve"><value>Ön Ayarlar</value></data>
+  <data name="K117" xml:space="preserve"><value>Yüklenen ön ayarlar: {0}</value></data>
+  <data name="K118" xml:space="preserve"><value>Yayılma Kontrolü</value></data>
+  <data name="K119" xml:space="preserve"><value>Irk</value></data>
+  <data name="K120" xml:space="preserve"><value>Irk / klan</value></data>
+  <data name="K121" xml:space="preserve"><value>Irkçılık</value></data>
+  <data name="K122" xml:space="preserve"><value>Rastgele</value></data>
+  <data name="K123" xml:space="preserve"><value>Görünüm ayrıntılarını rastgele seç</value></data>
+  <data name="K124" xml:space="preserve"><value>Cinsiyetleri rastgele seç</value></data>
+  <data name="K125" xml:space="preserve"><value>Görünür oyuncu karakterlerinin cinsiyetlerini rastgele seçin.</value></data>
+  <data name="K126" xml:space="preserve"><value>Saç, yüz, göz ve diğer görünüm alanlarını rastgele seçin.</value></data>
+  <data name="K127" xml:space="preserve"><value>Irkları ve klanları rastgele seç</value></data>
+  <data name="K128" xml:space="preserve"><value>Görünür oyuncu karakterlerinin ırklarını ve alt ırklarını rastgele seçin.</value></data>
+  <data name="K129" xml:space="preserve"><value>Görünür oyuncu adlarını ve grup listesindeki adları rastgele seçin.</value></data>
+  <data name="K130" xml:space="preserve"><value>Gelişmiş ayarları veya Irkçılık kurallarını değiştirmeden üç adımlı hızlı kurulumu yeniden açın.</value></data>
+  <data name="K131" xml:space="preserve"><value>Değiştir</value></data>
+  <data name="K132" xml:space="preserve"><value>Adı tam eşleşen savaş ve etkinlik NPC'lerini içe aktarılan yerel ön ayarlarla değiştirin.</value></data>
+  <data name="K133" xml:space="preserve"><value>Yeni Klan</value></data>
+  <data name="K134" xml:space="preserve"><value>Yeni Cinsiyet</value></data>
+  <data name="K135" xml:space="preserve"><value>Gözden geçir ve uygula</value></data>
+  <data name="K136" xml:space="preserve"><value>Kurallar nesnenin özgün yerel kimliğiyle eşleşir. Gizle, eşleşen 3B nesneyi ve dünyadaki ad etiketini kaldırır; Değiştir, desteklenen adlara takma ad verir ve diğer görünüm işlemlerinden sonra seçilen klan ile cinsiyeti uygular.</value></data>
+  <data name="K137" xml:space="preserve"><value>Çalışma zamanı kaynağı: {0}</value></data>
+  <data name="K138" xml:space="preserve"><value>Ön ayar ara...</value></data>
+  <data name="K139" xml:space="preserve"><value>Ruh Hırsızı yakalama geçişleri arasındaki saniye sayısı. Görünüm taraması Krangler'ın 5 saniyelik aralığıyla çalışmaya devam eder.</value></data>
+  <data name="K140" xml:space="preserve"><value>Ön ayar seç</value></data>
+  <data name="K141" xml:space="preserve"><value>Seçim genel veya rastgele olabilir ya da grup yuvasına göre geçersiz kılınabilir.
+
+</value></data>
+  <data name="K142" xml:space="preserve"><value>Kendi görünümünüz ve DTR</value></data>
+  <data name="K143" xml:space="preserve"><value>Kendi görünen adınız: {0}</value></data>
+  <data name="K144" xml:space="preserve"><value>DTR Çubuğu Girdisini Göster</value></data>
+  <data name="K145" xml:space="preserve"><value>Krangler durumunu sunucu bilgi çubuğunda gösterin. Etkinleştirmek veya devre dışı bırakmak için DTR girdisine tıklayın.</value></data>
+  <data name="K146" xml:space="preserve"><value>Krangler {0} olduğunda gösterilir</value></data>
+  <data name="K147" xml:space="preserve"><value>Ruh Hırsızı</value></data>
+  <data name="K148" xml:space="preserve"><value>Ruh Hırsızı son yakalama: {0} oyuncu, {1} NPC, {2} chocobo</value></data>
+  <data name="K149" xml:space="preserve"><value>Krangler etkinken yalnızca bilgisayarınızda görünen, hedef alınamayan tek bir sahte NPC takipçi oluşturun.</value></data>
+  <data name="K150" xml:space="preserve"><value>Oluşturuldu</value></data>
+  <data name="K151" xml:space="preserve"><value>Durum: {0}</value></data>
+  <data name="K152" xml:space="preserve"><value>Adım {0} / 3</value></data>
+  <data name="K153" xml:space="preserve"><value>Super Krangle Master 4000</value></data>
+  <data name="K154" xml:space="preserve"><value>Ko-fi üzerinden geliştirmeyi destekle</value></data>
+  <data name="K155" xml:space="preserve"><value>Normal Super Krangle testlerinin yapılabilmesi için 31 Mart ile 2 Nisan arasındaki otomatik Wuk Lamat etkinliğini kapatın.</value></data>
+  <data name="K156" xml:space="preserve"><value>Deniz Yeşili</value></data>
+  <data name="K157" xml:space="preserve"><value>Oluşturmayı Dene</value></data>
+  <data name="K158" xml:space="preserve"><value>Yalnızca Metin</value></data>
+  <data name="K159" xml:space="preserve"><value>Tarihe bağlı Wuk Lamat geçersiz kılması şu anda etkin.</value></data>
+  <data name="K160" xml:space="preserve"><value>Tarihe bağlı Wuk Lamat geçersiz kılması şu anda hata ayıklama ayarlarıyla kapatılmış.</value></data>
+  <data name="K161" xml:space="preserve"><value>Bu, taslağın bir parçasıdır. Kaydetmek veya sekmeyi devre dışı bırakmak için Kuralları Uygula'yı kullanın.</value></data>
+  <data name="K162" xml:space="preserve"><value>Arayüz yazı tipleri yüklenemedi. Eklenti günlüğüne bakın.</value></data>
+  <data name="K163" xml:space="preserve"><value>Geneli Kullan</value></data>
+  <data name="K164" xml:space="preserve"><value>Normal görünüm değiştirmeleri yerine içe aktarılan Glamourer ön ayarlarını kullanın.
+</value></data>
+  <data name="K165" xml:space="preserve"><value>Uyarı: {0}</value></data>
+  <data name="K166" xml:space="preserve"><value>Silahlar</value></data>
+  <data name="K167" xml:space="preserve"><value>Siz</value></data>
+  <data name="K168" xml:space="preserve"><value>Siz ({0})</value></data>
+  <data name="K169" xml:space="preserve"><value>Hayali Arkadaş boşta.</value></data>
+  <data name="K170" xml:space="preserve"><value>Hayali Arkadaş IPC isteği başarısız.</value></data>
+  <data name="K171" xml:space="preserve"><value>Hayali Arkadaş devre dışı.</value></data>
+  <data name="K172" xml:space="preserve"><value>Engellendi: Krangler devre dışı.</value></data>
+  <data name="K173" xml:space="preserve"><value>Yerel oyuncu bekleniyor.</value></data>
+  <data name="K174" xml:space="preserve"><value>Engellendi: bölge geçişi veya ara sahne.</value></data>
+  <data name="K175" xml:space="preserve"><value>Engellendi: nesne tablosu aşırı yüklü.</value></data>
+  <data name="K176" xml:space="preserve"><value>Hayali Arkadaş kaldırıldı: {0}.</value></data>
+  <data name="K177" xml:space="preserve"><value>Hayali Arkadaş oluşturulamadı.</value></data>
+  <data name="K178" xml:space="preserve"><value>CreateBattleCharacter boş bir nesne yuvası döndürmedi.</value></data>
+  <data name="K179" xml:space="preserve"><value>Oluşturulan nesne bulunamadı.</value></data>
+  <data name="K180" xml:space="preserve"><value>Hayali Arkadaş '{0}' kısmi ön ayarla oluşturuldu: gövde özelleştirmesi yenilenemedi.</value></data>
+  <data name="K181" xml:space="preserve"><value>Hayali Arkadaş '{0}' oluşturuldu.</value></data>
+  <data name="K182" xml:space="preserve"><value>Kısmi ön ayar '{1}' ile '{0}' olarak takip ediliyor: gövde özelleştirmesi yenilenemedi.</value></data>
+  <data name="K183" xml:space="preserve"><value>Ön ayar '{1}' ile '{0}' olarak takip ediliyor.</value></data>
+  <data name="K184" xml:space="preserve"><value>Hayali Arkadaş gizlendi: {0}</value></data>
+  <data name="K185" xml:space="preserve"><value>Ön ayar uygulaması, oyuncu tarzında hazır bir değişiklik bildirmedi.</value></data>
+  <data name="K186" xml:space="preserve"><value>Hayali Arkadaş kısmi: gövde özelleştirmesi yenilenemedi.</value></data>
+  <data name="K187" xml:space="preserve"><value>Hayali Arkadaş ön ayarı '{0}' uygulandı.</value></data>
+  <data name="K188" xml:space="preserve"><value>Ön ayar '{0}' bulunamadı.</value></data>
+  <data name="K189" xml:space="preserve"><value>Hayali Arkadaş gizlendi: ön ayar bulunamadı.</value></data>
+  <data name="K190" xml:space="preserve"><value>Ön ayar '{0}', Hayali Arkadaş için engellenen tam NPC modelId {1} istiyor.</value></data>
+  <data name="K191" xml:space="preserve"><value>Hayali Arkadaş gizlendi: tam NPC modeli ön ayarı engellendi.</value></data>
+  <data name="K192" xml:space="preserve"><value>Ön ayar hazırlığı, oyuncu tarzında hazır çizim verisi bildirmedi.</value></data>
+  <data name="K193" xml:space="preserve"><value>nesne işaretçisi null idi.</value></data>
+  <data name="K194" xml:space="preserve"><value>çizim nesnesi hazır değil.</value></data>
+  <data name="K195" xml:space="preserve"><value>çizim nesnesinin türü {0}.</value></data>
+  <data name="K196" xml:space="preserve"><value>çizim nesnesinin model türü {0}.</value></data>
+  <data name="K197" xml:space="preserve"><value>Hayali Arkadaş nesnesi kayboldu.</value></data>
+  <data name="K198" xml:space="preserve"><value>Karakter işaretçisi null idi.</value></data>
+  <data name="K199" xml:space="preserve"><value>Hayali Arkadaş tam NPC modelId {1} uygulayamadığı için ön ayar '{0}' engellendi.</value></data>
+  <data name="K200" xml:space="preserve"><value>özelleştirme hazırlandı={0}, özelleştirme istendi={1}, ekipman hazırlandı={2}</value></data>
+  <data name="K201" xml:space="preserve"><value>görünüm={0}, özelleştirme istendi={1}, yenileme={2}, ekipman={3}, silahlar={4}, ek={5}, meta veri={6}</value></data>
+  <data name="K202" xml:space="preserve"><value>eklenti kaldırılıyor</value></data>
+  <data name="K203" xml:space="preserve"><value>elle devre dışı bırakma</value></data>
+  <data name="K204" xml:space="preserve"><value>{0} tarafından devre dışı bırakıldı</value></data>
+  <data name="K205" xml:space="preserve"><value>Krangler devre dışı</value></data>
+  <data name="K206" xml:space="preserve"><value>oturum açılmadı</value></data>
+  <data name="K207" xml:space="preserve"><value>bölge geçişi veya ara sahne</value></data>
+  <data name="K208" xml:space="preserve"><value>nesne tablosu aşırı yüklü</value></data>
+  <data name="K209" xml:space="preserve"><value>oturum kapatma</value></data>
+  <data name="K210" xml:space="preserve"><value>bölge değişikliği {0}</value></data>
+  <data name="K211" xml:space="preserve"><value>{0} ön ayar isteğiyle zorlandı</value></data>
+  <data name="K212" xml:space="preserve"><value>ön ayar değişikliği: {0}</value></data>
+  <data name="K213" xml:space="preserve"><value>Doğru</value></data>
+  <data name="K214" xml:space="preserve"><value>Yanlış</value></data>
+  <data name="K215" xml:space="preserve"><value>Nesne</value></data>
+  <data name="K216" xml:space="preserve"><value>Arazi</value></data>
+  <data name="K217" xml:space="preserve"><value>Arka Plan Nesnesi</value></data>
+  <data name="K218" xml:space="preserve"><value>Temel Karakter</value></data>
+  <data name="K219" xml:space="preserve"><value>Efekt Nesnesi</value></data>
+  <data name="K220" xml:space="preserve"><value>Işık</value></data>
+  <data name="K221" xml:space="preserve"><value>Bilinmeyen Tür 6</value></data>
+  <data name="K222" xml:space="preserve"><value>Çevre Alanı</value></data>
+  <data name="K223" xml:space="preserve"><value>Çevre Konumu</value></data>
+  <data name="K224" xml:space="preserve"><value>Kaplama</value></data>
+  <data name="K225" xml:space="preserve"><value>Bilinmeyen Tür 10</value></data>
+  <data name="K226" xml:space="preserve"><value>İnsan</value></data>
+  <data name="K227" xml:space="preserve"><value>Yarı İnsan</value></data>
+  <data name="K228" xml:space="preserve"><value>Canavar</value></data>
+  <data name="K229" xml:space="preserve"><value>Silah</value></data>
+  <data name="K230" xml:space="preserve"><value>özelleştirme kimliği ön ayar '{0}' değerinden değişti</value></data>
+  <data name="Window appearance" xml:space="preserve"><value>Pencere görünümü</value></data>
+  <data name="Compact visible on main window" xml:space="preserve"><value>Ana pencerede kompakt modu göster</value></data>
+  <data name="Language visible on main window" xml:space="preserve"><value>Ana pencerede dil seçimini göster</value></data>
+  <data name="Transparency" xml:space="preserve"><value>Saydamlık</value></data>
+  <data name="Opacity (%)" xml:space="preserve"><value>Opaklık (%)</value></data>
+  <data name="Auto-fade when unfocused" xml:space="preserve"><value>Odak yokken otomatik soldur</value></data>
+  <data name="Unfocused opacity (%)" xml:space="preserve"><value>Odak yokken opaklık (%)</value></data>
+  <data name="Unfocused delay (seconds)" xml:space="preserve"><value>Odak kaybı gecikmesi (saniye)</value></data>
+</root>

@@ -1,0 +1,719 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms</value>
+  </resheader>
+  <data name="K005" xml:space="preserve">
+    <value>Attivo</value>
+  </data>
+  <data name="K010" xml:space="preserve">
+    <value>Indietro</value>
+  </data>
+  <data name="K013" xml:space="preserve">
+    <value>Blu</value>
+  </data>
+  <data name="K016" xml:space="preserve">
+    <value>Annulla</value>
+  </data>
+  <data name="K025" xml:space="preserve">
+    <value>Colore</value>
+  </data>
+  <data name="K026" xml:space="preserve">
+    <value>Modalità compatta</value>
+  </data>
+  <data name="K031" xml:space="preserve">
+    <value>RGB personalizzato</value>
+  </data>
+  <data name="K039" xml:space="preserve">
+    <value>Disattivato</value>
+  </data>
+  <data name="K044" xml:space="preserve">
+    <value>Barra DTR</value>
+  </data>
+  <data name="K054" xml:space="preserve">
+    <value>Attivato</value>
+  </data>
+  <data name="K058" xml:space="preserve">
+    <value>Fine</value>
+  </data>
+  <data name="K066" xml:space="preserve">
+    <value>Nascondi</value>
+  </data>
+  <data name="K067" xml:space="preserve">
+    <value>Icona + testo</value>
+  </data>
+  <data name="K068" xml:space="preserve">
+    <value>Solo icona</value>
+  </data>
+  <data name="K085" xml:space="preserve">
+    <value>Lingua</value>
+  </data>
+  <data name="K089" xml:space="preserve">
+    <value>Caricamento dei caratteri dell’interfaccia...</value>
+  </data>
+  <data name="K097" xml:space="preserve">
+    <value>Avanti</value>
+  </data>
+  <data name="K106" xml:space="preserve">
+    <value>Sì</value>
+  </data>
+  <data name="K113" xml:space="preserve">
+    <value>Rosa</value>
+  </data>
+  <data name="K114" xml:space="preserve">
+    <value>Preimpostazione</value>
+  </data>
+  <data name="K140" xml:space="preserve">
+    <value>Seleziona preimpostazione</value>
+  </data>
+  <data name="K156" xml:space="preserve">
+    <value>Verde acqua</value>
+  </data>
+  <data name="K158" xml:space="preserve">
+    <value>Solo testo</value>
+  </data>
+  <data name="K162" xml:space="preserve">
+    <value>Caricamento dei caratteri dell’interfaccia non riuscito. Consulta il log del plugin.</value>
+  </data>
+  <data name="K165" xml:space="preserve">
+    <value>Avviso: {0}</value>
+  </data>
+  <data name="K056" xml:space="preserve">
+    <value>Piedi</value>
+  </data>
+  <data name="K078" xml:space="preserve">
+    <value>Altera nomi</value>
+  </data>
+  <data name="K105" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="K029" xml:space="preserve">
+    <value>Copia link alla guida delle icone</value>
+  </data>
+  <data name="K154" xml:space="preserve">
+    <value>Sostieni lo sviluppo su Ko-fi</value>
+  </data>
+  <data name="K000" xml:space="preserve">
+    <value>({0} preimpostazioni)</value>
+  </data>
+  <data name="K001" xml:space="preserve">
+    <value>Icona: {0}</value>
+  </data>
+  <data name="K002" xml:space="preserve">
+    <value>Codice icona: {0}</value>
+  </data>
+  <data name="K003" xml:space="preserve">
+    <value>♡ Ko-fi ♡</value>
+  </data>
+  <data name="K004" xml:space="preserve">
+    <value>Accessori</value>
+  </data>
+  <data name="K006" xml:space="preserve">
+    <value>Amongus</value>
+  </data>
+  <data name="K007" xml:space="preserve">
+    <value>Aspetto</value>
+  </data>
+  <data name="K008" xml:space="preserve">
+    <value>Applica dalla preimpostazione</value>
+  </data>
+  <data name="K009" xml:space="preserve">
+    <value>Applica regole</value>
+  </data>
+  <data name="K011" xml:space="preserve">
+    <value>Ritardo di base in fotogrammi prima del prossimo ridisegno in coda. Il ritardo effettivo aumenta con il numero di personaggi.</value>
+  </data>
+  <data name="K012" xml:space="preserve">
+    <value>Ritardo di ridisegno di base</value>
+  </data>
+  <data name="K014" xml:space="preserve">
+    <value>Corpo</value>
+  </data>
+  <data name="K015" xml:space="preserve">
+    <value>Le modifiche native generali ai personaggi non giocanti sono attualmente bloccate per evitare arresti anomali.</value>
+  </data>
+  <data name="K017" xml:space="preserve">
+    <value>Cattura chocobo</value>
+  </data>
+  <data name="K018" xml:space="preserve">
+    <value>Intervallo di cattura</value>
+  </data>
+  <data name="K019" xml:space="preserve">
+    <value>Cattura PNG</value>
+  </data>
+  <data name="K020" xml:space="preserve">
+    <value>Cattura giocatori</value>
+  </data>
+  <data name="K021" xml:space="preserve">
+    <value>Chat</value>
+  </data>
+  <data name="K022" xml:space="preserve">
+    <value>Chocobo</value>
+  </data>
+  <data name="K023" xml:space="preserve">
+    <value>Scegli gli elementi visibili solo nel tuo client che Krangler deve modificare. Potrai affinare ogni opzione nella finestra principale.</value>
+  </data>
+  <data name="K024" xml:space="preserve">
+    <value>Clan/Sottorazza</value>
+  </data>
+  <data name="K027" xml:space="preserve">
+    <value>Preimpostazioni per compagni</value>
+  </data>
+  <data name="K028" xml:space="preserve">
+    <value>Copia il collegamento al blog Lodestone con i simboli suggeriti.</value>
+  </data>
+  <data name="K030" xml:space="preserve">
+    <value>Scelte di privacy principali</value>
+  </data>
+  <data name="K032" xml:space="preserve">
+    <value>Nome personale personalizzato</value>
+  </data>
+  <data name="K033" xml:space="preserve">
+    <value>Personalizza i simboli per le modalità icona attivata e disattivata.</value>
+  </data>
+  <data name="K034" xml:space="preserve">
+    <value>Debug</value>
+  </data>
+  <data name="K035" xml:space="preserve">
+    <value>Controlli di debug nascosti. Usa /kr debug per mostrarli o nasconderli.</value>
+  </data>
+  <data name="K036" xml:space="preserve">
+    <value>Rimuovi</value>
+  </data>
+  <data name="K037" xml:space="preserve">
+    <value>Disattiva e rimuove il compagno attuale, visibile solo localmente.</value>
+  </data>
+  <data name="K038" xml:space="preserve">
+    <value>Disattiva evento automatico di Wuk Lamat legato alla data</value>
+  </data>
+  <data name="K040" xml:space="preserve">
+    <value>Scarta modifiche</value>
+  </data>
+  <data name="K041" xml:space="preserve">
+    <value>Nome visualizzato</value>
+  </data>
+  <data name="K042" xml:space="preserve">
+    <value>Non alterare il mio personaggio</value>
+  </data>
+  <data name="K043" xml:space="preserve">
+    <value>Bozza: {0} regole attive. Krangler nasconde attualmente {1} personaggi.</value>
+  </data>
+  <data name="K045" xml:space="preserve">
+    <value>Voce DTR</value>
+  </data>
+  <data name="K046" xml:space="preserve">
+    <value>Icone DTR (max 3 caratteri)</value>
+  </data>
+  <data name="K047" xml:space="preserve">
+    <value>Modalità DTR</value>
+  </data>
+  <data name="K048" xml:space="preserve">
+    <value>Modalità DTR: {0}</value>
+  </data>
+  <data name="K049" xml:space="preserve">
+    <value>Attiva e prova a generare subito il compagno configurato. L’interruttore principale di Krangler deve comunque essere attivo.</value>
+  </data>
+  <data name="K050" xml:space="preserve">
+    <value>Attiva Krangler</value>
+  </data>
+  <data name="K051" xml:space="preserve">
+    <value>Attiva regole Razzismo</value>
+  </data>
+  <data name="K052" xml:space="preserve">
+    <value>Attiva Ladro di anime</value>
+  </data>
+  <data name="K053" xml:space="preserve">
+    <value>Attiva questa sostituzione del PNG specifico.</value>
+  </data>
+  <data name="K055" xml:space="preserve">
+    <value>Regole esatte di razza / clan / genere</value>
+  </data>
+  <data name="K057" xml:space="preserve">
+    <value>Femminile</value>
+  </data>
+  <data name="K059" xml:space="preserve">
+    <value>Fine salva queste scelte una sola volta. La procedura conserva preimpostazioni, Ladro di anime, Amongus, Amico immaginario, impostazioni avanzate dell’aspetto e regole Razzismo.</value>
+  </data>
+  <data name="K060" xml:space="preserve">
+    <value>Altera chat</value>
+  </data>
+  <data name="K061" xml:space="preserve">
+    <value>Altera il testo della chat per proteggere la privacy negli screenshot.</value>
+  </data>
+  <data name="K062" xml:space="preserve">
+    <value>Genere</value>
+  </data>
+  <data name="K063" xml:space="preserve">
+    <value>Preimpostazione globale</value>
+  </data>
+  <data name="K064" xml:space="preserve">
+    <value>Mani</value>
+  </data>
+  <data name="K065" xml:space="preserve">
+    <value>Testa</value>
+  </data>
+  <data name="K069" xml:space="preserve">
+    <value>Amico immaginario</value>
+  </data>
+  <data name="K070" xml:space="preserve">
+    <value>Mantieni originale</value>
+  </data>
+  <data name="K071" xml:space="preserve">
+    <value>Mantieni invariato il tuo personaggio se vuoi e scegli come mostrare Krangler nella barra informazioni del server.</value>
+  </data>
+  <data name="K072" xml:space="preserve">
+    <value>Mantiene invariato l’aspetto del tuo personaggio e permette di usare un nome personale fisso invece di uno casuale.</value>
+  </data>
+  <data name="K073" xml:space="preserve">
+    <value>Altera aspetto</value>
+  </data>
+  <data name="K074" xml:space="preserve">
+    <value>Altera chat</value>
+  </data>
+  <data name="K075" xml:space="preserve">
+    <value>Altera chocobo</value>
+  </data>
+  <data name="K076" xml:space="preserve">
+    <value>Altera generi</value>
+  </data>
+  <data name="K077" xml:space="preserve">
+    <value>Altera minion</value>
+  </data>
+  <data name="K079" xml:space="preserve">
+    <value>Altera PNG</value>
+  </data>
+  <data name="K080" xml:space="preserve">
+    <value>Altera nomi dei giocatori</value>
+  </data>
+  <data name="K081" xml:space="preserve">
+    <value>Altera razze</value>
+  </data>
+  <data name="K082" xml:space="preserve">
+    <value>Krangler</value>
+  </data>
+  <data name="K083" xml:space="preserve">
+    <value>Configurazione di Krangler</value>
+  </data>
+  <data name="K084" xml:space="preserve">
+    <value>ALTERAZIONE ATTIVA</value>
+  </data>
+  <data name="K086" xml:space="preserve">
+    <value>Ultima cattura: {0} giocatori, {1} PNG, {2} chocobo</value>
+  </data>
+  <data name="K087" xml:space="preserve">
+    <value>Gambe</value>
+  </data>
+  <data name="K088" xml:space="preserve">
+    <value>Limita i giocatori visibili elaborati durante ogni ciclo di scansione.</value>
+  </data>
+  <data name="K090" xml:space="preserve">
+    <value>Maschile</value>
+  </data>
+  <data name="K091" xml:space="preserve">
+    <value>Principale</value>
+  </data>
+  <data name="K092" xml:space="preserve">
+    <value>Interruttore principale: attiva o disattiva tutte le alterazioni.</value>
+  </data>
+  <data name="K093" xml:space="preserve">
+    <value>Max giocatori per ciclo</value>
+  </data>
+  <data name="K094" xml:space="preserve">
+    <value>Massimo 100 sostituzioni di PNG.</value>
+  </data>
+  <data name="K095" xml:space="preserve">
+    <value>Minion</value>
+  </data>
+  <data name="K096" xml:space="preserve">
+    <value>Nomi</value>
+  </data>
+  <data name="K098" xml:space="preserve">
+    <value>Nessun file di preimpostazione caricato. Verranno usati gli aspetti dei PNG inclusi.</value>
+  </data>
+  <data name="K099" xml:space="preserve">
+    <value>Nessuna preimpostazione corrisponde alla ricerca.</value>
+  </data>
+  <data name="K100" xml:space="preserve">
+    <value>Preimpostazioni per personaggi non giocanti</value>
+  </data>
+  <data name="K101" xml:space="preserve">
+    <value>Personaggi non giocanti</value>
+  </data>
+  <data name="K102" xml:space="preserve">
+    <value>Non generato</value>
+  </data>
+  <data name="K103" xml:space="preserve">
+    <value>Nome del PNG</value>
+  </data>
+  <data name="K104" xml:space="preserve">
+    <value>PNG</value>
+  </data>
+  <data name="K107" xml:space="preserve">
+    <value>Apri configurazione guidata</value>
+  </data>
+  <data name="K108" xml:space="preserve">
+    <value>Nome fisso facoltativo per il tuo personaggio. Lascia vuoto per mantenere il nome reale.</value>
+  </data>
+  <data name="K109" xml:space="preserve">
+    <value>Panoramica</value>
+  </data>
+  <data name="K110" xml:space="preserve">
+    <value>Gruppo {0}</value>
+  </data>
+  <data name="K111" xml:space="preserve">
+    <value>Gruppo {0} ({1})</value>
+  </data>
+  <data name="K112" xml:space="preserve">
+    <value>Preimpostazioni per posizione nel gruppo</value>
+  </data>
+  <data name="K115" xml:space="preserve">
+    <value>Cartelle delle preimpostazioni: {0}\players, \npcs, \chocobos</value>
+  </data>
+  <data name="K116" xml:space="preserve">
+    <value>Preimpostazioni</value>
+  </data>
+  <data name="K117" xml:space="preserve">
+    <value>Preimpostazioni caricate: {0}</value>
+  </data>
+  <data name="K118" xml:space="preserve">
+    <value>Controllo della propagazione</value>
+  </data>
+  <data name="K119" xml:space="preserve">
+    <value>Razza</value>
+  </data>
+  <data name="K120" xml:space="preserve">
+    <value>Razza / clan</value>
+  </data>
+  <data name="K121" xml:space="preserve">
+    <value>Razzismo</value>
+  </data>
+  <data name="K122" xml:space="preserve">
+    <value>Casuale</value>
+  </data>
+  <data name="K123" xml:space="preserve">
+    <value>Aspetto dettagliato casuale</value>
+  </data>
+  <data name="K124" xml:space="preserve">
+    <value>Generi casuali</value>
+  </data>
+  <data name="K125" xml:space="preserve">
+    <value>Rende casuali i generi dei personaggi dei giocatori visibili.</value>
+  </data>
+  <data name="K126" xml:space="preserve">
+    <value>Rende casuali capelli, viso, occhi e altri campi dell’aspetto.</value>
+  </data>
+  <data name="K127" xml:space="preserve">
+    <value>Razze e clan casuali</value>
+  </data>
+  <data name="K128" xml:space="preserve">
+    <value>Rende casuali razze e sottorazze dei personaggi dei giocatori visibili.</value>
+  </data>
+  <data name="K129" xml:space="preserve">
+    <value>Rende casuali i nomi dei giocatori visibili e quelli nell’elenco del gruppo.</value>
+  </data>
+  <data name="K130" xml:space="preserve">
+    <value>Riapre la configurazione rapida in tre passaggi, mantenendo le impostazioni avanzate e le regole Razzismo.</value>
+  </data>
+  <data name="K131" xml:space="preserve">
+    <value>Sostituisci</value>
+  </data>
+  <data name="K132" xml:space="preserve">
+    <value>Sostituisce i PNG di battaglia e degli eventi con nome esatto usando preimpostazioni locali importate.</value>
+  </data>
+  <data name="K133" xml:space="preserve">
+    <value>Clan sostitutivo</value>
+  </data>
+  <data name="K134" xml:space="preserve">
+    <value>Genere sostitutivo</value>
+  </data>
+  <data name="K135" xml:space="preserve">
+    <value>Rivedi e applica</value>
+  </data>
+  <data name="K136" xml:space="preserve">
+    <value>Le regole si basano sull’identità locale originale del personaggio. Nascondi rimuove il personaggio 3D corrispondente e il nome nel mondo di gioco. Sostituisci usa pseudonimi per i nomi supportati e applica clan e genere scelti dopo le altre modifiche dell’aspetto.</value>
+  </data>
+  <data name="K137" xml:space="preserve">
+    <value>Origine a runtime: {0}</value>
+  </data>
+  <data name="K138" xml:space="preserve">
+    <value>Cerca preimpostazioni...</value>
+  </data>
+  <data name="K139" xml:space="preserve">
+    <value>Secondi tra le catture di Ladro di anime. La scansione dell’aspetto continua ogni 5 secondi.</value>
+  </data>
+  <data name="K141" xml:space="preserve">
+    <value>La scelta può essere globale, casuale o diversa per ogni posizione nel gruppo.
+
+</value>
+  </data>
+  <data name="K142" xml:space="preserve">
+    <value>Nome personale e DTR</value>
+  </data>
+  <data name="K143" xml:space="preserve">
+    <value>Nome personale visualizzato: {0}</value>
+  </data>
+  <data name="K144" xml:space="preserve">
+    <value>Mostra voce nella barra DTR</value>
+  </data>
+  <data name="K145" xml:space="preserve">
+    <value>Mostra lo stato di Krangler nella barra informazioni del server. Fai clic sulla voce DTR per attivarlo o disattivarlo.</value>
+  </data>
+  <data name="K146" xml:space="preserve">
+    <value>Mostrato quando Krangler è {0}</value>
+  </data>
+  <data name="K147" xml:space="preserve">
+    <value>Ladro di anime</value>
+  </data>
+  <data name="K148" xml:space="preserve">
+    <value>Ultima cattura di Ladro di anime: {0} giocatori, {1} PNG, {2} chocobo</value>
+  </data>
+  <data name="K149" xml:space="preserve">
+    <value>Genera un finto PNG compagno, visibile solo localmente e non selezionabile, mentre Krangler è attivo.</value>
+  </data>
+  <data name="K150" xml:space="preserve">
+    <value>Generato</value>
+  </data>
+  <data name="K151" xml:space="preserve">
+    <value>Stato: {0}</value>
+  </data>
+  <data name="K152" xml:space="preserve">
+    <value>Passaggio {0} di 3</value>
+  </data>
+  <data name="K153" xml:space="preserve">
+    <value>Super Krangle Master 4000</value>
+  </data>
+  <data name="K155" xml:space="preserve">
+    <value>Disattiva l’evento automatico di Wuk Lamat dal 31 marzo al 2 aprile per consentire le normali prove di Super Krangle.</value>
+  </data>
+  <data name="K157" xml:space="preserve">
+    <value>Prova generazione</value>
+  </data>
+  <data name="K159" xml:space="preserve">
+    <value>La sostituzione di Wuk Lamat legata alla data è attualmente attiva.</value>
+  </data>
+  <data name="K160" xml:space="preserve">
+    <value>Le impostazioni di debug disattivano attualmente la sostituzione di Wuk Lamat legata alla data.</value>
+  </data>
+  <data name="K161" xml:space="preserve">
+    <value>Fa parte della bozza. Usa Applica regole per salvare o disattivare questa sezione.</value>
+  </data>
+  <data name="K163" xml:space="preserve">
+    <value>Usa scelta globale</value>
+  </data>
+  <data name="K164" xml:space="preserve">
+    <value>Usa le preimpostazioni Glamourer importate al posto delle normali alterazioni dell’aspetto.
+</value>
+  </data>
+  <data name="K166" xml:space="preserve">
+    <value>Armi</value>
+  </data>
+  <data name="K167" xml:space="preserve">
+    <value>Tu</value>
+  </data>
+  <data name="K168" xml:space="preserve">
+    <value>Tu ({0})</value>
+  </data>
+  <data name="K169" xml:space="preserve">
+    <value>Amico immaginario in attesa.</value>
+  </data>
+  <data name="K170" xml:space="preserve">
+    <value>Richiesta IPC di Amico immaginario non riuscita.</value>
+  </data>
+  <data name="K171" xml:space="preserve">
+    <value>Amico immaginario disattivato.</value>
+  </data>
+  <data name="K172" xml:space="preserve">
+    <value>Bloccato: Krangler è disattivato.</value>
+  </data>
+  <data name="K173" xml:space="preserve">
+    <value>In attesa del giocatore locale.</value>
+  </data>
+  <data name="K174" xml:space="preserve">
+    <value>Bloccato: cambio di zona o filmato.</value>
+  </data>
+  <data name="K175" xml:space="preserve">
+    <value>Bloccato: tabella degli oggetti sotto carico.</value>
+  </data>
+  <data name="K176" xml:space="preserve">
+    <value>Amico immaginario rimosso: {0}.</value>
+  </data>
+  <data name="K177" xml:space="preserve">
+    <value>Impossibile generare Amico immaginario.</value>
+  </data>
+  <data name="K178" xml:space="preserve">
+    <value>CreateBattleCharacter non ha trovato uno slot oggetto libero.</value>
+  </data>
+  <data name="K179" xml:space="preserve">
+    <value>Impossibile trovare l’oggetto creato.</value>
+  </data>
+  <data name="K180" xml:space="preserve">
+    <value>Amico immaginario «{0}» generato con preimpostazione parziale: aggiornamento del corpo non riuscito.</value>
+  </data>
+  <data name="K181" xml:space="preserve">
+    <value>Amico immaginario «{0}» generato.</value>
+  </data>
+  <data name="K182" xml:space="preserve">
+    <value>Segue come «{0}» con preimpostazione parziale «{1}»: aggiornamento del corpo non riuscito.</value>
+  </data>
+  <data name="K183" xml:space="preserve">
+    <value>Segue come «{0}» con la preimpostazione «{1}».</value>
+  </data>
+  <data name="K184" xml:space="preserve">
+    <value>Amico immaginario nascosto: {0}</value>
+  </data>
+  <data name="K185" xml:space="preserve">
+    <value>La preimpostazione non ha fornito modifiche pronte di tipo giocatore.</value>
+  </data>
+  <data name="K186" xml:space="preserve">
+    <value>Amico immaginario parziale: aggiornamento del corpo non riuscito.</value>
+  </data>
+  <data name="K187" xml:space="preserve">
+    <value>Preimpostazione di Amico immaginario «{0}» applicata.</value>
+  </data>
+  <data name="K188" xml:space="preserve">
+    <value>Preimpostazione «{0}» non trovata.</value>
+  </data>
+  <data name="K189" xml:space="preserve">
+    <value>Amico immaginario nascosto: preimpostazione non trovata.</value>
+  </data>
+  <data name="K190" xml:space="preserve">
+    <value>La preimpostazione «{0}» richiede il modelId PNG esatto {1}, bloccato per Amico immaginario.</value>
+  </data>
+  <data name="K191" xml:space="preserve">
+    <value>Amico immaginario nascosto: preimpostazione del modello PNG esatto bloccata.</value>
+  </data>
+  <data name="K192" xml:space="preserve">
+    <value>La preimpostazione non ha fornito dati di disegno pronti di tipo giocatore.</value>
+  </data>
+  <data name="K193" xml:space="preserve">
+    <value>Il puntatore del personaggio era nullo.</value>
+  </data>
+  <data name="K194" xml:space="preserve">
+    <value>L’oggetto di disegno non è pronto.</value>
+  </data>
+  <data name="K195" xml:space="preserve">
+    <value>Il tipo di oggetto di disegno è {0}.</value>
+  </data>
+  <data name="K196" xml:space="preserve">
+    <value>Il tipo di modello dell’oggetto di disegno è {0}.</value>
+  </data>
+  <data name="K197" xml:space="preserve">
+    <value>Il personaggio Amico immaginario è andato perso.</value>
+  </data>
+  <data name="K198" xml:space="preserve">
+    <value>Il puntatore del personaggio era nullo.</value>
+  </data>
+  <data name="K199" xml:space="preserve">
+    <value>Preimpostazione «{0}» bloccata: Amico immaginario non può applicare il modelId PNG esatto {1}.</value>
+  </data>
+  <data name="K200" xml:space="preserve">
+    <value>Personalizzazione preparata={0}, personalizzazione richiesta={1}, equipaggiamento preparato={2}</value>
+  </data>
+  <data name="K201" xml:space="preserve">
+    <value>Aspetto={0}, personalizzazione richiesta={1}, aggiornamento={2}, equipaggiamento={3}, armi={4}, bonus={5}, metadati={6}</value>
+  </data>
+  <data name="K202" xml:space="preserve">
+    <value>scaricamento del plugin</value>
+  </data>
+  <data name="K203" xml:space="preserve">
+    <value>disattivazione manuale</value>
+  </data>
+  <data name="K204" xml:space="preserve">
+    <value>disattivato da {0}</value>
+  </data>
+  <data name="K205" xml:space="preserve">
+    <value>Krangler disattivato</value>
+  </data>
+  <data name="K206" xml:space="preserve">
+    <value>non connesso</value>
+  </data>
+  <data name="K207" xml:space="preserve">
+    <value>cambio di zona o filmato</value>
+  </data>
+  <data name="K208" xml:space="preserve">
+    <value>tabella degli oggetti sotto carico</value>
+  </data>
+  <data name="K209" xml:space="preserve">
+    <value>disconnessione</value>
+  </data>
+  <data name="K210" xml:space="preserve">
+    <value>cambio territorio {0}</value>
+  </data>
+  <data name="K211" xml:space="preserve">
+    <value>forzato dalla richiesta di preimpostazione di {0}</value>
+  </data>
+  <data name="K212" xml:space="preserve">
+    <value>cambio preimpostazione: {0}</value>
+  </data>
+  <data name="K213" xml:space="preserve">
+    <value>Sì</value>
+  </data>
+  <data name="K214" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="K215" xml:space="preserve">
+    <value>Oggetto</value>
+  </data>
+  <data name="K216" xml:space="preserve">
+    <value>Terreno</value>
+  </data>
+  <data name="K217" xml:space="preserve">
+    <value>Oggetto di sfondo</value>
+  </data>
+  <data name="K218" xml:space="preserve">
+    <value>Base del personaggio</value>
+  </data>
+  <data name="K219" xml:space="preserve">
+    <value>Oggetto effetto</value>
+  </data>
+  <data name="K220" xml:space="preserve">
+    <value>Luce</value>
+  </data>
+  <data name="K221" xml:space="preserve">
+    <value>Tipo sconosciuto 6</value>
+  </data>
+  <data name="K222" xml:space="preserve">
+    <value>Spazio ambientale</value>
+  </data>
+  <data name="K223" xml:space="preserve">
+    <value>Posizione ambientale</value>
+  </data>
+  <data name="K224" xml:space="preserve">
+    <value>Decalcomania</value>
+  </data>
+  <data name="K225" xml:space="preserve">
+    <value>Tipo sconosciuto 10</value>
+  </data>
+  <data name="K226" xml:space="preserve">
+    <value>Umano</value>
+  </data>
+  <data name="K227" xml:space="preserve">
+    <value>Semiumano</value>
+  </data>
+  <data name="K228" xml:space="preserve">
+    <value>Mostro</value>
+  </data>
+  <data name="K229" xml:space="preserve">
+    <value>Arma</value>
+  </data>
+  <data name="K230" xml:space="preserve">
+    <value>identità dell'aspetto modificata dal preset '{0}'</value>
+  </data>
+  <data name="Window appearance" xml:space="preserve"><value>Aspetto della finestra</value></data>
+  <data name="Compact visible on main window" xml:space="preserve"><value>Mostra la modalità compatta nella finestra principale</value></data>
+  <data name="Language visible on main window" xml:space="preserve"><value>Mostra la lingua nella finestra principale</value></data>
+  <data name="Transparency" xml:space="preserve"><value>Trasparenza</value></data>
+  <data name="Opacity (%)" xml:space="preserve"><value>Opacità (%)</value></data>
+  <data name="Auto-fade when unfocused" xml:space="preserve"><value>Sfuma automaticamente senza focus</value></data>
+  <data name="Unfocused opacity (%)" xml:space="preserve"><value>Opacità senza focus (%)</value></data>
+  <data name="Unfocused delay (seconds)" xml:space="preserve"><value>Ritardo senza focus (secondi)</value></data>
+</root>

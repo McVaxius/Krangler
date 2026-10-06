@@ -1,4 +1,9 @@
 using System;
+using System.Linq;
+using System.Numerics;
+using AethertekUI;
+using Dalamud.Interface.Utility;
+using Dalamud.Bindings.ImGui;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
@@ -41,6 +46,8 @@ namespace Krangler;
 
 public sealed class Plugin : IDalamudPlugin
 {
+    private readonly System.Collections.Generic.Dictionary<Dalamud.Interface.Windowing.IWindow, AethertekUI.MaterialWindowOpacity> windowOpacities = new();
+    private readonly AethertekUI.MaterialWindowOpacity fontStatusOpacity = new();
     [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
     [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
     [PluginService] internal static IClientState ClientState { get; private set; } = null!;
@@ -49,6 +56,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IAddonLifecycle AddonLifecycle { get; private set; } = null!;
     [PluginService] internal static IFramework Framework { get; private set; } = null!;
     [PluginService] internal static IDtrBar DtrBar { get; private set; } = null!;
+    [PluginService] internal static ITextureProvider TextureProvider { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
     [PluginService] internal static IGameGui GameGui { get; private set; } = null!;
     [PluginService] internal static IGameInteropProvider GameInterop { get; private set; } = null!;
@@ -73,6 +81,18 @@ public sealed class Plugin : IDalamudPlugin
     public readonly WindowSystem WindowSystem = new("Krangler");
     private MainWindow MainWindow { get; init; }
     private SetupWizardWindow SetupWizardWindow { get; init; }
+    private KranglerFonts uiFonts = null!;
+    private UiText uiText = null!;
+    private AethertekUI.Dalamud.MaterialTextHost? shapedText;
+    private MaterialTheme uiTheme = null!;
+    private readonly MaterialWindowFold fontStatusFold = new();
+    private readonly MaterialWindowDecorations fontStatusDecorations = new();
+    private MaterialOptions<string> languageOptions = null!;
+    private string appliedLanguage = string.Empty;
+    private uint appliedAccent;
+    private Vector3 accentDraft;
+    private int checkedFontGeneration = -1;
+    private bool fontIssueLogged;
 
     private IDtrBarEntry? dtrEntry;
     private bool wasEnabled;
@@ -328,7 +348,8 @@ public sealed class Plugin : IDalamudPlugin
             HelpMessage = "Krangler: /kr [on|off|wizard|setup|debug|fren|ws|j] to control the plugin, or /kr to open UI."
         });
 
-        PluginInterface.UiBuilder.Draw += WindowSystem.Draw;
+        ApplyAppearance();
+        PluginInterface.UiBuilder.Draw += DrawUi;
         PluginInterface.UiBuilder.OpenConfigUi += ToggleMainUi;
         PluginInterface.UiBuilder.OpenMainUi += ToggleMainUi;
 
@@ -4988,6 +5009,134 @@ public sealed class Plugin : IDalamudPlugin
         }
     }
 
+    private void DrawUi()
+    {
+        ApplyAppearance();
+        if (!WindowSystem.Windows.Any(window => window.IsOpen)) return;
+        using var text = uiText.Enter();
+        shapedText ??= new(TextureProvider);
+        using var shaping = shapedText.Push();
+        if (!uiFonts.Ready)
+        {
+            if (!fontIssueLogged && uiFonts.LoadException is { } error)
+            { Log.Error(error,"[Krangler] Required UI fonts failed to load."); fontIssueLogged=true; }
+            DrawFontStatus(uiFonts.LoadException is null);
+            return;
+        }
+        if (checkedFontGeneration != uiFonts.Generation)
+        {
+            try
+            {
+                var generation=uiFonts.Generation;
+                foreach (var size in KranglerPresentation.FontSizes)
+                    shapedText.Renderer.CheckGlyphs(uiText.RequiredText, size * ImGuiHelpers.GlobalScale);
+                uiFonts.CheckGlyphs(uiText.RequiredText);
+                checkedFontGeneration=generation;
+            }
+            catch (Exception error)
+            {
+                if (!fontIssueLogged) { Log.Error(error,"[Krangler] Required UI glyph coverage failed."); fontIssueLogged=true; }
+                DrawFontStatus(false);return;
+            }
+        }
+        KranglerPresentation.Compact=Configuration.UiCompact;
+        using var theme=MaterialTheme.Push(uiTheme,ImGuiHelpers.GlobalScale,MaterialStyleMode.ColorsOnly);
+        using var geometry=new MaterialStyleScope();
+        var scale=ImGuiHelpers.GlobalScale;
+        geometry.Style(ImGuiStyleVar.WindowPadding,new Vector2(Configuration.UiCompact?10:14)*scale);
+        geometry.Style(ImGuiStyleVar.FramePadding,new Vector2(Configuration.UiCompact?8:12,Configuration.UiCompact?4:6)*scale);
+        geometry.Style(ImGuiStyleVar.ItemSpacing,new Vector2(Configuration.UiCompact?8:12,Configuration.UiCompact?5:8)*scale);
+        geometry.Style(ImGuiStyleVar.CellPadding,new Vector2(Configuration.UiCompact?8:12,Configuration.UiCompact?5:8)*scale);
+        geometry.Style(ImGuiStyleVar.FrameRounding,4*scale);
+        geometry.Style(ImGuiStyleVar.ChildRounding,4*scale);
+        geometry.Style(ImGuiStyleVar.FrameBorderSize,scale);
+        geometry.Style(ImGuiStyleVar.WindowRounding,6*scale);
+        geometry.Color(ImGuiCol.WindowBg,uiTheme.Colors.Background);
+        geometry.Color(ImGuiCol.ChildBg,uiTheme.Colors.Background);
+        using var font=uiFonts.Push(UiFontRole.Body);
+        using var chrome = MaterialWindowChrome.Push();
+        WindowSystem.Draw();
+        foreach (var window in WindowSystem.Windows)
+        {
+            if (!windowOpacities.TryGetValue(window, out var opacity))
+                windowOpacities.Add(window, opacity = new());
+            ApplyWindowOpacity(opacity, window.WindowName);
+        }
+    }
+
+    private void DrawFontStatus(bool loading)
+    {
+        using var statusPalette = MaterialTheme.Push(uiTheme, ImGuiHelpers.GlobalScale, MaterialStyleMode.ColorsOnly);
+        using var statusChrome = MaterialWindowChrome.Push();
+        ImGui.SetNextWindowSize(new Vector2(460 * ImGuiHelpers.GlobalScale, 0), ImGuiCond.Always);
+        fontStatusFold.PreDraw("Krangler##FontStatus", null, null, reducedMotion: false,
+            prepareDecorations: fontStatusDecorations.Prepare);
+        try
+        {
+            if (ImGui.Begin("Krangler##FontStatus", ImGuiWindowFlags.AlwaysAutoResize))
+            {
+                fontStatusDecorations.Paint();
+                MaterialText.TextWrapped(UiText.T(loading ? "Loading UI fonts..." : "UI fonts failed to load. See the plugin log."));
+            }
+        }
+        finally
+        {
+            ImGui.End();
+            fontStatusDecorations.Paint();
+            fontStatusFold.PostDraw();
+            ApplyWindowOpacity(fontStatusOpacity, "Krangler##FontStatus");
+        }
+    }
+
+    private void ApplyAppearance()
+    {
+        var language=UiText.Languages.Any(l=>l.Code==Configuration.UiLanguage)?Configuration.UiLanguage:"en";
+        if (language!=appliedLanguage)
+        {
+            uiFonts?.Dispose();uiText?.Dispose();
+            uiText=new(language,role=>uiFonts!.Push(role));
+            uiFonts=new(PluginInterface.UiBuilder.FontAtlas,uiText.GlyphRanges(),language);
+            languageOptions=new(UiText.Languages.Select(l=>new MaterialOption<string>(l.Code,l.Code,l.Name)).ToArray());
+            appliedLanguage=language;checkedFontGeneration=-1;fontIssueLogged=false;
+        }
+        if (uiTheme is null || appliedAccent!=(Configuration.UiAccentRgb&0xFFFFFF))
+        {
+            appliedAccent=Configuration.UiAccentRgb&0xFFFFFF;
+            uiTheme=KranglerPresentation.Theme(appliedAccent);
+            var rgb=KranglerPresentation.Rgb(appliedAccent);accentDraft=new(rgb.X,rgb.Y,rgb.Z);
+        }
+    }
+
+    public void DrawAppearanceSelector(bool includeAccent = true)
+    {
+        var language=appliedLanguage;
+        using var controls=MaterialControls.Push(KranglerPresentation.Controls(KranglerPresentation.ActionHeight,24));
+        var scale=MaterialTheme.Metrics.Scale;var colors=MaterialTheme.Current.Colors;
+        var labels=new MaterialAppearanceLabels(UiText.T("Color"),UiText.T("Language"),UiText.T("Teal"),UiText.T("Blue"),UiText.T("Pink"),UiText.T("Custom RGB"));
+        var accentChanged = includeAccent && MaterialAppearanceSelector.DrawAccent("appearance", ref accentDraft, labels, 44);
+        if (includeAccent) ImGui.SameLine(0,32*scale);
+        var globe=ImGui.GetCursorScreenPos();ImGui.Dummy(new Vector2(42*scale,KranglerPresentation.ActionHeight*scale));
+        MaterialIcons.Draw(MaterialIcon.Globe,globe+new Vector2(-5,(KranglerPresentation.ActionHeight-44)*.5f)*scale,44*scale,colors.OnSurfaceVariant);
+        ImGui.SameLine(0,16*scale);
+        var minimum=MathF.Ceiling(ImGui.CalcTextSize(languageOptions.LabelFor(language,"English")).X+KranglerPresentation.ActionHeight*scale+56*scale);
+        var width=MaterialLayout.FitNextItemWidth((KranglerPresentation.Compact?188:182)*scale,minimum);
+        ImGui.PushID("appearance");
+        var languageChanged=MaterialCombo.Draw("language",languageOptions,ref language,MaterialComboLayout.Default with { ConstrainFieldWidth=false },
+            new MaterialControlAppearance(colors.SurfaceContainerLowest,colors.OnSurface,colors.OutlineVariant),width/scale,searchable:false);
+        ImGui.PopID();
+        if (accentChanged) Configuration.UiAccentRgb=((uint)Math.Clamp((int)MathF.Round(accentDraft.X*255),0,255)<<16)
+            |((uint)Math.Clamp((int)MathF.Round(accentDraft.Y*255),0,255)<<8)|(uint)Math.Clamp((int)MathF.Round(accentDraft.Z*255),0,255);
+        if (languageChanged) Configuration.UiLanguage=language;
+        if (accentChanged || languageChanged) Configuration.Save();
+    }
+
+    public void DrawCompactPreference()
+    {
+        var compact=Configuration.UiCompact;
+        if (UiGui.Checkbox("C##krangler-compact",ref compact)) { Configuration.UiCompact=compact;Configuration.Save(); }
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip(UiText.T("Compact mode"));
+    }
+
     public void Dispose()
     {
         IpcService.Dispose();
@@ -5008,7 +5157,10 @@ public sealed class Plugin : IDalamudPlugin
             Log.Error($"[Krangler] Failed to unsubscribe from ChatMessage event: {ex.Message}");
         }
 
-        PluginInterface.UiBuilder.Draw -= WindowSystem.Draw;
+        PluginInterface.UiBuilder.Draw -= DrawUi;
+        shapedText?.Dispose();
+        uiFonts?.Dispose();
+        uiText?.Dispose();
         PluginInterface.UiBuilder.OpenConfigUi -= ToggleMainUi;
         PluginInterface.UiBuilder.OpenMainUi -= ToggleMainUi;
 
@@ -5027,5 +5179,60 @@ public sealed class Plugin : IDalamudPlugin
         KrangleService.ClearCache();
 
         Log.Information("[Krangler] Plugin unloaded!");
+    }
+
+    internal void ApplyWindowOpacity(AethertekUI.MaterialWindowOpacity opacity, string windowName)
+    {
+        var config = Configuration;
+        opacity.Apply(windowName, config.UiWindowOpacityPercent / 100f, config.UiTransparencyEnabled,
+            config.UiAutoFade, config.UiFadedOpacityPercent / 100f, config.UiUnfocusedDelaySeconds);
+    }
+
+    internal void DrawTransparencyToggle()
+    {
+        var enabled = Configuration.UiTransparencyEnabled;
+        if (UiGui.Checkbox("Transparency###window-transparency-main", ref enabled))
+        { Configuration.UiTransparencyEnabled = enabled; Configuration.Save(); }
+    }
+
+    internal void DrawWindowSettings()
+    {
+        var config = Configuration;
+        var changed = false;
+        var compactVisible = config.UiCompactVisibleOnMainWindow;
+        if (UiGui.Checkbox("Compact visible on main window###window-compact-visible", ref compactVisible))
+        { config.UiCompactVisibleOnMainWindow = compactVisible; changed = true; }
+        var languageVisible = config.UiLanguageVisibleOnMainWindow;
+        if (UiGui.Checkbox("Language visible on main window###window-language-visible", ref languageVisible))
+        { config.UiLanguageVisibleOnMainWindow = languageVisible; changed = true; }
+        var enabled = config.UiTransparencyEnabled;
+        if (UiGui.Checkbox("Transparency###window-transparency", ref enabled))
+        { config.UiTransparencyEnabled = enabled; changed = true; }
+        ImGui.BeginDisabled(!config.UiTransparencyEnabled);
+        try
+        {
+        ImGui.SetNextItemWidth(96 * AethertekUI.MaterialTheme.Metrics.Scale);
+        var normal = config.UiWindowOpacityPercent;
+        if (UiGui.InputInt("Opacity (%)###window-opacity", ref normal, 1, 100))
+        { config.UiWindowOpacityPercent = normal; changed = true; }
+        var autoFade = config.UiAutoFade;
+        if (UiGui.Checkbox("Auto-fade when unfocused###window-auto-fade", ref autoFade))
+        { config.UiAutoFade = autoFade; changed = true; }
+        ImGui.BeginDisabled(!config.UiAutoFade);
+        try
+        {
+        ImGui.SetNextItemWidth(96 * AethertekUI.MaterialTheme.Metrics.Scale);
+        var faded = config.UiFadedOpacityPercent;
+        if (UiGui.InputInt("Unfocused opacity (%)###window-faded-opacity", ref faded, 1, 100))
+        { config.UiFadedOpacityPercent = faded; changed = true; }
+        ImGui.SetNextItemWidth(96 * AethertekUI.MaterialTheme.Metrics.Scale);
+        var delay = config.UiUnfocusedDelaySeconds;
+        if (UiGui.InputInt("Unfocused delay (seconds)###window-unfocused-delay", ref delay, 1, 100))
+        { config.UiUnfocusedDelaySeconds = delay; changed = true; }
+        }
+        finally { ImGui.EndDisabled(); }
+        }
+        finally { ImGui.EndDisabled(); }
+        if (changed) Configuration.Save();
     }
 }

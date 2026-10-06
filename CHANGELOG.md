@@ -1,5 +1,42 @@
 # Krangler Changelog
 
+## Unreleased - Hindi UI text
+
+- Append Hindi after the fourteen existing language choices with all 239 catalog entries translated, including displayed authored service and diagnostic templates. Shape Devanagari through a consumer-owned text host across the complete main/setup/font-status lifecycle, retaining native glyph checks for other scripts and original font-role heights.
+- Route measurement, custom captions, tooltips and single-line editing together through the shared text bridge. Preserve native IDs, raw preset names and values, configuration/plugin versions and runtime actions. Game-rendered DTR/SeString text remains outside the ImGui shaping bridge; no actual multiline editor is used by the current windows.
+- Current-source Debug x64 compilation passes without warnings or errors. The focused HelloFellowHuman/Krangler probe passes 2,751 assertions, verifying exact current library/resource bytes, native identities/actions, Hindi input height and upload-failure restoration. Game, GPU, managed-host and IME acceptance remain separate.
+
+## Unreleased - Window appearance and transparency
+
+- Add the Window appearance settings section with retained colour, compact and language controls, independent main-window visibility preferences, and a main transparency switch. Save opacity/fade preferences through the existing configuration: 100% normal, automatic 50% after ten unfocused seconds by default; clamp opacity to 10 to 100% and delay to nonnegative values. Apply opacity once after native End and motion restoration for each window tree, including chrome, owned content and images. Build/configuration checks and game acceptance remain separate.
+
+
+## 2026-10-05 - Rounded window chrome and native minimize (source adoption)
+
+- Adopt rounded chrome for Main and SetupWizard while retaining both windows' NoCollapse; add animated native minimize/restore only to the font status window. Preserve control identities, layout, saved geometry and actions.
+- Compilation, native interaction and game acceptance for this source adoption remain pending verification.
+
+## 2026-10-03 - UI adoption (local-only, unpublished)
+
+- Add Vietnamese, Brazilian Portuguese, Indonesian, Polish and Turkish through the existing keyed resources and appearance preferences. Preserve the original nine language choices and order, raw names and values, native control identities, runtime behavior and configuration version.
+- Verify all fourteen embedded catalogs and actual translation helpers, a clean Debug x64 build, and seven-role glyph coverage plus native selection/save/restore for the five additions in regular and compact density at scales 1 and 1.5. Managed-atlas readiness, full-window visuals and game acceptance remain pending.
+- Preserve empty and numbered service arguments, formatted values and leading zeroes during localization; typed UI values keep selected-culture formatting.
+- Keep custom self names, imported preset names, source tokens, paths and exception details opaque; translate authored follower reasons and diagnostic booleans by their source/template positions.
+- Show the unchanged assembly version in the main native title, measure sidebar labels and complete DTR editor groups, and retain readable field minima with pane scrolling. Native inputs retain their original IDs and omitted-step behavior.
+- Implemented the approved regular/compact sidebar and Overview panels, with retained native control identities and the existing three-step setup draft/apply behavior.
+- Stabilize the retained setup wizard's native auto-fit width and reserve the full fractional final-button extent. Native navigation ink and IDs, short-viewport scrolling, draft-only editing, Cancel and fresh-draft reopening are verified across all fourteen locales in regular/compact density at scales 1 and 1.5; managed-host and game acceptance remain pending.
+- Added shared compact, accent and language preferences through the existing save path, managed Segoe UI weights with host CJK/symbol coverage, and relative decorative colour roles. Safety gates and semantic status colours remain independent.
+- Completed nine embedded language resource sets, including setup text, tooltips and follower status messages. Imported names, command tokens and runtime logs retain their original values.
+- Arranged enabled/disabled DTR icon controls and the guide link horizontally, with wrapping at narrower widths; retained the native icon, code, mode and guide control identities. Long translated controls and Amongus replacement rows adapt to available space.
+- Added the local AethertekUI reference and artifact payload without changing version 1.1.0.2 or configuration version 2. Debug/Release compilation and local packaging are verified; host font readiness, live interactions and game visual acceptance remain pending.
+
+
+## 2026-10-02 - Build and release repair
+
+- Pin GitHub builds to SDK 10.0.201 and pass the downloaded Dalamud library path. Restore and build plugin projects with matching configuration, platform and runtime; stop on restore failure.
+- Keep build tokens read-only and release writes in a separate job. Use packaged manifest versions for untagged releases.
+- Local launchers build the plugin directly in the pinned environment and return its exit status.
+
 ## Unreleased
 
 - Build only the plugin project in GitHub Actions so test and regression projects do not block production artifacts.

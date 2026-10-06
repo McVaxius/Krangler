@@ -1,3 +1,4 @@
+using AethertekUI;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Windowing;
@@ -6,6 +7,7 @@ namespace Krangler.Windows;
 
 public sealed class SetupWizardWindow : Window
 {
+    private readonly AethertekUI.Dalamud.MaterialWindowMotion windowMotion = new();
     private sealed class WizardDraft
     {
         public bool Enabled { get; init; }
@@ -86,11 +88,25 @@ public sealed class SetupWizardWindow : Window
         step = 0;
     }
 
+    public override void PreDraw()
+    {
+        var width = System.Math.Min(600 * MaterialTheme.Metrics.Scale, ImGui.GetMainViewport().WorkSize.X * .9f);
+        ImGui.SetNextWindowSize(new Vector2(width, 0), ImGuiCond.Always);
+        // Auto-fit must use the same width when predicting wrapped content and scrollbars.
+        ImGui.SetNextWindowSizeConstraints(new Vector2(width, 0), new Vector2(width, float.MaxValue));
+        windowMotion.Prepare(this, reducedMotion: false, roundedCorners: true);
+    }
+
+    public override void PostDraw()
+        => windowMotion.Restore(this);
+
     public override void Draw()
     {
+        windowMotion.DrawChrome();
+        UiGui.Title(WindowName.Split("##",2)[0]);
         draft ??= WizardDraft.From(plugin.Configuration);
 
-        ImGui.Text($"Step {step + 1} of 3");
+        UiGui.Text(UiText.F($"Step {step + 1} of 3"));
         ImGui.Separator();
         ImGui.Spacing();
 
@@ -110,12 +126,16 @@ public sealed class SetupWizardWindow : Window
         ImGui.Spacing();
         ImGui.Separator();
         DrawNavigation();
+        // Reserve the full lower edge of fractional native controls when the window auto-fits.
+        var window = ImGuiP.GetCurrentWindow();
+        window.DC.CursorMaxPos = new Vector2(window.DC.CursorMaxPos.X,
+            System.MathF.Ceiling(System.MathF.Max(window.DC.CursorMaxPos.Y, ImGui.GetItemRectMax().Y)));
     }
 
     private void DrawFeatureStep()
     {
-        ImGui.Text("Core privacy choices");
-        ImGui.TextWrapped("Choose the broad local-only surfaces you want Krangler to change. You can refine every option later in the main window.");
+        UiGui.Text("Core privacy choices");
+        UiGui.TextWrapped("Choose the broad local-only surfaces you want Krangler to change. You can refine every option later in the main window.");
         ImGui.Spacing();
 
         DrawCheckbox("Enable Krangler", draft!.Enabled, value => draft = draft.With(enabled: value));
@@ -128,16 +148,16 @@ public sealed class SetupWizardWindow : Window
 
     private void DrawSelfAndDtrStep()
     {
-        ImGui.Text("Self display and DTR");
-        ImGui.TextWrapped("Keep your own character stable if desired, and choose how Krangler appears in the server info bar.");
+        UiGui.Text("Self display and DTR");
+        UiGui.TextWrapped("Keep your own character stable if desired, and choose how Krangler appears in the server info bar.");
         ImGui.Spacing();
 
         DrawCheckbox("Do Not Krangle Self", draft!.SkipSelfKrangling, value => draft = draft.With(skipSelfKrangling: value));
 
         ImGui.BeginDisabled(!draft.SkipSelfKrangling);
         var selfName = draft.CustomSelfDisplayName;
-        ImGui.SetNextItemWidth(260);
-        if (ImGui.InputText("Custom Self Display Name", ref selfName, 64))
+        ImGui.SetNextItemWidth(260*MaterialTheme.Metrics.Scale);
+        if (UiGui.InputText("Custom Self Display Name", ref selfName, 64))
             draft = draft.With(customSelfDisplayName: selfName);
         ImGui.EndDisabled();
 
@@ -146,16 +166,16 @@ public sealed class SetupWizardWindow : Window
 
         ImGui.BeginDisabled(!draft.DtrBarEnabled);
         var dtrMode = draft.DtrBarMode;
-        ImGui.SetNextItemWidth(180);
-        if (ImGui.Combo("DTR Mode", ref dtrMode, "Text Only\0Icon + Text\0Icon Only\0"))
+        ImGui.SetNextItemWidth(180*MaterialTheme.Metrics.Scale);
+        if (UiGui.Combo("DTR Mode", ref dtrMode, "Text Only\0Icon + Text\0Icon Only\0"))
             draft = draft.With(dtrBarMode: dtrMode);
         ImGui.EndDisabled();
     }
 
     private void DrawReviewStep()
     {
-        ImGui.Text("Review and apply");
-        ImGui.TextWrapped("Finish saves these choices once. Presets, Soul Thief, Amongus, Imaginary Fren, advanced appearance settings, and Racism rules are not changed by this wizard.");
+        UiGui.Text("Review and apply");
+        UiGui.TextWrapped("Finish saves these choices once. Presets, Soul Thief, Amongus, Imaginary Fren, advanced appearance settings, and Racism rules are not changed by this wizard.");
         ImGui.Spacing();
 
         DrawReviewLine("Master", draft!.Enabled);
@@ -165,14 +185,14 @@ public sealed class SetupWizardWindow : Window
         DrawReviewLine("Gender", draft.KrangleGenders);
         DrawReviewLine("Appearance", draft.KrangleAppearance);
         DrawReviewLine("Do Not Krangle Self", draft.SkipSelfKrangling);
-        ImGui.Text($"Self display name: {(string.IsNullOrWhiteSpace(draft.CustomSelfDisplayName) ? "Keep original" : draft.CustomSelfDisplayName)}");
+        UiGui.TextWrapped(UiText.F($"Self display name: {(string.IsNullOrWhiteSpace(draft.CustomSelfDisplayName) ? UiText.T("Keep original") : draft.CustomSelfDisplayName)}"));
         DrawReviewLine("DTR entry", draft.DtrBarEnabled);
-        ImGui.Text($"DTR mode: {GetDtrModeName(draft.DtrBarMode)}");
+        UiGui.Text(UiText.F($"DTR mode: {GetDtrModeName(draft.DtrBarMode)}"));
     }
 
     private void DrawNavigation()
     {
-        if (ImGui.Button("Cancel"))
+        if (UiGui.Button("Cancel"))
         {
             draft = null;
             IsOpen = false;
@@ -182,19 +202,19 @@ public sealed class SetupWizardWindow : Window
         if (step > 0)
         {
             ImGui.SameLine();
-            if (ImGui.Button("Back"))
+            if (UiGui.Button("Back"))
                 step--;
         }
 
         ImGui.SameLine();
         if (step < 2)
         {
-            if (ImGui.Button("Next"))
+            if (UiGui.Button("Next"))
                 step++;
             return;
         }
 
-        if (!ImGui.Button("Finish"))
+        if (!UiGui.Button("Finish"))
             return;
 
         var completed = draft!;
@@ -216,18 +236,18 @@ public sealed class SetupWizardWindow : Window
     private static void DrawCheckbox(string label, bool currentValue, System.Action<bool> update)
     {
         var value = currentValue;
-        if (ImGui.Checkbox(label, ref value))
+        if (UiGui.Checkbox(label, ref value))
             update(value);
     }
 
     private static void DrawReviewLine(string label, bool enabled)
-        => ImGui.Text($"{label}: {(enabled ? "On" : "Off")}");
+        => UiGui.Text(UiText.F("{0}: {1}",UiText.T(label),UiText.T(enabled?"On":"Off")));
 
     private static string GetDtrModeName(int mode)
-        => mode switch
+        => UiText.T(mode switch
         {
             1 => "Icon + Text",
             2 => "Icon Only",
             _ => "Text Only",
-        };
+        });
 }

@@ -1,0 +1,719 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms</value>
+  </resheader>
+  <data name="K005" xml:space="preserve">
+    <value>Активно</value>
+  </data>
+  <data name="K010" xml:space="preserve">
+    <value>Назад</value>
+  </data>
+  <data name="K013" xml:space="preserve">
+    <value>Синий</value>
+  </data>
+  <data name="K016" xml:space="preserve">
+    <value>Отмена</value>
+  </data>
+  <data name="K025" xml:space="preserve">
+    <value>Цвет</value>
+  </data>
+  <data name="K026" xml:space="preserve">
+    <value>Компактный режим</value>
+  </data>
+  <data name="K031" xml:space="preserve">
+    <value>Свой RGB</value>
+  </data>
+  <data name="K039" xml:space="preserve">
+    <value>Выключено</value>
+  </data>
+  <data name="K044" xml:space="preserve">
+    <value>Панель DTR</value>
+  </data>
+  <data name="K054" xml:space="preserve">
+    <value>Включено</value>
+  </data>
+  <data name="K058" xml:space="preserve">
+    <value>Готово</value>
+  </data>
+  <data name="K066" xml:space="preserve">
+    <value>Скрыть</value>
+  </data>
+  <data name="K067" xml:space="preserve">
+    <value>Значок + текст</value>
+  </data>
+  <data name="K068" xml:space="preserve">
+    <value>Только значок</value>
+  </data>
+  <data name="K085" xml:space="preserve">
+    <value>Язык</value>
+  </data>
+  <data name="K089" xml:space="preserve">
+    <value>Загрузка шрифтов интерфейса...</value>
+  </data>
+  <data name="K097" xml:space="preserve">
+    <value>Далее</value>
+  </data>
+  <data name="K106" xml:space="preserve">
+    <value>Да</value>
+  </data>
+  <data name="K113" xml:space="preserve">
+    <value>Розовый</value>
+  </data>
+  <data name="K114" xml:space="preserve">
+    <value>Пресет</value>
+  </data>
+  <data name="K140" xml:space="preserve">
+    <value>Выбрать пресет</value>
+  </data>
+  <data name="K156" xml:space="preserve">
+    <value>Бирюзовый</value>
+  </data>
+  <data name="K158" xml:space="preserve">
+    <value>Только текст</value>
+  </data>
+  <data name="K162" xml:space="preserve">
+    <value>Не удалось загрузить шрифты интерфейса. См. журнал плагина.</value>
+  </data>
+  <data name="K165" xml:space="preserve">
+    <value>Предупреждение: {0}</value>
+  </data>
+  <data name="K056" xml:space="preserve">
+    <value>Ступни</value>
+  </data>
+  <data name="K078" xml:space="preserve">
+    <value>Изменять имена</value>
+  </data>
+  <data name="K105" xml:space="preserve">
+    <value>Нет</value>
+  </data>
+  <data name="K029" xml:space="preserve">
+    <value>Копировать ссылку на справочник значков</value>
+  </data>
+  <data name="K154" xml:space="preserve">
+    <value>Поддержать разработку на Ko-fi</value>
+  </data>
+  <data name="K000" xml:space="preserve">
+    <value>({0} пресетов)</value>
+  </data>
+  <data name="K001" xml:space="preserve">
+    <value>Значок: {0}</value>
+  </data>
+  <data name="K002" xml:space="preserve">
+    <value>Код значка: {0}</value>
+  </data>
+  <data name="K003" xml:space="preserve">
+    <value>♡ Ko-fi ♡</value>
+  </data>
+  <data name="K004" xml:space="preserve">
+    <value>Аксессуары</value>
+  </data>
+  <data name="K006" xml:space="preserve">
+    <value>Amongus</value>
+  </data>
+  <data name="K007" xml:space="preserve">
+    <value>Внешность</value>
+  </data>
+  <data name="K008" xml:space="preserve">
+    <value>Применять из пресета</value>
+  </data>
+  <data name="K009" xml:space="preserve">
+    <value>Применить правила</value>
+  </data>
+  <data name="K011" xml:space="preserve">
+    <value>Базовая задержка в кадрах до следующей перерисовки в очереди. Фактическая задержка зависит от количества персонажей.</value>
+  </data>
+  <data name="K012" xml:space="preserve">
+    <value>Базовая задержка перерисовки</value>
+  </data>
+  <data name="K014" xml:space="preserve">
+    <value>Тело</value>
+  </data>
+  <data name="K015" xml:space="preserve">
+    <value>Общие изменения неигровых персонажей на уровне игры сейчас заблокированы для предотвращения сбоев.</value>
+  </data>
+  <data name="K017" xml:space="preserve">
+    <value>Сохранять чокобо</value>
+  </data>
+  <data name="K018" xml:space="preserve">
+    <value>Интервал сохранения</value>
+  </data>
+  <data name="K019" xml:space="preserve">
+    <value>Сохранять NPC</value>
+  </data>
+  <data name="K020" xml:space="preserve">
+    <value>Сохранять игроков</value>
+  </data>
+  <data name="K021" xml:space="preserve">
+    <value>Чат</value>
+  </data>
+  <data name="K022" xml:space="preserve">
+    <value>Чокобо</value>
+  </data>
+  <data name="K023" xml:space="preserve">
+    <value>Выберите видимые только в вашем клиенте элементы, которые будет изменять Krangler. Все параметры можно уточнить позже в главном окне.</value>
+  </data>
+  <data name="K024" xml:space="preserve">
+    <value>Клан/Подраса</value>
+  </data>
+  <data name="K027" xml:space="preserve">
+    <value>Пресеты спутников</value>
+  </data>
+  <data name="K028" xml:space="preserve">
+    <value>Копирует ссылку на блог Lodestone с предложенными символами.</value>
+  </data>
+  <data name="K030" xml:space="preserve">
+    <value>Основные настройки приватности</value>
+  </data>
+  <data name="K032" xml:space="preserve">
+    <value>Своё отображаемое имя</value>
+  </data>
+  <data name="K033" xml:space="preserve">
+    <value>Настройте символы значков для включённого и выключенного состояния.</value>
+  </data>
+  <data name="K034" xml:space="preserve">
+    <value>Отладка</value>
+  </data>
+  <data name="K035" xml:space="preserve">
+    <value>Элементы отладки скрыты. Команда /kr debug переключает их видимость.</value>
+  </data>
+  <data name="K036" xml:space="preserve">
+    <value>Убрать</value>
+  </data>
+  <data name="K037" xml:space="preserve">
+    <value>Отключает и убирает текущего спутника, видимого только локально.</value>
+  </data>
+  <data name="K038" xml:space="preserve">
+    <value>Отключить событие Wuk Lamat по дате</value>
+  </data>
+  <data name="K040" xml:space="preserve">
+    <value>Отменить изменения</value>
+  </data>
+  <data name="K041" xml:space="preserve">
+    <value>Отображаемое имя</value>
+  </data>
+  <data name="K042" xml:space="preserve">
+    <value>Не изменять своего персонажа</value>
+  </data>
+  <data name="K043" xml:space="preserve">
+    <value>Черновик: активных правил — {0}. Сейчас Krangler скрывает персонажей: {1}.</value>
+  </data>
+  <data name="K045" xml:space="preserve">
+    <value>Элемент DTR</value>
+  </data>
+  <data name="K046" xml:space="preserve">
+    <value>Значки DTR (до 3 символов)</value>
+  </data>
+  <data name="K047" xml:space="preserve">
+    <value>Режим DTR</value>
+  </data>
+  <data name="K048" xml:space="preserve">
+    <value>Режим DTR: {0}</value>
+  </data>
+  <data name="K049" xml:space="preserve">
+    <value>Включает спутника с заданными настройками и пытается создать его сейчас. Главный переключатель Krangler также должен быть включён.</value>
+  </data>
+  <data name="K050" xml:space="preserve">
+    <value>Включить Krangler</value>
+  </data>
+  <data name="K051" xml:space="preserve">
+    <value>Включить правила расизма</value>
+  </data>
+  <data name="K052" xml:space="preserve">
+    <value>Включить «Похититель душ»</value>
+  </data>
+  <data name="K053" xml:space="preserve">
+    <value>Включает эту замену конкретного NPC.</value>
+  </data>
+  <data name="K055" xml:space="preserve">
+    <value>Точные правила расы / клана / пола</value>
+  </data>
+  <data name="K057" xml:space="preserve">
+    <value>Женский</value>
+  </data>
+  <data name="K059" xml:space="preserve">
+    <value>Готово сохраняет этот выбор один раз. Мастер не изменяет пресеты, «Похититель душ», Amongus, «Воображаемый друг», расширенные настройки внешности и правила расизма.</value>
+  </data>
+  <data name="K060" xml:space="preserve">
+    <value>Искажать чат</value>
+  </data>
+  <data name="K061" xml:space="preserve">
+    <value>Искажает текст чата для защиты приватности на снимках экрана.</value>
+  </data>
+  <data name="K062" xml:space="preserve">
+    <value>Пол</value>
+  </data>
+  <data name="K063" xml:space="preserve">
+    <value>Общий пресет</value>
+  </data>
+  <data name="K064" xml:space="preserve">
+    <value>Руки</value>
+  </data>
+  <data name="K065" xml:space="preserve">
+    <value>Голова</value>
+  </data>
+  <data name="K069" xml:space="preserve">
+    <value>Воображаемый друг</value>
+  </data>
+  <data name="K070" xml:space="preserve">
+    <value>Сохранить исходное</value>
+  </data>
+  <data name="K071" xml:space="preserve">
+    <value>При желании сохраните своего персонажа без изменений и выберите вид Krangler в панели информации о сервере.</value>
+  </data>
+  <data name="K072" xml:space="preserve">
+    <value>Сохраняет внешность своего персонажа и позволяет использовать постоянное отображаемое имя вместо случайного.</value>
+  </data>
+  <data name="K073" xml:space="preserve">
+    <value>Изменять внешность</value>
+  </data>
+  <data name="K074" xml:space="preserve">
+    <value>Искажать чат</value>
+  </data>
+  <data name="K075" xml:space="preserve">
+    <value>Изменять чокобо</value>
+  </data>
+  <data name="K076" xml:space="preserve">
+    <value>Изменять пол</value>
+  </data>
+  <data name="K077" xml:space="preserve">
+    <value>Изменять питомцев</value>
+  </data>
+  <data name="K079" xml:space="preserve">
+    <value>Изменять NPC</value>
+  </data>
+  <data name="K080" xml:space="preserve">
+    <value>Изменять имена игроков</value>
+  </data>
+  <data name="K081" xml:space="preserve">
+    <value>Изменять расы</value>
+  </data>
+  <data name="K082" xml:space="preserve">
+    <value>Krangler</value>
+  </data>
+  <data name="K083" xml:space="preserve">
+    <value>Настройка Krangler</value>
+  </data>
+  <data name="K084" xml:space="preserve">
+    <value>ИЗМЕНЕНИЯ АКТИВНЫ</value>
+  </data>
+  <data name="K086" xml:space="preserve">
+    <value>Последнее сохранение: {0} игроков, {1} NPC, {2} чокобо</value>
+  </data>
+  <data name="K087" xml:space="preserve">
+    <value>Ноги</value>
+  </data>
+  <data name="K088" xml:space="preserve">
+    <value>Ограничивает количество видимых игроков, обрабатываемых за один проход.</value>
+  </data>
+  <data name="K090" xml:space="preserve">
+    <value>Мужской</value>
+  </data>
+  <data name="K091" xml:space="preserve">
+    <value>Главный переключатель</value>
+  </data>
+  <data name="K092" xml:space="preserve">
+    <value>Главный переключатель включает или выключает все изменения Krangler.</value>
+  </data>
+  <data name="K093" xml:space="preserve">
+    <value>Макс. игроков за цикл</value>
+  </data>
+  <data name="K094" xml:space="preserve">
+    <value>Не более 100 замен NPC.</value>
+  </data>
+  <data name="K095" xml:space="preserve">
+    <value>Питомцы</value>
+  </data>
+  <data name="K096" xml:space="preserve">
+    <value>Имена</value>
+  </data>
+  <data name="K098" xml:space="preserve">
+    <value>Файлы пресетов не загружены. Будут использованы встроенные образы NPC.</value>
+  </data>
+  <data name="K099" xml:space="preserve">
+    <value>Нет пресетов, соответствующих поиску.</value>
+  </data>
+  <data name="K100" xml:space="preserve">
+    <value>Пресеты неигровых персонажей</value>
+  </data>
+  <data name="K101" xml:space="preserve">
+    <value>Неигровые персонажи</value>
+  </data>
+  <data name="K102" xml:space="preserve">
+    <value>Не создан</value>
+  </data>
+  <data name="K103" xml:space="preserve">
+    <value>Имя NPC</value>
+  </data>
+  <data name="K104" xml:space="preserve">
+    <value>NPC</value>
+  </data>
+  <data name="K107" xml:space="preserve">
+    <value>Открыть мастер настройки</value>
+  </data>
+  <data name="K108" xml:space="preserve">
+    <value>Необязательное постоянное имя для своего персонажа. Оставьте пустым, чтобы сохранить настоящее имя.</value>
+  </data>
+  <data name="K109" xml:space="preserve">
+    <value>Обзор</value>
+  </data>
+  <data name="K110" xml:space="preserve">
+    <value>Группа {0}</value>
+  </data>
+  <data name="K111" xml:space="preserve">
+    <value>Группа {0} ({1})</value>
+  </data>
+  <data name="K112" xml:space="preserve">
+    <value>Пресеты по месту в группе</value>
+  </data>
+  <data name="K115" xml:space="preserve">
+    <value>Папки пресетов: {0}\players, \npcs, \chocobos</value>
+  </data>
+  <data name="K116" xml:space="preserve">
+    <value>Пресеты</value>
+  </data>
+  <data name="K117" xml:space="preserve">
+    <value>Загружено пресетов: {0}</value>
+  </data>
+  <data name="K118" xml:space="preserve">
+    <value>Управление распространением</value>
+  </data>
+  <data name="K119" xml:space="preserve">
+    <value>Раса</value>
+  </data>
+  <data name="K120" xml:space="preserve">
+    <value>Раса / клан</value>
+  </data>
+  <data name="K121" xml:space="preserve">
+    <value>Расизм</value>
+  </data>
+  <data name="K122" xml:space="preserve">
+    <value>Случайный</value>
+  </data>
+  <data name="K123" xml:space="preserve">
+    <value>Случайные детали внешности</value>
+  </data>
+  <data name="K124" xml:space="preserve">
+    <value>Случайный пол</value>
+  </data>
+  <data name="K125" xml:space="preserve">
+    <value>Случайным образом выбирает пол видимых персонажей игроков.</value>
+  </data>
+  <data name="K126" xml:space="preserve">
+    <value>Случайным образом меняет волосы, лицо, глаза и другие параметры внешности.</value>
+  </data>
+  <data name="K127" xml:space="preserve">
+    <value>Случайные расы и кланы</value>
+  </data>
+  <data name="K128" xml:space="preserve">
+    <value>Случайным образом выбирает расы и подрасы видимых персонажей игроков.</value>
+  </data>
+  <data name="K129" xml:space="preserve">
+    <value>Случайным образом меняет имена видимых игроков и имена в списке группы.</value>
+  </data>
+  <data name="K130" xml:space="preserve">
+    <value>Снова открывает быструю настройку из трёх шагов, сохраняя расширенные параметры и правила расизма.</value>
+  </data>
+  <data name="K131" xml:space="preserve">
+    <value>Заменить</value>
+  </data>
+  <data name="K132" xml:space="preserve">
+    <value>Заменяет боевых и событийных NPC с точно совпадающими именами на импортированные локальные пресеты.</value>
+  </data>
+  <data name="K133" xml:space="preserve">
+    <value>Клан для замены</value>
+  </data>
+  <data name="K134" xml:space="preserve">
+    <value>Пол для замены</value>
+  </data>
+  <data name="K135" xml:space="preserve">
+    <value>Проверить и применить</value>
+  </data>
+  <data name="K136" xml:space="preserve">
+    <value>Правила учитывают исходную локальную расу, клан и пол персонажа. Скрыть убирает соответствующего 3D-персонажа и его имя в мире. Заменить подставляет псевдонимы в поддерживаемые имена и применяет выбранные клан и пол после остальных изменений внешности.</value>
+  </data>
+  <data name="K137" xml:space="preserve">
+    <value>Источник во время работы: {0}</value>
+  </data>
+  <data name="K138" xml:space="preserve">
+    <value>Поиск пресетов...</value>
+  </data>
+  <data name="K139" xml:space="preserve">
+    <value>Секунды между сохранениями «Похититель душ». Проверка внешности по-прежнему выполняется каждые 5 секунд.</value>
+  </data>
+  <data name="K141" xml:space="preserve">
+    <value>Выбор может быть общим, случайным или отдельным для каждого места в группе.
+
+</value>
+  </data>
+  <data name="K142" xml:space="preserve">
+    <value>Своё имя и DTR</value>
+  </data>
+  <data name="K143" xml:space="preserve">
+    <value>Своё отображаемое имя: {0}</value>
+  </data>
+  <data name="K144" xml:space="preserve">
+    <value>Показывать элемент в панели DTR</value>
+  </data>
+  <data name="K145" xml:space="preserve">
+    <value>Показывает состояние Krangler в панели информации о сервере. Нажмите на элемент DTR, чтобы включить или выключить Krangler.</value>
+  </data>
+  <data name="K146" xml:space="preserve">
+    <value>Показывается, когда Krangler: {0}</value>
+  </data>
+  <data name="K147" xml:space="preserve">
+    <value>Похититель душ</value>
+  </data>
+  <data name="K148" xml:space="preserve">
+    <value>Последнее сохранение «Похититель душ»: {0} игроков, {1} NPC, {2} чокобо</value>
+  </data>
+  <data name="K149" xml:space="preserve">
+    <value>Создаёт одного локального NPC-спутника, которого нельзя выбрать целью, пока Krangler включён.</value>
+  </data>
+  <data name="K150" xml:space="preserve">
+    <value>Создан</value>
+  </data>
+  <data name="K151" xml:space="preserve">
+    <value>Состояние: {0}</value>
+  </data>
+  <data name="K152" xml:space="preserve">
+    <value>Шаг {0} из 3</value>
+  </data>
+  <data name="K153" xml:space="preserve">
+    <value>Super Krangle Master 4000</value>
+  </data>
+  <data name="K155" xml:space="preserve">
+    <value>Подавляет автоматическое событие Wuk Lamat с 31 марта по 2 апреля для обычной проверки Super Krangle.</value>
+  </data>
+  <data name="K157" xml:space="preserve">
+    <value>Пробное создание</value>
+  </data>
+  <data name="K159" xml:space="preserve">
+    <value>Замена Wuk Lamat по дате сейчас активна.</value>
+  </data>
+  <data name="K160" xml:space="preserve">
+    <value>Замена Wuk Lamat по дате сейчас подавлена настройками отладки.</value>
+  </data>
+  <data name="K161" xml:space="preserve">
+    <value>Это часть черновика. Нажмите Применить правила, чтобы сохранить или отключить этот раздел.</value>
+  </data>
+  <data name="K163" xml:space="preserve">
+    <value>Использовать общий выбор</value>
+  </data>
+  <data name="K164" xml:space="preserve">
+    <value>Использует импортированные пресеты Glamourer вместо обычного изменения внешности.
+</value>
+  </data>
+  <data name="K166" xml:space="preserve">
+    <value>Оружие</value>
+  </data>
+  <data name="K167" xml:space="preserve">
+    <value>Вы</value>
+  </data>
+  <data name="K168" xml:space="preserve">
+    <value>Вы ({0})</value>
+  </data>
+  <data name="K169" xml:space="preserve">
+    <value>«Воображаемый друг» ожидает.</value>
+  </data>
+  <data name="K170" xml:space="preserve">
+    <value>Ошибка IPC-запроса «Воображаемый друг».</value>
+  </data>
+  <data name="K171" xml:space="preserve">
+    <value>«Воображаемый друг» выключен.</value>
+  </data>
+  <data name="K172" xml:space="preserve">
+    <value>Заблокировано: Krangler выключен.</value>
+  </data>
+  <data name="K173" xml:space="preserve">
+    <value>Ожидание локального игрока.</value>
+  </data>
+  <data name="K174" xml:space="preserve">
+    <value>Заблокировано: смена зоны или кат-сцена.</value>
+  </data>
+  <data name="K175" xml:space="preserve">
+    <value>Заблокировано: таблица объектов перегружена.</value>
+  </data>
+  <data name="K176" xml:space="preserve">
+    <value>«Воображаемый друг» убран: {0}.</value>
+  </data>
+  <data name="K177" xml:space="preserve">
+    <value>Не удалось создать «Воображаемый друг».</value>
+  </data>
+  <data name="K178" xml:space="preserve">
+    <value>CreateBattleCharacter не нашёл свободного места для объекта.</value>
+  </data>
+  <data name="K179" xml:space="preserve">
+    <value>Не удалось найти созданный объект.</value>
+  </data>
+  <data name="K180" xml:space="preserve">
+    <value>«Воображаемый друг» «{0}» создан с неполным пресетом: обновление тела не удалось.</value>
+  </data>
+  <data name="K181" xml:space="preserve">
+    <value>«Воображаемый друг» «{0}» создан.</value>
+  </data>
+  <data name="K182" xml:space="preserve">
+    <value>Следует как «{0}» с неполным пресетом «{1}»: обновление тела не удалось.</value>
+  </data>
+  <data name="K183" xml:space="preserve">
+    <value>Следует как «{0}» с пресетом «{1}».</value>
+  </data>
+  <data name="K184" xml:space="preserve">
+    <value>«Воображаемый друг» скрыт: {0}</value>
+  </data>
+  <data name="K185" xml:space="preserve">
+    <value>Пресет не предоставил готовых изменений в формате игрока.</value>
+  </data>
+  <data name="K186" xml:space="preserve">
+    <value>«Воображаемый друг» неполный: обновление тела не удалось.</value>
+  </data>
+  <data name="K187" xml:space="preserve">
+    <value>Пресет «Воображаемый друг» «{0}» применён.</value>
+  </data>
+  <data name="K188" xml:space="preserve">
+    <value>Пресет «{0}» не найден.</value>
+  </data>
+  <data name="K189" xml:space="preserve">
+    <value>«Воображаемый друг» скрыт: пресет не найден.</value>
+  </data>
+  <data name="K190" xml:space="preserve">
+    <value>Пресет «{0}» запрашивает точный NPC modelId {1}, заблокированный для «Воображаемый друг».</value>
+  </data>
+  <data name="K191" xml:space="preserve">
+    <value>«Воображаемый друг» скрыт: пресет точной модели NPC заблокирован.</value>
+  </data>
+  <data name="K192" xml:space="preserve">
+    <value>Пресет не предоставил готовых данных отрисовки в формате игрока.</value>
+  </data>
+  <data name="K193" xml:space="preserve">
+    <value>Указатель персонажа был пустым.</value>
+  </data>
+  <data name="K194" xml:space="preserve">
+    <value>Объект отрисовки не готов.</value>
+  </data>
+  <data name="K195" xml:space="preserve">
+    <value>Тип объекта отрисовки: {0}.</value>
+  </data>
+  <data name="K196" xml:space="preserve">
+    <value>Тип модели объекта отрисовки: {0}.</value>
+  </data>
+  <data name="K197" xml:space="preserve">
+    <value>Персонаж «Воображаемый друг» потерян.</value>
+  </data>
+  <data name="K198" xml:space="preserve">
+    <value>Указатель игрового персонажа был пустым.</value>
+  </data>
+  <data name="K199" xml:space="preserve">
+    <value>Пресет «{0}» заблокирован: «Воображаемый друг» не может применить точный NPC modelId {1}.</value>
+  </data>
+  <data name="K200" xml:space="preserve">
+    <value>Внешность подготовлена={0}, внешность запрошена={1}, снаряжение подготовлено={2}</value>
+  </data>
+  <data name="K201" xml:space="preserve">
+    <value>Внешность={0}, внешность запрошена={1}, обновление={2}, снаряжение={3}, оружие={4}, бонус={5}, метаданные={6}</value>
+  </data>
+  <data name="K202" xml:space="preserve">
+    <value>выгрузка плагина</value>
+  </data>
+  <data name="K203" xml:space="preserve">
+    <value>ручное отключение</value>
+  </data>
+  <data name="K204" xml:space="preserve">
+    <value>отключено источником {0}</value>
+  </data>
+  <data name="K205" xml:space="preserve">
+    <value>Krangler выключен</value>
+  </data>
+  <data name="K206" xml:space="preserve">
+    <value>вход не выполнен</value>
+  </data>
+  <data name="K207" xml:space="preserve">
+    <value>смена зоны или кат-сцена</value>
+  </data>
+  <data name="K208" xml:space="preserve">
+    <value>таблица объектов перегружена</value>
+  </data>
+  <data name="K209" xml:space="preserve">
+    <value>выход</value>
+  </data>
+  <data name="K210" xml:space="preserve">
+    <value>смена территории {0}</value>
+  </data>
+  <data name="K211" xml:space="preserve">
+    <value>принудительно по запросу пресета от {0}</value>
+  </data>
+  <data name="K212" xml:space="preserve">
+    <value>смена пресета: {0}</value>
+  </data>
+  <data name="K213" xml:space="preserve">
+    <value>Да</value>
+  </data>
+  <data name="K214" xml:space="preserve">
+    <value>Нет</value>
+  </data>
+  <data name="K215" xml:space="preserve">
+    <value>Объект</value>
+  </data>
+  <data name="K216" xml:space="preserve">
+    <value>Рельеф</value>
+  </data>
+  <data name="K217" xml:space="preserve">
+    <value>Фоновый объект</value>
+  </data>
+  <data name="K218" xml:space="preserve">
+    <value>Основа персонажа</value>
+  </data>
+  <data name="K219" xml:space="preserve">
+    <value>Объект эффекта</value>
+  </data>
+  <data name="K220" xml:space="preserve">
+    <value>Свет</value>
+  </data>
+  <data name="K221" xml:space="preserve">
+    <value>Неизвестный тип 6</value>
+  </data>
+  <data name="K222" xml:space="preserve">
+    <value>Пространство окружения</value>
+  </data>
+  <data name="K223" xml:space="preserve">
+    <value>Место окружения</value>
+  </data>
+  <data name="K224" xml:space="preserve">
+    <value>Декаль</value>
+  </data>
+  <data name="K225" xml:space="preserve">
+    <value>Неизвестный тип 10</value>
+  </data>
+  <data name="K226" xml:space="preserve">
+    <value>Человек</value>
+  </data>
+  <data name="K227" xml:space="preserve">
+    <value>Получеловек</value>
+  </data>
+  <data name="K228" xml:space="preserve">
+    <value>Монстр</value>
+  </data>
+  <data name="K229" xml:space="preserve">
+    <value>Оружие</value>
+  </data>
+  <data name="K230" xml:space="preserve">
+    <value>идентичность внешности изменена относительно пресета '{0}'</value>
+  </data>
+  <data name="Window appearance" xml:space="preserve"><value>Внешний вид окна</value></data>
+  <data name="Compact visible on main window" xml:space="preserve"><value>Показывать компактный режим в главном окне</value></data>
+  <data name="Language visible on main window" xml:space="preserve"><value>Показывать выбор языка в главном окне</value></data>
+  <data name="Transparency" xml:space="preserve"><value>Прозрачность</value></data>
+  <data name="Opacity (%)" xml:space="preserve"><value>Непрозрачность (%)</value></data>
+  <data name="Auto-fade when unfocused" xml:space="preserve"><value>Автоматически затемнять без фокуса</value></data>
+  <data name="Unfocused opacity (%)" xml:space="preserve"><value>Непрозрачность без фокуса (%)</value></data>
+  <data name="Unfocused delay (seconds)" xml:space="preserve"><value>Задержка без фокуса (секунды)</value></data>
+</root>

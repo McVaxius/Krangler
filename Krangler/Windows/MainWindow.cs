@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
+using AethertekUI;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Windowing;
 using Krangler.Models;
@@ -12,6 +13,7 @@ namespace Krangler.Windows;
 
 public class MainWindow : Window, IDisposable
 {
+    private readonly AethertekUI.Dalamud.MaterialWindowMotion windowMotion = new();
     private readonly Plugin plugin;
     private string presetSearch = string.Empty;
     private Vector2? queuedPosition;
@@ -19,6 +21,9 @@ public class MainWindow : Window, IDisposable
     private bool identityRuleDraftLoaded;
     private bool identityRuleDraftEnabled;
     private List<PlayerIdentityRule> identityRuleDraft = new();
+    private int selectedSection;
+    private static readonly string[] Sections = ["Overview", "Names", "Appearance", "Racism", "Presets", "Imaginary Fren", "Soul Thief", "Debug"];
+    private static readonly MaterialIcon[] SectionIcons = [MaterialIcon.Home, MaterialIcon.Person, MaterialIcon.Palette, MaterialIcon.Shield, MaterialIcon.Document, MaterialIcon.None, MaterialIcon.None, MaterialIcon.Settings];
 
     public MainWindow(Plugin plugin)
         : base("Krangler###KranglerMain")
@@ -26,12 +31,24 @@ public class MainWindow : Window, IDisposable
         this.plugin = plugin;
 
         Flags = ImGuiWindowFlags.NoCollapse;
-        Size = new Vector2(520, 760);
+        Size = new Vector2(1414, 963);
         SizeCondition = ImGuiCond.FirstUseEver;
+        SizeConstraints = new WindowSizeConstraints { MinimumSize = new(900, 640), MaximumSize = new(2200, 1600) };
     }
+
+    public override void PreDraw()
+    {
+        windowMotion.Prepare(this, reducedMotion: false, roundedCorners: true);
+    }
+
+    public override void PostDraw()
+        => windowMotion.Restore(this);
 
     public override void Draw()
     {
+        windowMotion.DrawChrome();
+        var title=WindowName.Split("##", 2)[0];
+        UiGui.Title(title,$"{UiText.T(title)} {typeof(Plugin).Assembly.GetName().Version}");
         ApplyQueuedWindowPlacement();
         DrawTabbedInterface();
     }
@@ -45,102 +62,212 @@ public class MainWindow : Window, IDisposable
         if (configChanged)
             config.Save();
 
-        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0.0";
-        ImGui.Text($"Krangler v{version}");
-        ImGui.SameLine(ImGui.GetWindowWidth() - 120);
-        if (ImGui.SmallButton("\u2661 Ko-fi \u2661"))
+        var scale = MaterialTheme.Metrics.Scale;
+        var window = ImGuiP.GetCurrentWindow();
+        ImGui.PushClipRect(window.InnerRect.Min,window.InnerRect.Max,false);
+        var body = new Vector2(window.Pos.X, window.InnerRect.Min.Y);
+        var bottom = window.InnerRect.Max.Y;
+        var windowRootId = ImGui.GetID("");
+        var tabsRootId = ImGui.GetID("KranglerTabs");
+        float sidebarWidth;
+        using (UiText.Font(UiFontRole.Heading))
+            sidebarWidth = Math.Max(KranglerPresentation.SidebarWidth * scale,
+                Sections.Max(section=>MaterialText.Measure(UiText.T(section)).X)+(KranglerPresentation.Compact?87:85)*scale);
+        var navigationBottom=(KranglerPresentation.Compact?92:102)*scale
+            +(Sections.Length-1)*(KranglerPresentation.NavigationHeight*scale+ImGui.GetStyle().ItemSpacing.Y)
+            +KranglerPresentation.NavigationHeight*scale+ImGui.GetStyle().ItemSpacing.Y*.5f+(KranglerPresentation.Compact?30:32)*scale;
+        if (navigationBottom>bottom-body.Y) sidebarWidth+=ImGui.GetStyle().ScrollbarSize;
+        ImGui.SetCursorScreenPos(body);
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding,new Vector2(0,KranglerPresentation.Compact?30:32)*scale);
+        ImGui.PushStyleColor(ImGuiCol.ChildBg,MaterialTheme.Current.Colors.Background);
+        if (ImGui.BeginChild("##KranglerNavigation", new Vector2(sidebarWidth, bottom-body.Y), false,ImGuiWindowFlags.AlwaysUseWindowPadding))
         {
-            Process.Start(new ProcessStartInfo
+            ImGuiP.PushOverrideID(windowRootId);
+            ImGui.SetCursorPosX((KranglerPresentation.Compact?25:26)*scale);
+            using (UiText.Font(UiFontRole.Action))
             {
-                FileName = "https://ko-fi.com/mcvaxius",
-                UseShellExecute = true
-            });
+                ImGui.PushStyleVar(ImGuiStyleVar.FramePadding,new Vector2(6,4)*scale);
+                ImGui.PushStyleVar(ImGuiStyleVar.ItemInnerSpacing,new Vector2(18,4)*scale);
+                DrawMasterToggle(config);
+                ImGui.PopStyleVar(2);
+            }
+            var firstNavigationY=body.Y+(KranglerPresentation.Compact?92:102)*scale-ImGui.GetScrollY();
+            for (var index = 0; index < Sections.Length; index++)
+            {
+                using var font = UiText.Font(UiFontRole.Heading);
+                ImGui.SetCursorScreenPos(new Vector2(body.X+3*scale+ImGui.GetStyle().ItemSpacing.X*.5f,
+                    firstNavigationY+ImGui.GetStyle().ItemSpacing.Y*.5f+index*(KranglerPresentation.NavigationHeight*scale+ImGui.GetStyle().ItemSpacing.Y)));
+                var size = new Vector2(sidebarWidth-6*scale-ImGui.GetStyle().ItemSpacing.X, KranglerPresentation.NavigationHeight * scale);
+                var label = UiText.T(Sections[index]);
+                ImGui.PushStyleColor(ImGuiCol.Header,MaterialTheme.Current.Colors.TertiaryContainer);
+                ImGui.PushStyleColor(ImGuiCol.Text, Vector4.Zero);
+                if (ImGui.Selectable(Sections[index]+"##navigation", selectedSection == index, size: size)) selectedSection = index;
+                ImGui.PopStyleColor(2);
+                var min = ImGui.GetItemRectMin();
+                var max = ImGui.GetItemRectMax();
+                var color = selectedSection == index ? MaterialTheme.Current.Colors.OnSurface : MaterialTheme.Current.Colors.OnSurfaceVariant;
+                var dl = ImGui.GetWindowDrawList();
+                if (selectedSection == index) dl.AddRectFilled(min, new Vector2(min.X+4*scale, max.Y), MaterialCanvas.Color(MaterialTheme.Current.Colors.Primary), 2*scale);
+                DrawSectionIcon(index,min+new Vector2(20,((max.Y-min.Y)/scale-38)*.5f)*scale,38*scale,
+                    selectedSection==index?MaterialTheme.Current.Colors.InversePrimary:color);
+                MaterialText.AddText(dl,new Vector2(min.X+(KranglerPresentation.Compact?79:77)*scale,min.Y+(max.Y-min.Y-MaterialText.Measure(label).Y)*.5f),ImGui.GetColorU32(color),label);
+                if (MaterialText.Measure(label).X > max.X-min.X-87*scale && ImGui.IsItemHovered()) MaterialText.SetTooltip(label);
+            }
+            ImGui.PopID();
         }
-        if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Support development on Ko-fi");
-
-        ImGui.Separator();
-
-        DrawMasterToggle(config);
-
-        if (!ImGui.BeginTabBar("KranglerTabs"))
-            return;
-
-        if (ImGui.BeginTabItem("Overview"))
+        ImGui.EndChild();ImGui.PopStyleColor();ImGui.PopStyleVar();
+        ImGui.GetWindowDrawList().AddLine(new Vector2(body.X+sidebarWidth,body.Y),new Vector2(body.X+sidebarWidth,bottom),MaterialCanvas.Color(MaterialTheme.Current.Colors.OutlineVariant),scale);
+        var contentOrigin=body+new Vector2(sidebarWidth/scale+21,KranglerPresentation.ContentTop)*scale;
+        ImGui.SetCursorScreenPos(contentOrigin);
+        if (ImGui.BeginChild("##KranglerContent", new Vector2(Math.Max(1,window.Pos.X+window.Size.X-21*scale-contentOrigin.X),Math.Max(1,bottom-contentOrigin.Y-21*scale)), false, ImGuiWindowFlags.HorizontalScrollbar))
         {
-            DrawOverviewTab(config);
-            ImGui.EndTabItem();
+            ImGuiP.PushOverrideID(windowRootId);
+            DrawHeader();
+            // Native tabs used these two ID roots. Preserve them inside the new sidebar content child.
+            ImGuiP.PushOverrideID(tabsRootId);
+            ImGuiP.PushOverrideID(ImGui.GetID(Sections[selectedSection]));
+            switch (selectedSection)
+            {
+                case 0: DrawOverviewTab(config); break;
+                case 1: DrawNamesTab(config); break;
+                case 2: DrawAppearanceTab(config); break;
+                case 3: DrawRacismTab(config); break;
+                case 4: DrawPresetsTab(config, presetNames); break;
+                case 5: DrawImaginaryFrenTab(config, presetNames); break;
+                case 6: DrawSoulThiefTab(config); break;
+                case 7: DrawDebugTab(config); break;
+            }
+            ImGui.PopID();ImGui.PopID();ImGui.PopID();
         }
+        ImGui.EndChild();
+        // Overflow belongs to the two children; their full body rectangles must not grow the parent scroll range.
+        window.DC.CursorMaxPos=Vector2.Max(window.DC.CursorStartPos,Vector2.Min(window.DC.CursorMaxPos,window.InnerRect.Max-ImGui.GetStyle().WindowPadding));
+        ImGui.PopClipRect();
+    }
 
-        if (ImGui.BeginTabItem("Names"))
+    private void DrawHeader()
+    {
+        var scale=MaterialTheme.Metrics.Scale;
+        var origin=ImGui.GetCursorScreenPos();
+        ImGui.SetCursorPosX(ImGui.GetCursorPosX()+(KranglerPresentation.Compact?5:12)*scale);
+        using (UiText.Font(KranglerPresentation.Compact?UiFontRole.Heading:UiFontRole.Title)) MaterialText.Text("Krangler");
+        if (plugin.Configuration.UiCompactVisibleOnMainWindow) { SameLineIfFits(32); plugin.DrawCompactPreference(); }
+        var languageName=UiText.Languages.FirstOrDefault(language=>language.Code==plugin.Configuration.UiLanguage).Name??"English";
+        var transparencyWidth = ImGui.GetFrameHeight() + ImGui.GetStyle().ItemInnerSpacing.X + MaterialText.Measure(UiText.T("Transparency")).X;
+        var controlsWidth = transparencyWidth + ImGui.GetStyle().ItemSpacing.X
+            + (plugin.Configuration.UiLanguageVisibleOnMainWindow ? (42 + 16) * scale + Math.Max((KranglerPresentation.Compact ? 188 : 182) * scale,
+                MathF.Ceiling(MaterialText.Measure(languageName).X + KranglerPresentation.ActionHeight * scale + 56 * scale)) : 0);
+        var supportWidth=(KranglerPresentation.Compact?138:134)*scale;
+        var supportGap=(KranglerPresentation.Compact?36:38)*scale;
+        var right=origin.X+ImGui.GetContentRegionAvail().X;
+        var groupWidth=supportWidth+supportGap+controlsWidth;
+        if (ImGui.GetItemRectMax().X+ImGui.GetStyle().ItemSpacing.X+groupWidth<=right)
         {
-            DrawNamesTab(config);
-            ImGui.EndTabItem();
+            ImGui.SameLine();
+            ImGui.SetCursorScreenPos(new Vector2(right-groupWidth,origin.Y+(KranglerPresentation.Compact?0:4)*scale));
         }
-
-        if (ImGui.BeginTabItem("Appearance"))
+        using (UiText.Font(UiFontRole.Action))
         {
-            DrawAppearanceTab(config);
-            ImGui.EndTabItem();
+        var supportMin=ImGui.GetCursorScreenPos();
+        if (UiGui.Button("\u2661 Ko-fi \u2661",new Vector2(supportWidth,KranglerPresentation.ActionHeight*scale),display:""))
+            Process.Start(new ProcessStartInfo { FileName="https://ko-fi.com/mcvaxius", UseShellExecute=true });
+        MaterialIcons.Draw(MaterialIcon.Heart,supportMin+new Vector2(14,(KranglerPresentation.ActionHeight-28)*.5f)*scale,28*scale,KranglerPresentation.Rgb(0xFF687D));
+        MaterialText.AddText(ImGui.GetWindowDrawList(),supportMin+new Vector2(56*scale,(KranglerPresentation.ActionHeight*scale-ImGui.GetTextLineHeight())*.5f),ImGui.GetColorU32(ImGuiCol.Text),"Ko-fi");
         }
+        if (ImGui.IsItemHovered()) UiGui.SetTooltip("Support development on Ko-fi");
+        if (SameLineIfFits((controlsWidth+supportGap-ImGui.GetStyle().ItemSpacing.X)/scale)) ImGui.SameLine(0,supportGap);
+        if (plugin.Configuration.UiLanguageVisibleOnMainWindow) plugin.DrawAppearanceSelector(includeAccent: false);
+        SameLineIfFits(transparencyWidth / scale); plugin.DrawTransparencyToggle();
+        ImGui.SetCursorScreenPos(new Vector2(origin.X,Math.Max(origin.Y+KranglerPresentation.HeaderHeight*scale,ImGui.GetItemRectMax().Y+12*scale)));
+    }
 
-        if (ImGui.BeginTabItem("Racism"))
+    private static bool SameLineIfFits(float logicalWidth)
+    {
+        var cursor=ImGui.GetCursorScreenPos();
+        var right=cursor.X+ImGui.GetContentRegionAvail().X;
+        var itemMax=ImGui.GetItemRectMax();
+        if (cursor.Y>itemMax.Y+ImGui.GetStyle().ItemSpacing.Y+.5f) return false;
+        var end=Math.Max(itemMax.X,ImGuiP.GetCurrentWindow().DC.CursorPosPrevLine.X);
+        if (end+ImGui.GetStyle().ItemSpacing.X+logicalWidth*MaterialTheme.Metrics.Scale>right) return false;
+        ImGui.SameLine();return true;
+    }
+
+    private static float CheckboxWidth(string label)
+        => (ImGui.GetFrameHeight()+ImGui.GetStyle().ItemInnerSpacing.X+MaterialText.Measure(UiText.T(label)).X)/MaterialTheme.Metrics.Scale;
+
+    private static void DrawSectionIcon(int index,Vector2 origin,float size,Vector4 color)
+    {
+        if (index is not (5 or 6)) { MaterialIcons.Draw(SectionIcons[index],origin,size,color);return; }
+        // Imaginary Fren and Soul Thief artwork belongs to Krangler.
+        var dl=ImGui.GetWindowDrawList();var ink=ImGui.GetColorU32(color);
+        Vector2 P(float x,float y)=>origin+new Vector2(x,y)*size;
+        if (index==5)
         {
-            DrawRacismTab(config);
-            ImGui.EndTabItem();
+            dl.AddCircleFilled(P(.5f,.58f),size*.34f,ink,24);
+            dl.AddTriangleFilled(P(.18f,.43f),P(.2f,.08f),P(.43f,.32f),ink);
+            dl.AddTriangleFilled(P(.57f,.32f),P(.8f,.08f),P(.82f,.43f),ink);
         }
-
-        if (ImGui.BeginTabItem("Presets"))
+        else
         {
-            DrawPresetsTab(config, presetNames);
-            ImGui.EndTabItem();
+            dl.PathArcTo(P(.5f,.42f),size*.34f,MathF.PI,MathF.Tau,20);
+            dl.PathLineTo(P(.84f,.77f));dl.PathLineTo(P(.16f,.77f));dl.PathFillConvex(ink);
+            for(var segment=0;segment<3;segment++)
+                dl.AddTriangleFilled(P(.16f+segment*.226f,.75f),P(.386f+segment*.226f,.75f),P(.273f+segment*.226f,.9f),ink);
         }
+        var eye=ImGui.GetColorU32(MaterialTheme.Current.Colors.Background);
+        dl.AddCircleFilled(P(.38f,.5f),size*.05f,eye,12);dl.AddCircleFilled(P(.62f,.5f),size*.05f,eye,12);
+    }
 
-        if (ImGui.BeginTabItem("Imaginary Fren"))
+    private static void Panel(string id,float logicalHeight,Action draw)
+    {
+        var scale=MaterialTheme.Metrics.Scale;
+        var rootId=ImGui.GetID("");
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding,new Vector2(KranglerPresentation.PanelPadding,0)*scale);
+        ImGui.PushStyleColor(ImGuiCol.ChildBg,KranglerPresentation.Compact?MaterialTheme.Current.Colors.SurfaceContainerLowest:MaterialTheme.Current.Colors.Surface);
+        if (ImGui.BeginChild(id,new Vector2(0,logicalHeight*scale),true,ImGuiWindowFlags.AlwaysUseWindowPadding|ImGuiWindowFlags.HorizontalScrollbar))
         {
-            DrawImaginaryFrenTab(config, presetNames);
-            ImGui.EndTabItem();
+            ImGuiP.PushOverrideID(rootId);draw();ImGui.PopID();
         }
-
-        if (ImGui.BeginTabItem("Soul Thief"))
-        {
-            DrawSoulThiefTab(config);
-            ImGui.EndTabItem();
-        }
-
-        if (ImGui.BeginTabItem("Debug"))
-        {
-            DrawDebugTab(config);
-            ImGui.EndTabItem();
-        }
-
-        ImGui.EndTabBar();
+        ImGui.EndChild();ImGui.PopStyleColor();ImGui.PopStyleVar();
     }
 
     private void DrawOverviewTab(Configuration config)
     {
-        ImGui.Spacing();
-
-        DrawStatus(config);
-
-        ImGui.Spacing();
-        ImGui.Text($"Presets loaded: {plugin.GlamourerPresetService.PresetCount}");
-        ImGui.Text($"Soul Thief last capture: {config.SoulThiefLastCapturedPlayers} players, {config.SoulThiefLastCapturedNpcs} NPCs, {config.SoulThiefLastCapturedChocobos} chocobos");
-
-        ImGui.Spacing();
-        if (ImGui.Button("Open Setup Wizard"))
-            plugin.OpenSetupWizard();
-        if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Reopen the three-step quick setup without changing advanced settings or Racism rules.");
-
-        ImGui.Spacing();
-        DrawDtrSection(config);
+        Panel("##KranglerOverview",KranglerPresentation.OverviewHeight,()=>
+        {
+            var scale=MaterialTheme.Metrics.Scale;var panel=ImGui.GetWindowPos()-new Vector2(ImGui.GetScrollX(),ImGui.GetScrollY());
+            ImGui.SetCursorScreenPos(panel+new Vector2(KranglerPresentation.PanelPadding,KranglerPresentation.Compact?12:17)*scale);
+            using (UiText.Font(KranglerPresentation.Compact?UiFontRole.Heading:UiFontRole.Title)) UiGui.Text("Overview");
+            ImGui.SetCursorScreenPos(panel+new Vector2(KranglerPresentation.PanelPadding,KranglerPresentation.Compact?56:72)*scale);ImGui.Separator();
+            ImGui.SetCursorScreenPos(panel+new Vector2(KranglerPresentation.Compact?24:26,KranglerPresentation.Compact?78:107)*scale);
+            DrawStatus(config);
+            ImGui.SetCursorScreenPos(panel+new Vector2(KranglerPresentation.PanelPadding,KranglerPresentation.Compact?142:187)*scale);ImGui.Separator();
+            ImGui.SetCursorScreenPos(panel+new Vector2(KranglerPresentation.Compact?28:34,KranglerPresentation.Compact?154:204)*scale);
+            using (UiText.Font(UiFontRole.Heading))
+            {
+            UiGui.Text(UiText.F("Presets loaded: {0}",plugin.GlamourerPresetService.PresetCount));
+            UiGui.TextWrapped(UiText.F("Soul Thief last capture: {0} players, {1} NPCs, {2} chocobos",config.SoulThiefLastCapturedPlayers,config.SoulThiefLastCapturedNpcs,config.SoulThiefLastCapturedChocobos));
+            }
+            ImGui.SetCursorScreenPos(new Vector2(panel.X+(KranglerPresentation.Compact?28:34)*scale,
+                Math.Max(panel.Y+(KranglerPresentation.Compact?246:317)*scale,ImGui.GetCursorScreenPos().Y+8*scale)));
+            var colors=MaterialTheme.Current.Colors;
+            ImGui.PushStyleColor(ImGuiCol.Button,colors.PrimaryContainer);
+            ImGui.PushStyleColor(ImGuiCol.ButtonHovered,MaterialColor.Layer(colors.PrimaryContainer,colors.OnPrimaryContainer,.08f));
+            ImGui.PushStyleColor(ImGuiCol.ButtonActive,MaterialColor.Layer(colors.PrimaryContainer,colors.OnPrimaryContainer,.14f));
+            using (UiText.Font(UiFontRole.Heading))
+                if (UiGui.Button("Open Setup Wizard",new Vector2((KranglerPresentation.Compact?326:337)*scale,(KranglerPresentation.Compact?48:58)*scale))) plugin.OpenSetupWizard();
+            ImGui.PopStyleColor(3);
+            if (ImGui.IsItemHovered()) UiGui.SetTooltip("Reopen the three-step quick setup without changing advanced settings or Racism rules.");
+        });
+        ImGui.SetCursorPosY(ImGui.GetCursorPosY()-ImGui.GetStyle().ItemSpacing.Y);
+        ImGui.Dummy(new Vector2(0,(KranglerPresentation.Compact?22:20)*MaterialTheme.Metrics.Scale-ImGui.GetStyle().ItemSpacing.Y));
+        Panel("##KranglerDtr",KranglerPresentation.DtrHeight,()=>DrawDtrSection(config));
     }
 
     private void DrawMasterToggle(Configuration config)
     {
         var enabled = config.Enabled;
-        if (ImGui.Checkbox("Enable Krangler", ref enabled))
+        if (UiGui.Checkbox("Enable Krangler", ref enabled))
         {
             config.Enabled = enabled;
             if (!enabled)
@@ -148,47 +275,53 @@ public class MainWindow : Window, IDisposable
             config.Save();
         }
         if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Master toggle - enables or disables all krangling.");
+            UiGui.SetTooltip("Master toggle - enables or disables all krangling.");
 
         ImGui.Spacing();
     }
 
     private void DrawDtrSection(Configuration config)
     {
-        ImGui.Text("DTR Bar");
-        ImGui.Separator();
+        var scale=MaterialTheme.Metrics.Scale;var panel=ImGui.GetWindowPos()-new Vector2(ImGui.GetScrollX(),ImGui.GetScrollY());
+        ImGui.SetCursorScreenPos(panel+new Vector2(KranglerPresentation.PanelPadding,KranglerPresentation.Compact?12:17)*scale);
+        using (UiText.Font(KranglerPresentation.Compact?UiFontRole.Heading:UiFontRole.Title)) UiGui.Text("DTR Bar");
+        ImGui.SetCursorScreenPos(panel+new Vector2(KranglerPresentation.PanelPadding,KranglerPresentation.Compact?55:70)*scale);ImGui.Separator();
+        ImGui.SetCursorScreenPos(panel+new Vector2(KranglerPresentation.Compact?28:34,KranglerPresentation.Compact?70:92)*scale);
 
         var dtrEnabled = config.DtrBarEnabled;
-        if (ImGui.Checkbox("Show DTR Bar Entry", ref dtrEnabled))
+        if (UiGui.Checkbox("Show DTR Bar Entry", ref dtrEnabled,null,UiFontRole.Action))
         {
             config.DtrBarEnabled = dtrEnabled;
             config.Save();
         }
         if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Show Krangler status in the server info bar. Click the DTR entry to toggle enable or disable.");
+            UiGui.SetTooltip("Show Krangler status in the server info bar. Click the DTR entry to toggle enable or disable.");
 
         ImGui.BeginDisabled(!config.DtrBarEnabled);
 
+        ImGui.SetCursorScreenPos(panel+new Vector2(KranglerPresentation.Compact?28:34,KranglerPresentation.Compact?112:144)*scale);
         var dtrMode = config.DtrBarMode;
-        ImGui.SetNextItemWidth(150);
-        if (ImGui.Combo("DTR Mode", ref dtrMode, "Text Only\0Icon + Text\0Icon Only\0"))
+        using (UiText.Font(UiFontRole.Action))
+        {
+        ImGui.PushStyleVar(ImGuiStyleVar.FramePadding,new Vector2(12*scale,Math.Max(0,((KranglerPresentation.Compact?48:54)*scale-ImGui.GetTextLineHeight())*.5f)));
+        var modeWidth=Math.Max((KranglerPresentation.Compact?242:280)*scale,
+            new[]{"Text Only","Icon + Text","Icon Only"}.Max(option=>MaterialText.Measure(UiText.T(option)).X)+ImGui.GetFrameHeight()+2*ImGui.GetStyle().FramePadding.X);
+        var right=ImGui.GetCursorScreenPos().X+ImGui.GetContentRegionAvail().X;
+        var labelStart=ImGui.GetCursorScreenPos().X;
+        ImGui.AlignTextToFramePadding();UiGui.Text("DTR Mode");
+        var fieldStart=Math.Max(labelStart+(KranglerPresentation.Compact?124:134)*scale,ImGui.GetItemRectMax().X+32*scale);
+        if (fieldStart+modeWidth<=right) { ImGui.SameLine();ImGui.SetCursorScreenPos(new Vector2(fieldStart,ImGui.GetCursorScreenPos().Y)); }
+        ImGui.SetNextItemWidth(modeWidth);
+        if (UiGui.ComboWithoutLabel("DTR Mode", ref dtrMode, "Text Only\0Icon + Text\0Icon Only\0"))
         {
             config.DtrBarMode = dtrMode;
             config.Save();
         }
-
-        ImGui.Text("DTR Icons (max 3 characters)");
-        ImGui.SameLine();
-        HelpMarker("Customize the glyphs used for enabled and disabled icon modes.");
-        ImGui.SameLine();
-        if (ImGui.SmallButton("Copy Icon Guide Link"))
-        {
-            ImGui.SetClipboardText("https://na.finalfantasyxiv.com/lodestone/character/22423564/blog/4393835");
-            Plugin.Log.Information("Copied icon guide link to clipboard");
+        ImGui.PopStyleVar();
         }
-        if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Copies the Lodestone blog link with suggested glyphs.");
 
+        ImGui.SetCursorScreenPos(new Vector2(panel.X+(KranglerPresentation.Compact?28:34)*scale,
+            Math.Max(panel.Y+(KranglerPresentation.Compact?174:224)*scale,ImGui.GetCursorScreenPos().Y+8*scale)));
         var enabledIcon = config.DtrIconEnabled;
         if (DrawIconInputs("Enabled", ref enabledIcon, "\uE03C"))
         {
@@ -196,11 +329,37 @@ public class MainWindow : Window, IDisposable
             config.Save();
         }
 
+        if (SameLineIfFits(IconInputWidth("Disabled")+24))
+        {
+            var min=ImGui.GetCursorScreenPos();
+            ImGui.GetWindowDrawList().AddLine(min,min+new Vector2(0,(KranglerPresentation.Compact?56:80)*scale),MaterialCanvas.Color(MaterialTheme.Current.Colors.Outline),scale);
+            ImGui.Dummy(new Vector2(8*scale,(KranglerPresentation.Compact?56:80)*scale));ImGui.SameLine();
+        }
+        else { ImGui.Spacing();ImGui.Separator();ImGui.Spacing(); }
         var disabledIcon = config.DtrIconDisabled;
         if (DrawIconInputs("Disabled", ref disabledIcon, "\uE03D"))
         {
             config.DtrIconDisabled = disabledIcon;
             config.Save();
+        }
+
+        using (UiText.Font(UiFontRole.Action))
+        {
+        var guideWidth=MaterialText.Measure(UiText.T("Copy Icon Guide Link")).X+40*scale;
+        SameLineIfFits(guideWidth/scale);
+        var guideMin=ImGui.GetCursorScreenPos();var guideHeight=(KranglerPresentation.Compact?56:80)*scale;
+        ImGui.PushStyleVar(ImGuiStyleVar.FramePadding,new Vector2(ImGui.GetStyle().FramePadding.X,(guideHeight-ImGui.GetTextLineHeight())*.5f));
+        ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize,0);
+        ImGui.PushStyleColor(ImGuiCol.Button,Vector4.Zero);ImGui.PushStyleColor(ImGuiCol.ButtonHovered,Vector4.Zero);ImGui.PushStyleColor(ImGuiCol.ButtonActive,Vector4.Zero);
+        if (UiGui.Button("Copy Icon Guide Link",new Vector2(guideWidth,guideHeight),display:""))
+        {
+            ImGui.SetClipboardText("https://na.finalfantasyxiv.com/lodestone/character/22423564/blog/4393835");
+            Plugin.Log.Information("Copied icon guide link to clipboard");
+        }
+        ImGui.PopStyleColor(3);ImGui.PopStyleVar(2);
+        MaterialIcons.Draw(MaterialIcon.Link,guideMin+new Vector2(0,(guideHeight-32*scale)*.5f),32*scale,MaterialTheme.Current.Colors.InversePrimary,ImGui.GetStyle().Alpha);
+        MaterialText.AddText(ImGui.GetWindowDrawList(),guideMin+new Vector2(40*scale,(guideHeight-MaterialText.Measure(UiText.T("Copy Icon Guide Link")).Y)*.5f),ImGui.GetColorU32(MaterialTheme.Current.Colors.InversePrimary),UiText.T("Copy Icon Guide Link"));
+        if (ImGui.IsItemHovered()) UiGui.SetTooltip("Copies the Lodestone blog link with suggested glyphs.");
         }
 
         ImGui.EndDisabled();
@@ -209,11 +368,11 @@ public class MainWindow : Window, IDisposable
     private void DrawNamesTab(Configuration config)
     {
         ImGui.Spacing();
-        ImGui.Text("Names");
+        UiGui.Text("Names");
         ImGui.Separator();
 
         var krangleNames = config.KrangleNames;
-        if (ImGui.Checkbox("Krangle Names", ref krangleNames))
+        if (UiGui.Checkbox("Krangle Names", ref krangleNames))
         {
             config.KrangleNames = krangleNames;
             if (!krangleNames)
@@ -221,79 +380,84 @@ public class MainWindow : Window, IDisposable
             config.Save();
         }
         if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Randomize visible player names and party list names.");
+            UiGui.SetTooltip("Randomize visible player names and party list names.");
 
         var skipSelfKrangling = config.SkipSelfKrangling;
-        if (ImGui.Checkbox("Do Not Krangle Self", ref skipSelfKrangling))
+        if (UiGui.Checkbox("Do Not Krangle Self", ref skipSelfKrangling))
             plugin.SetSkipSelfKrangling(skipSelfKrangling);
         if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Keep your own character's appearance stable and optionally use a fixed self display name instead of a randomized one.");
+            UiGui.SetTooltip("Keep your own character's appearance stable and optionally use a fixed self display name instead of a randomized one.");
 
         ImGui.BeginDisabled(!config.SkipSelfKrangling);
         var customSelfDisplayName = config.CustomSelfDisplayName ?? string.Empty;
-        if (ImGui.InputText("Custom Self Display Name", ref customSelfDisplayName, 64))
+        if (UiGui.InputText("Custom Self Display Name", ref customSelfDisplayName, 64))
             plugin.SetCustomSelfDisplayName(customSelfDisplayName);
         if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Optional fixed name to use for your own character. Leave blank to keep your real name.");
+            UiGui.SetTooltip("Optional fixed name to use for your own character. Leave blank to keep your real name.");
         ImGui.EndDisabled();
 
         var krangleChat = config.KrangleChat;
-        if (ImGui.Checkbox("Krangle Chat", ref krangleChat))
+        if (UiGui.Checkbox("Krangle Chat", ref krangleChat))
         {
             config.KrangleChat = krangleChat;
             config.Save();
         }
         if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Garble chat text for screenshot privacy.");
+            UiGui.SetTooltip("Garble chat text for screenshot privacy.");
     }
 
     private void DrawAppearanceTab(Configuration config)
     {
+        UiGui.Text("Window appearance");
+        ImGui.Separator();
+        plugin.DrawCompactPreference(); SameLineIfFits(230); plugin.DrawAppearanceSelector();
+        plugin.DrawWindowSettings();
+        ImGui.Separator();
         ImGui.Spacing();
-        ImGui.Text("Appearance");
+        UiGui.Text("Appearance");
         ImGui.Separator();
 
         var krangleGenders = config.KrangleGenders;
-        if (ImGui.Checkbox("Krangle Genders", ref krangleGenders))
+        if (UiGui.Checkbox("Krangle Genders", ref krangleGenders))
         {
             config.KrangleGenders = krangleGenders;
             config.Save();
         }
         if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Randomize genders for visible player characters.");
+            UiGui.SetTooltip("Randomize genders for visible player characters.");
 
         var krangleRaces = config.KrangleRaces;
-        if (ImGui.Checkbox("Krangle Races", ref krangleRaces))
+        if (UiGui.Checkbox("Krangle Races", ref krangleRaces))
         {
             config.KrangleRaces = krangleRaces;
             config.Save();
         }
         if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Randomize races and subraces for visible player characters.");
+            UiGui.SetTooltip("Randomize races and subraces for visible player characters.");
 
         var krangleAppearance = config.KrangleAppearance;
-        if (ImGui.Checkbox("Krangle Appearance", ref krangleAppearance))
+        if (UiGui.Checkbox("Krangle Appearance", ref krangleAppearance))
         {
             config.KrangleAppearance = krangleAppearance;
             config.Save();
         }
         if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Randomize hair, face, eyes, and other appearance fields.");
+            UiGui.SetTooltip("Randomize hair, face, eyes, and other appearance fields.");
 
         ImGui.Spacing();
-        ImGui.Text("Non-Player Targets");
+        UiGui.Text("Non-Player Targets");
         ImGui.Separator();
-        ImGui.TextWrapped("Broad non-player native mutation is currently blocked for crash safety.");
+        UiGui.TextWrapped("Broad non-player native mutation is currently blocked for crash safety.");
 
         ImGui.BeginDisabled();
         var krangleNpcs = false;
-        ImGui.Checkbox("Krangle NPCs", ref krangleNpcs);
+        UiGui.Checkbox("Krangle NPCs", ref krangleNpcs);
 
         var krangleChocobos = false;
-        ImGui.Checkbox("Krangle Chocobos", ref krangleChocobos);
+        UiGui.Checkbox("Krangle Chocobos", ref krangleChocobos);
 
         var krangleMinions = false;
-        ImGui.Checkbox("Krangle Minions", ref krangleMinions);
+        UiGui.Checkbox("Krangle Minions", ref krangleMinions);
         ImGui.EndDisabled();
     }
 
@@ -303,19 +467,20 @@ public class MainWindow : Window, IDisposable
             ReloadIdentityRuleDraft(config);
 
         ImGui.Spacing();
-        ImGui.Text("Exact Race / Clan / Gender Rules");
-        ImGui.TextWrapped("Rules match the actor's original local identity. Hide removes the matching 3D actor and in-world nameplate; Replace pseudonymizes supported names and applies the chosen clan and gender after other appearance work.");
+        UiGui.Text("Exact Race / Clan / Gender Rules");
+        UiGui.TextWrapped("Rules match the actor's original local identity. Hide removes the matching 3D actor and in-world nameplate; Replace pseudonymizes supported names and applies the chosen clan and gender after other appearance work.");
         ImGui.Spacing();
 
-        ImGui.Checkbox("Enable Racism Rules", ref identityRuleDraftEnabled);
+        UiGui.Checkbox("Enable Racism Rules", ref identityRuleDraftEnabled);
         if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("This is part of the draft. Use Apply Rules to save or disable the tab.");
+            UiGui.SetTooltip("This is part of the draft. Use Apply Rules to save or disable the tab.");
 
         var tableFlags = ImGuiTableFlags.Borders |
                          ImGuiTableFlags.RowBg |
                          ImGuiTableFlags.ScrollY |
+                         ImGuiTableFlags.ScrollX |
                          ImGuiTableFlags.SizingFixedFit;
-        if (ImGui.BeginTable("##PlayerIdentityRules", 8, tableFlags, new Vector2(0, 475)))
+        if (ImGui.BeginTable("##PlayerIdentityRules", 8, tableFlags, new Vector2(0, Math.Max(160,ImGui.GetContentRegionAvail().Y-110*MaterialTheme.Metrics.Scale))))
         {
             ImGui.TableSetupScrollFreeze(0, 1);
             ImGui.TableSetupColumn("Active");
@@ -326,7 +491,7 @@ public class MainWindow : Window, IDisposable
             ImGui.TableSetupColumn("Replace");
             ImGui.TableSetupColumn("Replacement Clan");
             ImGui.TableSetupColumn("Replacement Gender");
-            ImGui.TableHeadersRow();
+            UiGui.TableHeadersRow();
 
             for (var index = 0; index < identityRuleDraft.Count; index++)
             {
@@ -338,7 +503,7 @@ public class MainWindow : Window, IDisposable
 
                 ImGui.TableSetColumnIndex(0);
                 var active = rule.Active;
-                if (ImGui.Checkbox("##active", ref active))
+                if (UiGui.Checkbox("##active", ref active))
                 {
                     rule.Active = active;
                     if (active)
@@ -346,20 +511,20 @@ public class MainWindow : Window, IDisposable
                 }
 
                 ImGui.TableSetColumnIndex(1);
-                ImGui.TextUnformatted(descriptor.RaceName);
+                UiGui.TextUnformatted(descriptor.RaceName);
 
                 ImGui.TableSetColumnIndex(2);
-                ImGui.TextUnformatted(descriptor.ClanName);
+                UiGui.TextUnformatted(descriptor.ClanName);
 
                 ImGui.TableSetColumnIndex(3);
-                ImGui.TextUnformatted(descriptor.GenderName);
+                UiGui.TextUnformatted(descriptor.GenderName);
 
                 ImGui.TableSetColumnIndex(4);
-                if (ImGui.RadioButton("##hide", rule.Action == PlayerIdentityRuleAction.Hide))
+                if (UiGui.RadioButton("##hide", rule.Action == PlayerIdentityRuleAction.Hide))
                     rule.Action = PlayerIdentityRuleAction.Hide;
 
                 ImGui.TableSetColumnIndex(5);
-                if (ImGui.RadioButton("##replace", rule.Action == PlayerIdentityRuleAction.Replace))
+                if (UiGui.RadioButton("##replace", rule.Action == PlayerIdentityRuleAction.Replace))
                     rule.Action = PlayerIdentityRuleAction.Replace;
 
                 var replacementEnabled = rule.Active && rule.Action == PlayerIdentityRuleAction.Replace;
@@ -379,16 +544,16 @@ public class MainWindow : Window, IDisposable
         }
 
         var activeRules = identityRuleDraft.Count(rule => rule.Active);
-        ImGui.Text($"Draft: {activeRules} active rule(s). Currently hidden by Krangler: {plugin.IdentityRuleService.HiddenActorCount} actor(s).");
+        UiGui.TextWrapped(UiText.F($"Draft: {activeRules} active rule(s). Currently hidden by Krangler: {plugin.IdentityRuleService.HiddenActorCount} actor(s)."));
 
-        if (ImGui.Button("Apply Rules"))
+        if (UiGui.Button("Apply Rules"))
         {
             plugin.ApplyPlayerIdentityRules(identityRuleDraftEnabled, identityRuleDraft);
             ReloadIdentityRuleDraft(config);
         }
 
-        ImGui.SameLine();
-        if (ImGui.Button("Discard Edits"))
+        SameLineIfFits((MaterialText.Measure(UiText.T("Discard Edits")).X+ImGui.GetStyle().FramePadding.X*2)/MaterialTheme.Metrics.Scale);
+        if (UiGui.Button("Discard Edits"))
             ReloadIdentityRuleDraft(config);
     }
 
@@ -398,8 +563,8 @@ public class MainWindow : Window, IDisposable
         var raceName = PlayerIdentityCatalog.Entries.First(entry => entry.Race == replacementRace).RaceName;
         var preview = $"{raceName} / {PlayerIdentityCatalog.GetClanName(rule.ReplacementClan)}";
 
-        ImGui.SetNextItemWidth(180);
-        if (!ImGui.BeginCombo("##replacementClan", preview))
+        ImGui.SetNextItemWidth(180*MaterialTheme.Metrics.Scale);
+        if (!UiGui.BeginCombo("##replacementClan", preview))
             return;
 
         foreach (var (clan, clanName) in PlayerIdentityCatalog.ClanOptions)
@@ -407,7 +572,7 @@ public class MainWindow : Window, IDisposable
             PlayerIdentityCatalog.TryGetRaceForClan(clan, out var race);
             var optionRaceName = PlayerIdentityCatalog.Entries.First(entry => entry.Race == race).RaceName;
             var selected = rule.ReplacementClan == clan;
-            if (ImGui.Selectable($"{optionRaceName} / {clanName}", selected))
+            if (UiGui.Selectable($"{optionRaceName} / {clanName}", selected))
                 rule.ReplacementClan = clan;
             if (selected)
                 ImGui.SetItemDefaultFocus();
@@ -419,8 +584,8 @@ public class MainWindow : Window, IDisposable
     private static void DrawReplacementGenderCombo(PlayerIdentityRule rule)
     {
         var replacementGender = (int)rule.ReplacementGender;
-        ImGui.SetNextItemWidth(100);
-        if (ImGui.Combo("##replacementGender", ref replacementGender, "Male\0Female\0"))
+        ImGui.SetNextItemWidth(100*MaterialTheme.Metrics.Scale);
+        if (UiGui.Combo("##replacementGender", ref replacementGender, "Male\0Female\0"))
             rule.ReplacementGender = (byte)replacementGender;
     }
 
@@ -434,7 +599,7 @@ public class MainWindow : Window, IDisposable
     private void DrawPresetsTab(Configuration config, IReadOnlyList<string> presetNames)
     {
         ImGui.Spacing();
-        ImGui.Text($"Presets loaded: {plugin.GlamourerPresetService.PresetCount}");
+        UiGui.Text(UiText.F($"Presets loaded: {plugin.GlamourerPresetService.PresetCount}"));
 
         DrawAmongusSection(config, presetNames);
 
@@ -448,28 +613,28 @@ public class MainWindow : Window, IDisposable
     private void DrawImaginaryFrenTab(Configuration config, IReadOnlyList<string> presetNames)
     {
         ImGui.Spacing();
-        ImGui.Text("Imaginary Fren");
+        UiGui.Text("Imaginary Fren");
         ImGui.Separator();
-        ImGui.Text($"Presets loaded: {plugin.GlamourerPresetService.PresetCount}");
+        UiGui.Text(UiText.F($"Presets loaded: {plugin.GlamourerPresetService.PresetCount}"));
         ImGui.Spacing();
 
         var status = plugin.ImaginaryFrenService.GetStatus();
         var enabled = config.ImaginaryFrenEnabled;
-        if (ImGui.Checkbox("Enabled##ImaginaryFrenEnabled", ref enabled))
+        if (UiGui.Checkbox("Enabled##ImaginaryFrenEnabled", ref enabled))
         {
             config.ImaginaryFrenEnabled = enabled;
             config.Save();
             plugin.ImaginaryFrenService.UseConfigDesired();
         }
         if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Spawn one local-only, non-targetable fake NPC follower while Krangler is enabled.");
+            UiGui.SetTooltip("Spawn one local-only, non-targetable fake NPC follower while Krangler is enabled.");
 
         ImGui.SameLine();
-        ImGui.TextDisabled(status.Spawned ? "Spawned" : "Not spawned");
+        UiGui.TextDisabled(status.Spawned ? "Spawned" : "Not spawned");
 
         var displayName = config.ImaginaryFrenName ?? string.Empty;
-        ImGui.SetNextItemWidth(220f);
-        if (ImGui.InputText("Display Name##ImaginaryFrenName", ref displayName, 64))
+        ImGui.SetNextItemWidth(220f*MaterialTheme.Metrics.Scale);
+        if (UiGui.InputText("Display Name##ImaginaryFrenName", ref displayName, 64))
         {
             config.ImaginaryFrenName = displayName;
             config.Sanitize();
@@ -480,7 +645,7 @@ public class MainWindow : Window, IDisposable
         var presetKey = string.IsNullOrWhiteSpace(config.ImaginaryFrenPresetKey)
             ? Configuration.DefaultImaginaryFrenPresetKey
             : config.ImaginaryFrenPresetKey;
-        ImGui.SetNextItemWidth(260f);
+        ImGui.SetNextItemWidth(260f*MaterialTheme.Metrics.Scale);
         if (DrawPresetSelectionCombo("Preset##ImaginaryFrenPreset", ref presetKey, presetNames, false, false))
         {
             config.ImaginaryFrenPresetKey = presetKey;
@@ -488,52 +653,52 @@ public class MainWindow : Window, IDisposable
             plugin.ImaginaryFrenService.UseConfigDesired();
         }
 
-        if (ImGui.SmallButton("Test Spawn"))
+        if (UiGui.SmallButton("Test Spawn"))
         {
             plugin.ImaginaryFrenService.RequestSpawnFromConfig();
             plugin.ImaginaryFrenService.Update();
         }
         if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Enable and try to spawn the configured follower now. Krangler's master toggle still gates spawning.");
+            UiGui.SetTooltip("Enable and try to spawn the configured follower now. Krangler's master toggle still gates spawning.");
 
         ImGui.SameLine();
-        if (ImGui.SmallButton("Despawn"))
+        if (UiGui.SmallButton("Despawn"))
         {
             plugin.ImaginaryFrenService.DisableFromConfig();
         }
         if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Disable and remove the current local-only follower.");
+            UiGui.SetTooltip("Disable and remove the current local-only follower.");
 
-        ImGui.TextWrapped($"Status: {status.Status}");
+        UiGui.TextWrapped(UiText.F($"Status: {UiText.Status(status.Status)}"));
         if (!string.IsNullOrWhiteSpace(status.Error))
-            ImGui.TextWrapped($"Warning: {status.Error}");
+            UiGui.TextWrapped(UiText.F($"Warning: {UiText.FrenError(status.Status,status.Error)}"));
         if (!string.Equals(status.Source, "config", StringComparison.OrdinalIgnoreCase))
-            ImGui.TextWrapped($"Runtime source: {status.Source}");
+            UiGui.TextWrapped(UiText.F($"Runtime source: {status.Source}"));
     }
 
     private void DrawSuperKrangleSection(Configuration config, IReadOnlyList<string> presetNames)
     {
         var superKrangle = config.SuperKrangleMaster4000;
-        if (ImGui.Checkbox("Super Krangle Master 4000", ref superKrangle))
+        if (UiGui.Checkbox("Super Krangle Master 4000", ref superKrangle))
         {
             config.SuperKrangleMaster4000 = superKrangle;
             config.Save();
         }
         if (ImGui.IsItemHovered())
         {
-            ImGui.SetTooltip(
-                "Use imported Glamourer presets in place of normal appearance krangling.\n" +
-                "Selection can be global, random, or overridden by party slot.\n\n" +
-                $"Presets loaded: {plugin.GlamourerPresetService.PresetCount}");
+            UiGui.SetTooltip(
+                UiText.T("Use imported Glamourer presets in place of normal appearance krangling.\n") +
+                UiText.T("Selection can be global, random, or overridden by party slot.\n\n") +
+                UiText.F("Presets loaded: {0}",plugin.GlamourerPresetService.PresetCount));
         }
 
         ImGui.BeginDisabled(!config.SuperKrangleMaster4000);
 
-        ImGui.SameLine();
-        ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, 1.0f), $"({plugin.GlamourerPresetService.PresetCount} presets)");
+        SameLineIfFits(MaterialText.Measure(UiText.F($"({plugin.GlamourerPresetService.PresetCount} presets)")).X/MaterialTheme.Metrics.Scale);
+        UiGui.TextColored(MaterialTheme.Current.Colors.OnSurfaceVariant, UiText.F($"({plugin.GlamourerPresetService.PresetCount} presets)"));
 
         if (presetNames.Count == 0)
-            ImGui.TextColored(new Vector4(1.0f, 0.75f, 0.3f, 1.0f), "No preset files are loaded. Built-in NPC looks will be used instead.");
+            UiGui.TextColored(KranglerPresentation.Pending, "No preset files are loaded. Built-in NPC looks will be used instead.");
 
         var globalSelection = string.IsNullOrWhiteSpace(config.SuperKrangleSelection)
             ? "Random"
@@ -545,30 +710,30 @@ public class MainWindow : Window, IDisposable
         }
 
         ImGui.Spacing();
-        ImGui.Text("Non-Player Preset Targets");
+        UiGui.Text("Non-Player Preset Targets");
         ImGui.Separator();
-        ImGui.TextWrapped("Broad non-player native mutation is currently blocked for crash safety.");
+        UiGui.TextWrapped("Broad non-player native mutation is currently blocked for crash safety.");
 
         ImGui.BeginDisabled();
         var superKrangleNpcs = false;
-        ImGui.Checkbox("NPCs", ref superKrangleNpcs);
+        UiGui.Checkbox("NPCs", ref superKrangleNpcs);
         ImGui.EndDisabled();
 
         ImGui.Spacing();
-        ImGui.Text("Companion Preset Targets");
+        UiGui.Text("Companion Preset Targets");
         ImGui.Separator();
-        ImGui.TextWrapped("Broad non-player native mutation is currently blocked for crash safety.");
+        UiGui.TextWrapped("Broad non-player native mutation is currently blocked for crash safety.");
 
         ImGui.BeginDisabled();
         var superKrangleChocobos = false;
-        ImGui.Checkbox("Chocobos", ref superKrangleChocobos);
+        UiGui.Checkbox("Chocobos", ref superKrangleChocobos);
 
         var superKrangleMinions = false;
-        ImGui.Checkbox("Minions", ref superKrangleMinions);
+        UiGui.Checkbox("Minions", ref superKrangleMinions);
         ImGui.EndDisabled();
 
         ImGui.Spacing();
-        ImGui.Text("Party Slot Overrides");
+        UiGui.Text("Party Slot Overrides");
         ImGui.Separator();
 
         for (var i = 0; i < config.SuperKranglePartySlotSelections.Count; i++)
@@ -585,32 +750,32 @@ public class MainWindow : Window, IDisposable
         }
 
         ImGui.Spacing();
-        ImGui.Text("Apply From Preset");
+        UiGui.Text("Apply From Preset");
         ImGui.Separator();
 
         DrawApplyFromPresetOptions(config);
 
         ImGui.Spacing();
-        ImGui.Text("Propagation Control");
+        UiGui.Text("Propagation Control");
         ImGui.Separator();
 
         var maxPlayersPerCycle = config.SuperKrangleMaxPlayersPerCycle;
-        if (ImGui.SliderInt("Max Players Per Cycle", ref maxPlayersPerCycle, 1, 24))
+        if (UiGui.SliderInt("Max Players Per Cycle", ref maxPlayersPerCycle, 1, 24))
         {
             config.SuperKrangleMaxPlayersPerCycle = maxPlayersPerCycle;
             config.Save();
         }
         if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Limit how many visible players are processed during one scan pass.");
+            UiGui.SetTooltip("Limit how many visible players are processed during one scan pass.");
 
         var redrawDelay = config.SuperKrangleBaseRedrawDelayFrames;
-        if (ImGui.SliderInt("Base Redraw Delay", ref redrawDelay, 1, 10))
+        if (UiGui.SliderInt("Base Redraw Delay", ref redrawDelay, 1, 10))
         {
             config.SuperKrangleBaseRedrawDelayFrames = redrawDelay;
             config.Save();
         }
         if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Base frame delay before the next queued redraw. Actual delay scales with crowd size.");
+            UiGui.SetTooltip("Base frame delay before the next queued redraw. Actual delay scales with crowd size.");
 
         ImGui.EndDisabled();
     }
@@ -618,56 +783,56 @@ public class MainWindow : Window, IDisposable
     private static void DrawApplyFromPresetOptions(Configuration config)
     {
         var applyAppearance = config.SuperKrangleApplyAppearance;
-        if (ImGui.Checkbox("Appearance", ref applyAppearance))
+        if (UiGui.Checkbox("Appearance", ref applyAppearance))
         {
             config.SuperKrangleApplyAppearance = applyAppearance;
             config.Save();
         }
-        ImGui.SameLine();
+        SameLineIfFits(CheckboxWidth("Head"));
         var applyHead = config.SuperKrangleApplyHead;
-        if (ImGui.Checkbox("Head", ref applyHead))
+        if (UiGui.Checkbox("Head", ref applyHead))
         {
             config.SuperKrangleApplyHead = applyHead;
             config.Save();
         }
-        ImGui.SameLine();
+        SameLineIfFits(CheckboxWidth("Body"));
         var applyBody = config.SuperKrangleApplyBody;
-        if (ImGui.Checkbox("Body", ref applyBody))
+        if (UiGui.Checkbox("Body", ref applyBody))
         {
             config.SuperKrangleApplyBody = applyBody;
             config.Save();
         }
 
         var applyHands = config.SuperKrangleApplyHands;
-        if (ImGui.Checkbox("Hands", ref applyHands))
+        if (UiGui.Checkbox("Hands", ref applyHands))
         {
             config.SuperKrangleApplyHands = applyHands;
             config.Save();
         }
-        ImGui.SameLine();
+        SameLineIfFits(CheckboxWidth("Legs"));
         var applyLegs = config.SuperKrangleApplyLegs;
-        if (ImGui.Checkbox("Legs", ref applyLegs))
+        if (UiGui.Checkbox("Legs", ref applyLegs))
         {
             config.SuperKrangleApplyLegs = applyLegs;
             config.Save();
         }
-        ImGui.SameLine();
+        SameLineIfFits(CheckboxWidth("Feet"));
         var applyFeet = config.SuperKrangleApplyFeet;
-        if (ImGui.Checkbox("Feet", ref applyFeet))
+        if (UiGui.Checkbox("Feet", ref applyFeet))
         {
             config.SuperKrangleApplyFeet = applyFeet;
             config.Save();
         }
 
         var applyAccessories = config.SuperKrangleApplyAccessories;
-        if (ImGui.Checkbox("Accessories", ref applyAccessories))
+        if (UiGui.Checkbox("Accessories", ref applyAccessories))
         {
             config.SuperKrangleApplyAccessories = applyAccessories;
             config.Save();
         }
-        ImGui.SameLine();
+        SameLineIfFits(CheckboxWidth("Weapons"));
         var applyWeapons = config.SuperKrangleApplyWeapons;
-        if (ImGui.Checkbox("Weapons", ref applyWeapons))
+        if (UiGui.Checkbox("Weapons", ref applyWeapons))
         {
             config.SuperKrangleApplyWeapons = applyWeapons;
             config.Save();
@@ -677,11 +842,11 @@ public class MainWindow : Window, IDisposable
     private void DrawSoulThiefTab(Configuration config)
     {
         ImGui.Spacing();
-        ImGui.Text("Soul Thief");
+        UiGui.Text("Soul Thief");
         ImGui.Separator();
 
         var soulThiefEnabled = config.SoulThiefEnabled;
-        if (ImGui.Checkbox("Enable Soul Thief", ref soulThiefEnabled))
+        if (UiGui.Checkbox("Enable Soul Thief", ref soulThiefEnabled))
         {
             config.SoulThiefEnabled = soulThiefEnabled;
             config.Save();
@@ -690,76 +855,78 @@ public class MainWindow : Window, IDisposable
         ImGui.BeginDisabled(!config.SoulThiefEnabled);
 
         var capturePlayers = config.SoulThiefCapturePlayers;
-        if (ImGui.Checkbox("Capture Players", ref capturePlayers))
+        if (UiGui.Checkbox("Capture Players", ref capturePlayers))
         {
             config.SoulThiefCapturePlayers = capturePlayers;
             config.Save();
         }
 
         var captureNpcs = config.SoulThiefCaptureNpcs;
-        if (ImGui.Checkbox("Capture NPCs", ref captureNpcs))
+        if (UiGui.Checkbox("Capture NPCs", ref captureNpcs))
         {
             config.SoulThiefCaptureNpcs = captureNpcs;
             config.Save();
         }
 
         var captureChocobos = config.SoulThiefCaptureChocobos;
-        if (ImGui.Checkbox("Capture Chocobos", ref captureChocobos))
+        if (UiGui.Checkbox("Capture Chocobos", ref captureChocobos))
         {
             config.SoulThiefCaptureChocobos = captureChocobos;
             config.Save();
         }
 
         var intervalSeconds = config.SoulThiefCaptureIntervalSeconds;
-        if (ImGui.SliderInt("Capture Interval", ref intervalSeconds, Configuration.MinSoulThiefCaptureIntervalSeconds, Configuration.MaxSoulThiefCaptureIntervalSeconds))
+        if (UiGui.SliderInt("Capture Interval", ref intervalSeconds, Configuration.MinSoulThiefCaptureIntervalSeconds, Configuration.MaxSoulThiefCaptureIntervalSeconds))
         {
             config.SoulThiefCaptureIntervalSeconds = intervalSeconds;
             config.Save();
         }
         if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Seconds between Soul Thief capture passes. Appearance scanning still runs on Krangler's 5-second cadence.");
+            UiGui.SetTooltip("Seconds between Soul Thief capture passes. Appearance scanning still runs on Krangler's 5-second cadence.");
 
         ImGui.EndDisabled();
 
         ImGui.Spacing();
-        ImGui.Text($"Last capture: {config.SoulThiefLastCapturedPlayers} players, {config.SoulThiefLastCapturedNpcs} NPCs, {config.SoulThiefLastCapturedChocobos} chocobos");
-        ImGui.TextWrapped($"Preset folders: {plugin.GlamourerPresetService.UserPresetsDir}\\players, \\npcs, \\chocobos");
+        UiGui.TextWrapped(UiText.F($"Last capture: {config.SoulThiefLastCapturedPlayers} players, {config.SoulThiefLastCapturedNpcs} NPCs, {config.SoulThiefLastCapturedChocobos} chocobos"));
+        UiGui.TextWrapped(UiText.F($"Preset folders: {plugin.GlamourerPresetService.UserPresetsDir}\\players, \\npcs, \\chocobos"));
     }
 
     private void DrawDebugTab(Configuration config)
     {
         ImGui.Spacing();
-        ImGui.Text("Debug");
+        UiGui.Text("Debug");
         ImGui.Separator();
 
         if (!plugin.ShowDebugOptions)
         {
-            ImGui.TextDisabled("Debug controls hidden. Use /kr debug to toggle.");
+            UiGui.TextDisabled("Debug controls hidden. Use /kr debug to toggle.");
             return;
         }
 
         var disableEventOverride = config.DisableDateBasedSuperKrangleEvent;
-        if (ImGui.Checkbox("Disable date-based Wuk Lamat auto-event", ref disableEventOverride))
+        if (UiGui.Checkbox("Disable date-based Wuk Lamat auto-event", ref disableEventOverride))
             plugin.SetDateBasedSuperKrangleEventSuppressed(disableEventOverride);
 
         if (ImGui.IsItemHovered())
-            ImGui.SetTooltip("Suppress the March 31 through April 2 Wuk Lamat auto-event so normal Super Krangle testing is possible.");
+            UiGui.SetTooltip("Suppress the March 31 through April 2 Wuk Lamat auto-event so normal Super Krangle testing is possible.");
 
         if (plugin.IsDateBasedSuperKrangleWindowActive)
         {
             var message = plugin.IsDateBasedSuperKrangleEventCurrentlyForced
                 ? "The date-based Wuk Lamat override is currently active."
                 : "The date-based Wuk Lamat override is currently suppressed by debug settings.";
-            ImGui.TextColored(new Vector4(1.0f, 0.85f, 0.35f, 1.0f), message);
+            UiGui.TextColored(KranglerPresentation.Pending, message);
         }
     }
 
     private static void DrawStatus(Configuration config)
     {
-        if (config.Enabled)
-            ImGui.TextColored(new Vector4(0.0f, 1.0f, 0.0f, 1.0f), "Status: KRANGLING ACTIVE");
-        else
-            ImGui.TextColored(new Vector4(0.7f, 0.7f, 0.7f, 1.0f), "Status: Disabled");
+        using var font=UiText.Font(UiFontRole.Heading);
+        var color=config.Enabled?KranglerPresentation.Ready:MaterialTheme.Current.Colors.OnSurfaceVariant;
+        var min=ImGui.GetCursorScreenPos();
+        ImGui.GetWindowDrawList().AddCircleFilled(min+new Vector2(KranglerPresentation.Compact?22:27,KranglerPresentation.Compact?21:27)*MaterialTheme.Metrics.Scale,(KranglerPresentation.Compact?16:18)*MaterialTheme.Metrics.Scale,MaterialCanvas.Color(color));
+        ImGui.Dummy(new Vector2((KranglerPresentation.Compact?50:55)*MaterialTheme.Metrics.Scale,ImGui.GetTextLineHeight()));ImGui.SameLine();
+        UiGui.TextColored(color,config.Enabled?"KRANGLING ACTIVE":"Disabled");
     }
 
     public void QueueResetToOrigin()
@@ -791,7 +958,7 @@ public class MainWindow : Window, IDisposable
         var viewport = ImGui.GetMainViewport();
         var workPos = viewport.WorkPos;
         var workSize = viewport.WorkSize;
-        var windowSize = ImGui.GetWindowSize();
+        var windowSize = windowMotion.GetLogicalSize();
 
         var fallbackSize = Size ?? new Vector2(520f, 760f);
         var width = windowSize.X > 0f ? windowSize.X : fallbackSize.X;
@@ -811,27 +978,59 @@ public class MainWindow : Window, IDisposable
         return new Vector2(x, y);
     }
 
+    private static float IconInputWidth(string label)
+    {
+        using var font=UiText.Font(UiFontRole.Action);
+        var labelWidth=MaterialText.Measure(UiText.F("{0} Icon",UiText.T(label))).X;
+        return (labelWidth+ImGui.GetStyle().ItemSpacing.X*2+(KranglerPresentation.Compact?64:80)*MaterialTheme.Metrics.Scale+
+            Math.Max(100*MaterialTheme.Metrics.Scale,UiGui.TextMinimum(64)))/MaterialTheme.Metrics.Scale;
+    }
+
     private bool DrawIconInputs(string label, ref string value, string fallback)
     {
+        using var font=UiText.Font(UiFontRole.Action);
+        var scale=MaterialTheme.Metrics.Scale;
+        var width=IconInputWidth(label)*scale;
+        MaterialLayout.FitNextItemWidth(width,width);
+        ImGui.BeginGroup();
+        var origin=ImGui.GetCursorScreenPos();var height=(KranglerPresentation.Compact?56:80)*scale;
+        using (UiText.Font(UiFontRole.Action))
+        {
+            var caption=UiText.F("{0} Icon",UiText.T(label));
+            var captionSize=MaterialText.Measure(caption);
+            ImGui.Dummy(new Vector2(captionSize.X,height));
+            MaterialText.AddText(ImGui.GetWindowDrawList(),origin+new Vector2(0,(height-captionSize.Y)*.5f),ImGui.GetColorU32(ImGuiCol.Text),caption);
+        }
+        ImGui.SameLine();
+        ImGui.SetCursorScreenPos(new Vector2(ImGui.GetCursorScreenPos().X,origin.Y));
         var updated = false;
         var glyph = value;
-        ImGui.SetNextItemWidth(80);
-        if (ImGui.InputText($"{label} Icon", ref glyph, 8))
+        var glyphWidth=(KranglerPresentation.Compact?64:80)*scale;
+        ImGui.PushStyleVar(ImGuiStyleVar.FramePadding,new Vector2(ImGui.GetStyle().FramePadding.X,Math.Max(0,(height-ImGui.GetTextLineHeight())*.5f)));
+        ImGui.SetNextItemWidth(glyphWidth);
+        if (UiGui.InputText($"{label} Icon", ref glyph, 8,ImGuiInputTextFlags.None,false,glyphWidth))
         {
             value = SanitizeIconInput(glyph, fallback);
             updated = true;
         }
-        ImGui.SameLine();
-        ImGui.TextDisabled($"Shown when Krangler is {label.ToLowerInvariant()}");
+        ImGui.PopStyleVar();
+        if (ImGui.IsItemHovered()) UiGui.SetTooltip(UiText.F("Shown when Krangler is {0}",UiText.T(label))+"\n"+UiText.T("DTR Icons (max 3 characters)"));
 
         var code = FormatIconCode(value);
-        ImGui.SetNextItemWidth(160);
-        if (ImGui.InputText($"{label} Icon Code", ref code, 64))
+        ImGui.SameLine();
+        var codeHeight=(KranglerPresentation.Compact?54:64)*scale;
+        ImGui.SetCursorScreenPos(new Vector2(ImGui.GetCursorScreenPos().X,origin.Y+(height-codeHeight)*.5f));
+        ImGui.PushStyleVar(ImGuiStyleVar.FramePadding,new Vector2(ImGui.GetStyle().FramePadding.X,Math.Max(0,(codeHeight-ImGui.GetTextLineHeight())*.5f)));
+        ImGui.SetNextItemWidth(Math.Max(100*scale,UiGui.TextMinimum(64)));
+        if (UiGui.InputText($"{label} Icon Code", ref code, 64,showLabel:false))
         {
             var parsed = ParseIconCode(code, value);
             value = SanitizeIconInput(parsed, fallback);
             updated = true;
         }
+        ImGui.PopStyleVar();
+        if (ImGui.IsItemHovered()) UiGui.SetTooltip("Customize the glyphs used for enabled and disabled icon modes.");
+        ImGui.EndGroup();
 
         return updated;
     }
@@ -891,12 +1090,12 @@ public class MainWindow : Window, IDisposable
     private static void HelpMarker(string desc)
     {
         ImGui.SameLine();
-        ImGui.TextDisabled("(?)");
+        UiGui.TextDisabled("(?)");
         if (ImGui.IsItemHovered())
         {
             ImGui.BeginTooltip();
             ImGui.PushTextWrapPos(ImGui.GetFontSize() * 20.0f);
-            ImGui.TextUnformatted(desc);
+            UiGui.TextUnformatted(desc);
             ImGui.PopTextWrapPos();
             ImGui.EndTooltip();
         }
@@ -913,10 +1112,11 @@ public class MainWindow : Window, IDisposable
             : value;
         var changed = false;
 
-        if (ImGui.BeginCombo(label, preview))
+        var translatePreview=string.IsNullOrWhiteSpace(value) || (includeUseGlobal && value=="Use Global") || (includeRandom && value=="Random");
+        if (UiGui.BeginCombo(label, preview,translatePreview:translatePreview))
         {
             ImGui.SetNextItemWidth(-1f);
-            ImGui.InputTextWithHint($"##PresetSearch_{label}", "Search presets...", ref presetSearch, 128);
+            UiGui.InputTextWithHint($"##PresetSearch_{label}", "Search presets...", ref presetSearch, 128);
             ImGui.Separator();
 
             if (includeUseGlobal)
@@ -936,11 +1136,11 @@ public class MainWindow : Window, IDisposable
 
             foreach (var presetName in filteredPresetNames)
             {
-                changed |= DrawSelectionOption(presetName, ref value);
+                changed |= DrawSelectionOption(presetName, ref value, external:true);
             }
 
             if (!filteredPresetNames.Any())
-                ImGui.TextDisabled("No presets match the current search.");
+                UiGui.TextDisabled("No presets match the current search.");
 
             ImGui.EndCombo();
         }
@@ -951,28 +1151,28 @@ public class MainWindow : Window, IDisposable
     private void DrawAmongusSection(Configuration config, IReadOnlyList<string> presetNames)
     {
         ImGui.Spacing();
-        ImGui.Text("Amongus");
+        UiGui.Text("Amongus");
         ImGui.Separator();
 
         var amongusEnabled = config.AmongusEnabled;
-        if (ImGui.Checkbox("Amongus", ref amongusEnabled))
+        if (UiGui.Checkbox("Amongus", ref amongusEnabled))
         {
             config.AmongusEnabled = amongusEnabled;
             config.Save();
         }
         if (ImGui.IsItemHovered())
         {
-            ImGui.SetTooltip("Replace exact battle and event NPC names with imported local presets.");
+            UiGui.SetTooltip("Replace exact battle and event NPC names with imported local presets.");
         }
 
         ImGui.BeginDisabled(!config.AmongusEnabled);
 
-        ImGui.TextDisabled($"{config.AmongusNpcReplacements.Count}/{Configuration.MaxAmongusNpcReplacements}");
+        UiGui.TextDisabled(UiText.F($"{config.AmongusNpcReplacements.Count}/{Configuration.MaxAmongusNpcReplacements}"));
         ImGui.SameLine();
 
         if (config.AmongusNpcReplacements.Count < Configuration.MaxAmongusNpcReplacements)
         {
-            if (ImGui.SmallButton("+"))
+            if (UiGui.SmallButton("+"))
             {
                 config.AmongusNpcReplacements.Add(new AmongusNpcReplacement());
                 config.Save();
@@ -980,9 +1180,9 @@ public class MainWindow : Window, IDisposable
         }
         else
         {
-            ImGui.TextDisabled("+");
+            UiGui.TextDisabled("+");
             if (ImGui.IsItemHovered())
-                ImGui.SetTooltip("Maximum 100 NPC replacements.");
+                UiGui.SetTooltip("Maximum 100 NPC replacements.");
         }
 
         var removeIndex = -1;
@@ -992,27 +1192,27 @@ public class MainWindow : Window, IDisposable
             ImGui.PushID(i);
 
             var rowEnabled = replacement.Enabled;
-            if (ImGui.Checkbox("##AmongusRowEnabled", ref rowEnabled))
+            if (UiGui.Checkbox("##AmongusRowEnabled", ref rowEnabled))
             {
                 replacement.Enabled = rowEnabled;
                 config.Save();
             }
             if (ImGui.IsItemHovered())
             {
-                ImGui.SetTooltip("Enable this exact NPC replacement.");
+                UiGui.SetTooltip("Enable this exact NPC replacement.");
             }
 
-            ImGui.SameLine();
-            ImGui.SetNextItemWidth(150f);
+            SameLineIfFits(150);
+            ImGui.SetNextItemWidth(150f*MaterialTheme.Metrics.Scale);
             var npcName = replacement.NpcName ?? string.Empty;
-            if (ImGui.InputTextWithHint("##AmongusNpcName", "NPC name", ref npcName, 64))
+            if (UiGui.InputTextWithHint("##AmongusNpcName", "NPC name", ref npcName, 64))
             {
                 replacement.NpcName = npcName;
                 config.Save();
             }
 
-            ImGui.SameLine();
-            ImGui.SetNextItemWidth(220f);
+            SameLineIfFits(220+(MaterialText.Measure(UiText.T("Preset")).X+ImGui.GetStyle().ItemInnerSpacing.X)/MaterialTheme.Metrics.Scale);
+            ImGui.SetNextItemWidth(220f*MaterialTheme.Metrics.Scale);
             var presetKey = replacement.PresetKey ?? string.Empty;
             if (DrawPresetSelectionCombo("Preset##AmongusPreset", ref presetKey, presetNames, false, false))
             {
@@ -1020,8 +1220,8 @@ public class MainWindow : Window, IDisposable
                 config.Save();
             }
 
-            ImGui.SameLine();
-            if (ImGui.SmallButton("-"))
+            SameLineIfFits((MaterialText.Measure("-").X+ImGui.GetStyle().FramePadding.X*2)/MaterialTheme.Metrics.Scale);
+            if (UiGui.SmallButton("-"))
                 removeIndex = i;
 
             ImGui.PopID();
@@ -1036,10 +1236,10 @@ public class MainWindow : Window, IDisposable
         ImGui.EndDisabled();
     }
 
-    private static bool DrawSelectionOption(string option, ref string value)
+    private static bool DrawSelectionOption(string option, ref string value,bool external=false)
     {
         var isSelected = string.Equals(value, option, StringComparison.OrdinalIgnoreCase);
-        if (!ImGui.Selectable(option, isSelected))
+        if (!(external?MaterialText.Selectable(option,isSelected):UiGui.Selectable(option, isSelected)))
             return false;
 
         value = option;

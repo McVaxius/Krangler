@@ -1,0 +1,735 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms</value>
+  </resheader>
+  <data name="K000" xml:space="preserve">
+    <value>({0} प्रीसेट)</value>
+  </data>
+  <data name="K001" xml:space="preserve">
+    <value>{0} का आइकन</value>
+  </data>
+  <data name="K002" xml:space="preserve">
+    <value>{0} के आइकन का कोड</value>
+  </data>
+  <data name="K003" xml:space="preserve">
+    <value>♡ Ko-fi ♡</value>
+  </data>
+  <data name="K004" xml:space="preserve">
+    <value>आभूषण</value>
+  </data>
+  <data name="K005" xml:space="preserve">
+    <value>सक्रिय</value>
+  </data>
+  <data name="K006" xml:space="preserve">
+    <value>Amongus</value>
+  </data>
+  <data name="K007" xml:space="preserve">
+    <value>रूप</value>
+  </data>
+  <data name="K008" xml:space="preserve">
+    <value>प्रीसेट से लागू करें</value>
+  </data>
+  <data name="K009" xml:space="preserve">
+    <value>नियम लागू करें</value>
+  </data>
+  <data name="K010" xml:space="preserve">
+    <value>पीछे</value>
+  </data>
+  <data name="K011" xml:space="preserve">
+    <value>अगला कतारबद्ध री-ड्रॉ शुरू करने से पहले मूल फ़्रेम देरी। वास्तविक देरी भीड़ के आकार के अनुसार बदलती है।</value>
+  </data>
+  <data name="K012" xml:space="preserve">
+    <value>री-ड्रॉ की मूल देरी</value>
+  </data>
+  <data name="K013" xml:space="preserve">
+    <value>नीला</value>
+  </data>
+  <data name="K014" xml:space="preserve">
+    <value>शरीर</value>
+  </data>
+  <data name="K015" xml:space="preserve">
+    <value>क्रैश से बचाव के लिए गैर-खिलाड़ियों के व्यापक नेटिव बदलाव अभी रोके गए हैं।</value>
+  </data>
+  <data name="K016" xml:space="preserve">
+    <value>रद्द करें</value>
+  </data>
+  <data name="K017" xml:space="preserve">
+    <value>चोकोबो कैप्चर करें</value>
+  </data>
+  <data name="K018" xml:space="preserve">
+    <value>कैप्चर अंतराल</value>
+  </data>
+  <data name="K019" xml:space="preserve">
+    <value>NPC कैप्चर करें</value>
+  </data>
+  <data name="K020" xml:space="preserve">
+    <value>खिलाड़ी कैप्चर करें</value>
+  </data>
+  <data name="K021" xml:space="preserve">
+    <value>चैट</value>
+  </data>
+  <data name="K022" xml:space="preserve">
+    <value>चोकोबो</value>
+  </data>
+  <data name="K023" xml:space="preserve">
+    <value>चुनें कि Krangler स्थानीय रूप से किन हिस्सों को बदले। हर विकल्प बाद में मुख्य विंडो में बदल सकते हैं।</value>
+  </data>
+  <data name="K024" xml:space="preserve">
+    <value>क्लैन/उपजाति</value>
+  </data>
+  <data name="K025" xml:space="preserve">
+    <value>रंग</value>
+  </data>
+  <data name="K026" xml:space="preserve">
+    <value>कॉम्पैक्ट मोड</value>
+  </data>
+  <data name="K027" xml:space="preserve">
+    <value>साथी प्रीसेट के लक्ष्य</value>
+  </data>
+  <data name="K028" xml:space="preserve">
+    <value>सुझाए गए ग्लिफ़ वाला Lodestone ब्लॉग लिंक कॉपी करता है।</value>
+  </data>
+  <data name="K029" xml:space="preserve">
+    <value>आइकन गाइड का लिंक कॉपी करें</value>
+  </data>
+  <data name="K030" xml:space="preserve">
+    <value>गोपनीयता के मुख्य विकल्प</value>
+  </data>
+  <data name="K031" xml:space="preserve">
+    <value>कस्टम RGB</value>
+  </data>
+  <data name="K032" xml:space="preserve">
+    <value>स्वयं का कस्टम प्रदर्शन नाम</value>
+  </data>
+  <data name="K033" xml:space="preserve">
+    <value>सक्षम और अक्षम आइकन मोड में प्रयोग होने वाले ग्लिफ़ चुनें।</value>
+  </data>
+  <data name="K034" xml:space="preserve">
+    <value>डीबग</value>
+  </data>
+  <data name="K035" xml:space="preserve">
+    <value>डीबग नियंत्रण छिपे हैं। बदलने के लिए /kr debug प्रयोग करें।</value>
+  </data>
+  <data name="K036" xml:space="preserve">
+    <value>हटाएँ</value>
+  </data>
+  <data name="K037" xml:space="preserve">
+    <value>मौजूदा स्थानीय अनुयायी को अक्षम करके हटाएँ।</value>
+  </data>
+  <data name="K038" xml:space="preserve">
+    <value>तिथि आधारित Wuk Lamat स्वचालित इवेंट अक्षम करें</value>
+  </data>
+  <data name="K039" xml:space="preserve">
+    <value>अक्षम</value>
+  </data>
+  <data name="K040" xml:space="preserve">
+    <value>संपादन त्यागें</value>
+  </data>
+  <data name="K041" xml:space="preserve">
+    <value>प्रदर्शन नाम</value>
+  </data>
+  <data name="K042" xml:space="preserve">
+    <value>स्वयं को क्रैंगल न करें</value>
+  </data>
+  <data name="K043" xml:space="preserve">
+    <value>ड्राफ़्ट: {0} सक्रिय नियम। Krangler ने अभी {1} पात्र छिपाए हैं।</value>
+  </data>
+  <data name="K044" xml:space="preserve">
+    <value>DTR बार</value>
+  </data>
+  <data name="K045" xml:space="preserve">
+    <value>DTR प्रविष्टि</value>
+  </data>
+  <data name="K046" xml:space="preserve">
+    <value>DTR आइकन (अधिकतम 3 अक्षर)</value>
+  </data>
+  <data name="K047" xml:space="preserve">
+    <value>DTR मोड</value>
+  </data>
+  <data name="K048" xml:space="preserve">
+    <value>DTR मोड: {0}</value>
+  </data>
+  <data name="K049" xml:space="preserve">
+    <value>सक्षम करके अभी कॉन्फ़िगर किया गया अनुयायी बनाने का प्रयास करें। Krangler का मुख्य टॉगल अभी भी इसे नियंत्रित करता है।</value>
+  </data>
+  <data name="K050" xml:space="preserve">
+    <value>Krangler सक्षम करें</value>
+  </data>
+  <data name="K051" xml:space="preserve">
+    <value>Racism नियम सक्षम करें</value>
+  </data>
+  <data name="K052" xml:space="preserve">
+    <value>Soul Thief सक्षम करें</value>
+  </data>
+  <data name="K053" xml:space="preserve">
+    <value>इसी NPC का प्रतिस्थापन सक्षम करें।</value>
+  </data>
+  <data name="K054" xml:space="preserve">
+    <value>सक्षम</value>
+  </data>
+  <data name="K055" xml:space="preserve">
+    <value>सटीक जाति / क्लैन / लिंग नियम</value>
+  </data>
+  <data name="K056" xml:space="preserve">
+    <value>पैर</value>
+  </data>
+  <data name="K057" xml:space="preserve">
+    <value>स्त्री</value>
+  </data>
+  <data name="K058" xml:space="preserve">
+    <value>पूरा करें</value>
+  </data>
+  <data name="K059" xml:space="preserve">
+    <value>पूरा करें इन विकल्पों को एक बार सहेजता है। यह विज़ार्ड प्रीसेट, Soul Thief, Amongus, Imaginary Fren, उन्नत रूप सेटिंग और Racism नियम नहीं बदलता।</value>
+  </data>
+  <data name="K060" xml:space="preserve">
+    <value>चैट को अस्पष्ट करें</value>
+  </data>
+  <data name="K061" xml:space="preserve">
+    <value>स्क्रीनशॉट की गोपनीयता के लिए चैट के पाठ को अस्पष्ट करें।</value>
+  </data>
+  <data name="K062" xml:space="preserve">
+    <value>लिंग</value>
+  </data>
+  <data name="K063" xml:space="preserve">
+    <value>वैश्विक प्रीसेट</value>
+  </data>
+  <data name="K064" xml:space="preserve">
+    <value>हाथ</value>
+  </data>
+  <data name="K065" xml:space="preserve">
+    <value>सिर</value>
+  </data>
+  <data name="K066" xml:space="preserve">
+    <value>छिपाएँ</value>
+  </data>
+  <data name="K067" xml:space="preserve">
+    <value>आइकन + पाठ</value>
+  </data>
+  <data name="K068" xml:space="preserve">
+    <value>केवल आइकन</value>
+  </data>
+  <data name="K069" xml:space="preserve">
+    <value>Imaginary Fren</value>
+  </data>
+  <data name="K070" xml:space="preserve">
+    <value>मूल रखें</value>
+  </data>
+  <data name="K071" xml:space="preserve">
+    <value>ज़रूरत हो तो अपना पात्र अपरिवर्तित रखें और सर्वर जानकारी बार में Krangler का प्रदर्शन चुनें।</value>
+  </data>
+  <data name="K072" xml:space="preserve">
+    <value>अपने पात्र का रूप अपरिवर्तित रखें और चाहें तो यादृच्छिक नाम की जगह स्वयं का निश्चित प्रदर्शन नाम प्रयोग करें।</value>
+  </data>
+  <data name="K073" xml:space="preserve">
+    <value>रूप को क्रैंगल करें</value>
+  </data>
+  <data name="K074" xml:space="preserve">
+    <value>चैट को क्रैंगल करें</value>
+  </data>
+  <data name="K075" xml:space="preserve">
+    <value>चोकोबो को क्रैंगल करें</value>
+  </data>
+  <data name="K076" xml:space="preserve">
+    <value>लिंग को क्रैंगल करें</value>
+  </data>
+  <data name="K077" xml:space="preserve">
+    <value>मिनियन को क्रैंगल करें</value>
+  </data>
+  <data name="K078" xml:space="preserve">
+    <value>नामों को क्रैंगल करें</value>
+  </data>
+  <data name="K079" xml:space="preserve">
+    <value>NPC को क्रैंगल करें</value>
+  </data>
+  <data name="K080" xml:space="preserve">
+    <value>खिलाड़ियों के नाम क्रैंगल करें</value>
+  </data>
+  <data name="K081" xml:space="preserve">
+    <value>जातियों को क्रैंगल करें</value>
+  </data>
+  <data name="K082" xml:space="preserve">
+    <value>Krangler</value>
+  </data>
+  <data name="K083" xml:space="preserve">
+    <value>Krangler सेटअप</value>
+  </data>
+  <data name="K084" xml:space="preserve">
+    <value>क्रैंगलिंग सक्रिय</value>
+  </data>
+  <data name="K085" xml:space="preserve">
+    <value>भाषा</value>
+  </data>
+  <data name="K086" xml:space="preserve">
+    <value>पिछला कैप्चर: {0} खिलाड़ी, {1} NPC, {2} चोकोबो</value>
+  </data>
+  <data name="K087" xml:space="preserve">
+    <value>टाँगें</value>
+  </data>
+  <data name="K088" xml:space="preserve">
+    <value>एक स्कैन में संसाधित होने वाले दिखाई दे रहे खिलाड़ियों की संख्या सीमित करें।</value>
+  </data>
+  <data name="K089" xml:space="preserve">
+    <value>UI फ़ॉन्ट लोड हो रहे हैं...</value>
+  </data>
+  <data name="K090" xml:space="preserve">
+    <value>पुरुष</value>
+  </data>
+  <data name="K091" xml:space="preserve">
+    <value>मुख्य</value>
+  </data>
+  <data name="K092" xml:space="preserve">
+    <value>मुख्य टॉगल - पूरी क्रैंगलिंग सक्षम या अक्षम करता है।</value>
+  </data>
+  <data name="K093" xml:space="preserve">
+    <value>प्रति चक्र अधिकतम खिलाड़ी</value>
+  </data>
+  <data name="K094" xml:space="preserve">
+    <value>अधिकतम 100 NPC प्रतिस्थापन।</value>
+  </data>
+  <data name="K095" xml:space="preserve">
+    <value>मिनियन</value>
+  </data>
+  <data name="K096" xml:space="preserve">
+    <value>नाम</value>
+  </data>
+  <data name="K097" xml:space="preserve">
+    <value>अगला</value>
+  </data>
+  <data name="K098" xml:space="preserve">
+    <value>कोई प्रीसेट फ़ाइल लोड नहीं है। इसके बजाय अंतर्निहित NPC रूप प्रयोग होंगे।</value>
+  </data>
+  <data name="K099" xml:space="preserve">
+    <value>मौजूदा खोज से कोई प्रीसेट मेल नहीं खाता।</value>
+  </data>
+  <data name="K100" xml:space="preserve">
+    <value>गैर-खिलाड़ी प्रीसेट के लक्ष्य</value>
+  </data>
+  <data name="K101" xml:space="preserve">
+    <value>गैर-खिलाड़ी लक्ष्य</value>
+  </data>
+  <data name="K102" xml:space="preserve">
+    <value>उपस्थित नहीं</value>
+  </data>
+  <data name="K103" xml:space="preserve">
+    <value>NPC का नाम</value>
+  </data>
+  <data name="K104" xml:space="preserve">
+    <value>NPC</value>
+  </data>
+  <data name="K105" xml:space="preserve">
+    <value>बंद</value>
+  </data>
+  <data name="K106" xml:space="preserve">
+    <value>चालू</value>
+  </data>
+  <data name="K107" xml:space="preserve">
+    <value>सेटअप विज़ार्ड खोलें</value>
+  </data>
+  <data name="K108" xml:space="preserve">
+    <value>अपने पात्र के लिए वैकल्पिक निश्चित नाम। वास्तविक नाम रखने के लिए खाली छोड़ें।</value>
+  </data>
+  <data name="K109" xml:space="preserve">
+    <value>अवलोकन</value>
+  </data>
+  <data name="K110" xml:space="preserve">
+    <value>पार्टी {0}</value>
+  </data>
+  <data name="K111" xml:space="preserve">
+    <value>पार्टी {0} ({1})</value>
+  </data>
+  <data name="K112" xml:space="preserve">
+    <value>पार्टी स्थान के ओवरराइड</value>
+  </data>
+  <data name="K113" xml:space="preserve">
+    <value>गुलाबी</value>
+  </data>
+  <data name="K114" xml:space="preserve">
+    <value>प्रीसेट</value>
+  </data>
+  <data name="K115" xml:space="preserve">
+    <value>प्रीसेट फ़ोल्डर: {0}\players, \npcs, \chocobos</value>
+  </data>
+  <data name="K116" xml:space="preserve">
+    <value>प्रीसेट</value>
+  </data>
+  <data name="K117" xml:space="preserve">
+    <value>लोड किए गए प्रीसेट: {0}</value>
+  </data>
+  <data name="K118" xml:space="preserve">
+    <value>प्रसार नियंत्रण</value>
+  </data>
+  <data name="K119" xml:space="preserve">
+    <value>जाति</value>
+  </data>
+  <data name="K120" xml:space="preserve">
+    <value>जाति / क्लैन</value>
+  </data>
+  <data name="K121" xml:space="preserve">
+    <value>जाति नियम</value>
+  </data>
+  <data name="K122" xml:space="preserve">
+    <value>यादृच्छिक</value>
+  </data>
+  <data name="K123" xml:space="preserve">
+    <value>रूप के विवरण यादृच्छिक करें</value>
+  </data>
+  <data name="K124" xml:space="preserve">
+    <value>लिंग यादृच्छिक करें</value>
+  </data>
+  <data name="K125" xml:space="preserve">
+    <value>दिखाई दे रहे खिलाड़ी पात्रों के लिंग यादृच्छिक करें।</value>
+  </data>
+  <data name="K126" xml:space="preserve">
+    <value>बाल, चेहरा, आँखें और रूप के अन्य हिस्से यादृच्छिक करें।</value>
+  </data>
+  <data name="K127" xml:space="preserve">
+    <value>जाति और क्लैन यादृच्छिक करें</value>
+  </data>
+  <data name="K128" xml:space="preserve">
+    <value>दिखाई दे रहे खिलाड़ी पात्रों की जातियाँ और उपजातियाँ यादृच्छिक करें।</value>
+  </data>
+  <data name="K129" xml:space="preserve">
+    <value>दिखाई दे रहे खिलाड़ियों और पार्टी सूची के नाम यादृच्छिक करें।</value>
+  </data>
+  <data name="K130" xml:space="preserve">
+    <value>उन्नत सेटिंग या Racism नियम बदले बिना तीन चरणों वाला त्वरित सेटअप फिर खोलें।</value>
+  </data>
+  <data name="K131" xml:space="preserve">
+    <value>बदलें</value>
+  </data>
+  <data name="K132" xml:space="preserve">
+    <value>युद्ध और इवेंट NPC के सटीक नाम आयात किए गए स्थानीय प्रीसेट से बदलें।</value>
+  </data>
+  <data name="K133" xml:space="preserve">
+    <value>प्रतिस्थापन का क्लैन</value>
+  </data>
+  <data name="K134" xml:space="preserve">
+    <value>प्रतिस्थापन का लिंग</value>
+  </data>
+  <data name="K135" xml:space="preserve">
+    <value>समीक्षा करके लागू करें</value>
+  </data>
+  <data name="K136" xml:space="preserve">
+    <value>नियम पात्र की मूल स्थानीय पहचान से मेल खाते हैं। छिपाएँ मेल खाते 3D पात्र और दुनिया की नेमप्लेट हटाता है; बदलें समर्थित नाम छिपाता है और अन्य रूप बदलावों के बाद चुना हुआ क्लैन और लिंग लागू करता है।</value>
+  </data>
+  <data name="K137" xml:space="preserve">
+    <value>रनटाइम स्रोत: {0}</value>
+  </data>
+  <data name="K138" xml:space="preserve">
+    <value>प्रीसेट खोजें...</value>
+  </data>
+  <data name="K139" xml:space="preserve">
+    <value>Soul Thief कैप्चर के बीच सेकंड। रूप का स्कैन अभी भी Krangler के 5-सेकंड अंतराल पर चलता है।</value>
+  </data>
+  <data name="K140" xml:space="preserve">
+    <value>प्रीसेट चुनें</value>
+  </data>
+  <data name="K141" xml:space="preserve">
+    <value>चयन वैश्विक, यादृच्छिक या पार्टी स्थान के अनुसार ओवरराइड हो सकता है।
+
+</value>
+  </data>
+  <data name="K142" xml:space="preserve">
+    <value>स्वयं का प्रदर्शन और DTR</value>
+  </data>
+  <data name="K143" xml:space="preserve">
+    <value>स्वयं का प्रदर्शन नाम: {0}</value>
+  </data>
+  <data name="K144" xml:space="preserve">
+    <value>DTR बार प्रविष्टि दिखाएँ</value>
+  </data>
+  <data name="K145" xml:space="preserve">
+    <value>सर्वर जानकारी बार में Krangler की स्थिति दिखाएँ। सक्षम या अक्षम करने के लिए DTR प्रविष्टि पर क्लिक करें।</value>
+  </data>
+  <data name="K146" xml:space="preserve">
+    <value>Krangler के {0} होने पर दिखाया जाता है</value>
+  </data>
+  <data name="K147" xml:space="preserve">
+    <value>Soul Thief</value>
+  </data>
+  <data name="K148" xml:space="preserve">
+    <value>Soul Thief का पिछला कैप्चर: {0} खिलाड़ी, {1} NPC, {2} चोकोबो</value>
+  </data>
+  <data name="K149" xml:space="preserve">
+    <value>Krangler सक्षम होने पर केवल स्थानीय, लक्षित न किए जा सकने वाला एक नकली NPC अनुयायी बनाएँ।</value>
+  </data>
+  <data name="K150" xml:space="preserve">
+    <value>उपस्थित</value>
+  </data>
+  <data name="K151" xml:space="preserve">
+    <value>स्थिति: {0}</value>
+  </data>
+  <data name="K152" xml:space="preserve">
+    <value>चरण {0}, कुल 3</value>
+  </data>
+  <data name="K153" xml:space="preserve">
+    <value>Super Krangle Master 4000</value>
+  </data>
+  <data name="K154" xml:space="preserve">
+    <value>Ko-fi पर विकास में सहयोग करें</value>
+  </data>
+  <data name="K155" xml:space="preserve">
+    <value>सामान्य Super Krangle परीक्षण के लिए 31 मार्च से 2 अप्रैल तक का Wuk Lamat स्वचालित इवेंट रोकें।</value>
+  </data>
+  <data name="K156" xml:space="preserve">
+    <value>टील</value>
+  </data>
+  <data name="K157" xml:space="preserve">
+    <value>टेस्ट के लिए बनाएँ</value>
+  </data>
+  <data name="K158" xml:space="preserve">
+    <value>केवल पाठ</value>
+  </data>
+  <data name="K159" xml:space="preserve">
+    <value>तिथि आधारित Wuk Lamat ओवरराइड अभी सक्रिय है।</value>
+  </data>
+  <data name="K160" xml:space="preserve">
+    <value>डीबग सेटिंग ने तिथि आधारित Wuk Lamat ओवरराइड अभी रोका हुआ है।</value>
+  </data>
+  <data name="K161" xml:space="preserve">
+    <value>यह ड्राफ़्ट का हिस्सा है। सहेजने या टैब अक्षम करने के लिए नियम लागू करें प्रयोग करें।</value>
+  </data>
+  <data name="K162" xml:space="preserve">
+    <value>UI फ़ॉन्ट लोड नहीं हो सके। प्लगइन लॉग देखें।</value>
+  </data>
+  <data name="K163" xml:space="preserve">
+    <value>वैश्विक प्रयोग करें</value>
+  </data>
+  <data name="K164" xml:space="preserve">
+    <value>सामान्य रूप क्रैंगलिंग की जगह आयात किए गए Glamourer प्रीसेट प्रयोग करें।
+</value>
+  </data>
+  <data name="K165" xml:space="preserve">
+    <value>चेतावनी: {0}</value>
+  </data>
+  <data name="K166" xml:space="preserve">
+    <value>हथियार</value>
+  </data>
+  <data name="K167" xml:space="preserve">
+    <value>आप</value>
+  </data>
+  <data name="K168" xml:space="preserve">
+    <value>आप ({0})</value>
+  </data>
+  <data name="K169" xml:space="preserve">
+    <value>Imaginary Fren निष्क्रिय है।</value>
+  </data>
+  <data name="K170" xml:space="preserve">
+    <value>Imaginary Fren का IPC अनुरोध विफल हुआ।</value>
+  </data>
+  <data name="K171" xml:space="preserve">
+    <value>Imaginary Fren अक्षम है।</value>
+  </data>
+  <data name="K172" xml:space="preserve">
+    <value>रुका: Krangler अक्षम है।</value>
+  </data>
+  <data name="K173" xml:space="preserve">
+    <value>स्थानीय खिलाड़ी की प्रतीक्षा है।</value>
+  </data>
+  <data name="K174" xml:space="preserve">
+    <value>रुका: ज़ोन परिवर्तन या कटसीन।</value>
+  </data>
+  <data name="K175" xml:space="preserve">
+    <value>रुका: ऑब्जेक्ट टेबल पर दबाव।</value>
+  </data>
+  <data name="K176" xml:space="preserve">
+    <value>Imaginary Fren हटाया: {0}।</value>
+  </data>
+  <data name="K177" xml:space="preserve">
+    <value>Imaginary Fren नहीं बनाया जा सका।</value>
+  </data>
+  <data name="K178" xml:space="preserve">
+    <value>CreateBattleCharacter ने खाली ऑब्जेक्ट स्थान नहीं दिया।</value>
+  </data>
+  <data name="K179" xml:space="preserve">
+    <value>बनाया गया ऑब्जेक्ट नहीं मिल सका।</value>
+  </data>
+  <data name="K180" xml:space="preserve">
+    <value>Imaginary Fren '{0}' अधूरे प्रीसेट के साथ बनाया: शरीर का अनुकूलन रीफ़्रेश विफल हुआ।</value>
+  </data>
+  <data name="K181" xml:space="preserve">
+    <value>Imaginary Fren '{0}' बनाया गया।</value>
+  </data>
+  <data name="K182" xml:space="preserve">
+    <value>'{0}' के रूप में अधूरे प्रीसेट '{1}' से पीछा कर रहा है: शरीर का अनुकूलन रीफ़्रेश विफल हुआ।</value>
+  </data>
+  <data name="K183" xml:space="preserve">
+    <value>'{0}' के रूप में प्रीसेट '{1}' से पीछा कर रहा है।</value>
+  </data>
+  <data name="K184" xml:space="preserve">
+    <value>Imaginary Fren छिपाया: {0}</value>
+  </data>
+  <data name="K185" xml:space="preserve">
+    <value>प्रीसेट लागू करने पर खिलाड़ी शैली के तैयार बदलाव नहीं मिले।</value>
+  </data>
+  <data name="K186" xml:space="preserve">
+    <value>Imaginary Fren अधूरा: शरीर का अनुकूलन रीफ़्रेश विफल हुआ।</value>
+  </data>
+  <data name="K187" xml:space="preserve">
+    <value>Imaginary Fren प्रीसेट '{0}' लागू किया।</value>
+  </data>
+  <data name="K188" xml:space="preserve">
+    <value>प्रीसेट '{0}' नहीं मिला।</value>
+  </data>
+  <data name="K189" xml:space="preserve">
+    <value>Imaginary Fren छिपाया: प्रीसेट नहीं मिला।</value>
+  </data>
+  <data name="K190" xml:space="preserve">
+    <value>प्रीसेट '{0}' सटीक NPC modelId {1} माँगता है, जो Imaginary Fren के लिए रोका गया है।</value>
+  </data>
+  <data name="K191" xml:space="preserve">
+    <value>Imaginary Fren छिपाया: सटीक NPC मॉडल का प्रीसेट रोका गया है।</value>
+  </data>
+  <data name="K192" xml:space="preserve">
+    <value>प्रीसेट तैयार करने पर खिलाड़ी शैली का तैयार ड्रॉ डेटा नहीं मिला।</value>
+  </data>
+  <data name="K193" xml:space="preserve">
+    <value>पात्र का पॉइंटर null था।</value>
+  </data>
+  <data name="K194" xml:space="preserve">
+    <value>ड्रॉ ऑब्जेक्ट तैयार नहीं है।</value>
+  </data>
+  <data name="K195" xml:space="preserve">
+    <value>ड्रॉ ऑब्जेक्ट का प्रकार {0} है।</value>
+  </data>
+  <data name="K196" xml:space="preserve">
+    <value>ड्रॉ ऑब्जेक्ट के मॉडल का प्रकार {0} है।</value>
+  </data>
+  <data name="K197" xml:space="preserve">
+    <value>Imaginary Fren पात्र खो गया।</value>
+  </data>
+  <data name="K198" xml:space="preserve">
+    <value>Character पॉइंटर null था।</value>
+  </data>
+  <data name="K199" xml:space="preserve">
+    <value>प्रीसेट '{0}' रोका गया क्योंकि Imaginary Fren सटीक NPC modelId {1} लागू नहीं कर सकता।</value>
+  </data>
+  <data name="K200" xml:space="preserve">
+    <value>पूर्वनिर्धारित अनुकूलन={0}, अनुरोधित अनुकूलन={1}, पूर्वनिर्धारित उपकरण={2}</value>
+  </data>
+  <data name="K201" xml:space="preserve">
+    <value>रूप={0}, अनुरोधित अनुकूलन={1}, रीफ़्रेश={2}, उपकरण={3}, हथियार={4}, बोनस={5}, मेटा={6}</value>
+  </data>
+  <data name="K202" xml:space="preserve">
+    <value>प्लगइन अनलोड</value>
+  </data>
+  <data name="K203" xml:space="preserve">
+    <value>मैनुअल अक्षम करना</value>
+  </data>
+  <data name="K204" xml:space="preserve">
+    <value>{0} द्वारा अक्षम</value>
+  </data>
+  <data name="K205" xml:space="preserve">
+    <value>Krangler अक्षम</value>
+  </data>
+  <data name="K206" xml:space="preserve">
+    <value>लॉग इन नहीं है</value>
+  </data>
+  <data name="K207" xml:space="preserve">
+    <value>ज़ोन परिवर्तन या कटसीन</value>
+  </data>
+  <data name="K208" xml:space="preserve">
+    <value>ऑब्जेक्ट टेबल पर दबाव</value>
+  </data>
+  <data name="K209" xml:space="preserve">
+    <value>लॉगआउट</value>
+  </data>
+  <data name="K210" xml:space="preserve">
+    <value>क्षेत्र परिवर्तन {0}</value>
+  </data>
+  <data name="K211" xml:space="preserve">
+    <value>{0} प्रीसेट अनुरोध से बाध्य</value>
+  </data>
+  <data name="K212" xml:space="preserve">
+    <value>प्रीसेट परिवर्तन: {0}</value>
+  </data>
+  <data name="K213" xml:space="preserve">
+    <value>सही</value>
+  </data>
+  <data name="K214" xml:space="preserve">
+    <value>ग़लत</value>
+  </data>
+  <data name="K215" xml:space="preserve">
+    <value>ऑब्जेक्ट</value>
+  </data>
+  <data name="K216" xml:space="preserve">
+    <value>भूभाग</value>
+  </data>
+  <data name="K217" xml:space="preserve">
+    <value>पृष्ठभूमि ऑब्जेक्ट</value>
+  </data>
+  <data name="K218" xml:space="preserve">
+    <value>पात्र का आधार</value>
+  </data>
+  <data name="K219" xml:space="preserve">
+    <value>दृश्य प्रभाव ऑब्जेक्ट</value>
+  </data>
+  <data name="K220" xml:space="preserve">
+    <value>प्रकाश</value>
+  </data>
+  <data name="K221" xml:space="preserve">
+    <value>अज्ञात प्रकार 6</value>
+  </data>
+  <data name="K222" xml:space="preserve">
+    <value>परिवेश स्थान</value>
+  </data>
+  <data name="K223" xml:space="preserve">
+    <value>परिवेश स्थिति</value>
+  </data>
+  <data name="K224" xml:space="preserve">
+    <value>डेकल</value>
+  </data>
+  <data name="K225" xml:space="preserve">
+    <value>अज्ञात प्रकार 10</value>
+  </data>
+  <data name="K226" xml:space="preserve">
+    <value>मानव</value>
+  </data>
+  <data name="K227" xml:space="preserve">
+    <value>अर्धमानव</value>
+  </data>
+  <data name="K228" xml:space="preserve">
+    <value>राक्षस</value>
+  </data>
+  <data name="K229" xml:space="preserve">
+    <value>हथियार</value>
+  </data>
+  <data name="K230" xml:space="preserve">
+    <value>प्रीसेट '{0}' से अनुकूलन की पहचान बदली</value>
+  </data>
+  <data name="Window appearance" xml:space="preserve">
+    <value>विंडो का रूप</value>
+  </data>
+  <data name="Compact visible on main window" xml:space="preserve">
+    <value>मुख्य विंडो पर कॉम्पैक्ट नियंत्रण दिखाएँ</value>
+  </data>
+  <data name="Language visible on main window" xml:space="preserve">
+    <value>मुख्य विंडो पर भाषा नियंत्रण दिखाएँ</value>
+  </data>
+  <data name="Transparency" xml:space="preserve">
+    <value>पारदर्शिता</value>
+  </data>
+  <data name="Opacity (%)" xml:space="preserve">
+    <value>अपारदर्शिता (%)</value>
+  </data>
+  <data name="Auto-fade when unfocused" xml:space="preserve">
+    <value>फ़ोकस हटने पर स्वतः धुंधला करें</value>
+  </data>
+  <data name="Unfocused opacity (%)" xml:space="preserve">
+    <value>फ़ोकस हटने पर अपारदर्शिता (%)</value>
+  </data>
+  <data name="Unfocused delay (seconds)" xml:space="preserve">
+    <value>फ़ोकस हटने की देरी (सेकंड)</value>
+  </data>
+</root>

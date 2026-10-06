@@ -9,11 +9,11 @@ Krangler does not send appearance or identity changes to other players. It has n
 1. Open Krangler with `/kr`.
 2. On a first install, use the three-step setup wizard to choose core privacy, self-display, and DTR options.
 3. Reopen the wizard at any time from **Overview**, `/kr wizard`, or `/kr setup`.
-4. Use the full tabbed window for advanced settings and exact identity rules.
+4. Use the sidebar for advanced settings and exact identity rules.
 
 Closing or cancelling the wizard discards its draft. Finishing applies only the settings shown in the wizard; presets, Soul Thief, Amongus, Imaginary Fren, advanced appearance settings, and Racism rules are preserved.
 
-## Features and tabs
+## Features and sections
 
 - **Overview** — current status, loaded preset count, Soul Thief capture summary, setup-wizard shortcut, and DTR display choices.
 - **Names** — deterministic exercise-themed pseudonyms, optional self exemption and self display name, plus independently controlled chat garbling.
@@ -25,6 +25,10 @@ Closing or cancelling the wizard discards its draft. Finishing applies only the 
 - **Debug** — event, redraw, placement, and diagnostic controls for troubleshooting.
 
 The DTR entry can show text, icon plus text, or icon only. Clicking it toggles Krangler's master state.
+
+The main header and **Appearance** share a compact-mode checkbox (**C**), a theme colour swatch, and a language selector. Compact mode reduces spacing across the main window and setup wizard while keeping the same controls. The interface supports English, German, French, Spanish, Italian, Russian, Japanese, Korean, Simplified Chinese, Vietnamese, Brazilian Portuguese, Indonesian, Polish, and Turkish; imported preset names, player names, commands, and logs keep their original text.
+
+Choose teal, blue, pink, or a custom RGB colour to recolour the decorative theme. Active and warning states keep their meaning. These preferences use Krangler's existing configuration save path and preserve existing gameplay settings. Narrower windows wrap the DTR icon groups and replacement controls as needed.
 
 ## Exact identity rules
 

@@ -1,0 +1,719 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms</value>
+  </resheader>
+  <data name="K005" xml:space="preserve">
+    <value>有効</value>
+  </data>
+  <data name="K010" xml:space="preserve">
+    <value>戻る</value>
+  </data>
+  <data name="K013" xml:space="preserve">
+    <value>青</value>
+  </data>
+  <data name="K016" xml:space="preserve">
+    <value>キャンセル</value>
+  </data>
+  <data name="K025" xml:space="preserve">
+    <value>色</value>
+  </data>
+  <data name="K026" xml:space="preserve">
+    <value>コンパクトモード</value>
+  </data>
+  <data name="K031" xml:space="preserve">
+    <value>カスタムRGB</value>
+  </data>
+  <data name="K039" xml:space="preserve">
+    <value>無効</value>
+  </data>
+  <data name="K044" xml:space="preserve">
+    <value>DTRバー</value>
+  </data>
+  <data name="K054" xml:space="preserve">
+    <value>有効</value>
+  </data>
+  <data name="K058" xml:space="preserve">
+    <value>完了</value>
+  </data>
+  <data name="K066" xml:space="preserve">
+    <value>非表示</value>
+  </data>
+  <data name="K067" xml:space="preserve">
+    <value>アイコン＋テキスト</value>
+  </data>
+  <data name="K068" xml:space="preserve">
+    <value>アイコンのみ</value>
+  </data>
+  <data name="K085" xml:space="preserve">
+    <value>言語</value>
+  </data>
+  <data name="K089" xml:space="preserve">
+    <value>UIフォントを読み込み中...</value>
+  </data>
+  <data name="K097" xml:space="preserve">
+    <value>次へ</value>
+  </data>
+  <data name="K106" xml:space="preserve">
+    <value>オン</value>
+  </data>
+  <data name="K113" xml:space="preserve">
+    <value>ピンク</value>
+  </data>
+  <data name="K114" xml:space="preserve">
+    <value>プリセット</value>
+  </data>
+  <data name="K140" xml:space="preserve">
+    <value>プリセットを選択</value>
+  </data>
+  <data name="K156" xml:space="preserve">
+    <value>青緑</value>
+  </data>
+  <data name="K158" xml:space="preserve">
+    <value>テキストのみ</value>
+  </data>
+  <data name="K162" xml:space="preserve">
+    <value>UIフォントの読み込みに失敗しました。プラグインのログを確認してください。</value>
+  </data>
+  <data name="K165" xml:space="preserve">
+    <value>警告：{0}</value>
+  </data>
+  <data name="K056" xml:space="preserve">
+    <value>足</value>
+  </data>
+  <data name="K078" xml:space="preserve">
+    <value>名前をランダム化</value>
+  </data>
+  <data name="K105" xml:space="preserve">
+    <value>オフ</value>
+  </data>
+  <data name="K029" xml:space="preserve">
+    <value>アイコンガイドのリンクをコピー</value>
+  </data>
+  <data name="K154" xml:space="preserve">
+    <value>Ko-fiで開発を支援</value>
+  </data>
+  <data name="K000" xml:space="preserve">
+    <value>（プリセット {0} 件）</value>
+  </data>
+  <data name="K001" xml:space="preserve">
+    <value>{0}時のアイコン</value>
+  </data>
+  <data name="K002" xml:space="preserve">
+    <value>{0}時のアイコンコード</value>
+  </data>
+  <data name="K003" xml:space="preserve">
+    <value>♡ Ko-fi ♡</value>
+  </data>
+  <data name="K004" xml:space="preserve">
+    <value>アクセサリー</value>
+  </data>
+  <data name="K006" xml:space="preserve">
+    <value>Amongus</value>
+  </data>
+  <data name="K007" xml:space="preserve">
+    <value>外見</value>
+  </data>
+  <data name="K008" xml:space="preserve">
+    <value>プリセットから適用</value>
+  </data>
+  <data name="K009" xml:space="preserve">
+    <value>ルールを適用</value>
+  </data>
+  <data name="K011" xml:space="preserve">
+    <value>次の再描画までの基本待機フレーム数です。実際の待機時間は周囲のキャラクター数に応じて増えます。</value>
+  </data>
+  <data name="K012" xml:space="preserve">
+    <value>再描画の基本待機時間</value>
+  </data>
+  <data name="K014" xml:space="preserve">
+    <value>胴</value>
+  </data>
+  <data name="K015" xml:space="preserve">
+    <value>クラッシュ防止のため、プレイヤー以外への広範なネイティブ変更は現在無効です。</value>
+  </data>
+  <data name="K017" xml:space="preserve">
+    <value>チョコボを保存</value>
+  </data>
+  <data name="K018" xml:space="preserve">
+    <value>保存間隔</value>
+  </data>
+  <data name="K019" xml:space="preserve">
+    <value>NPCを保存</value>
+  </data>
+  <data name="K020" xml:space="preserve">
+    <value>プレイヤーを保存</value>
+  </data>
+  <data name="K021" xml:space="preserve">
+    <value>チャット</value>
+  </data>
+  <data name="K022" xml:space="preserve">
+    <value>チョコボ</value>
+  </data>
+  <data name="K023" xml:space="preserve">
+    <value>Kranglerで変更する、自分の画面だけに反映される項目を選びます。各設定は後からメインウィンドウで調整できます。</value>
+  </data>
+  <data name="K024" xml:space="preserve">
+    <value>部族／サブレース</value>
+  </data>
+  <data name="K027" xml:space="preserve">
+    <value>同行者のプリセット対象</value>
+  </data>
+  <data name="K028" xml:space="preserve">
+    <value>おすすめの記号を紹介するLodestoneブログのリンクをコピーします。</value>
+  </data>
+  <data name="K030" xml:space="preserve">
+    <value>基本のプライバシー設定</value>
+  </data>
+  <data name="K032" xml:space="preserve">
+    <value>自分の固定表示名</value>
+  </data>
+  <data name="K033" xml:space="preserve">
+    <value>有効時と無効時のアイコン表示に使う記号を設定します。</value>
+  </data>
+  <data name="K034" xml:space="preserve">
+    <value>デバッグ</value>
+  </data>
+  <data name="K035" xml:space="preserve">
+    <value>デバッグ操作は非表示です。/kr debugで表示を切り替えます。</value>
+  </data>
+  <data name="K036" xml:space="preserve">
+    <value>消去</value>
+  </data>
+  <data name="K037" xml:space="preserve">
+    <value>現在のローカル同行者を無効にして消去します。</value>
+  </data>
+  <data name="K038" xml:space="preserve">
+    <value>日付に応じたWuk Lamat自動イベントを無効化</value>
+  </data>
+  <data name="K040" xml:space="preserve">
+    <value>編集を破棄</value>
+  </data>
+  <data name="K041" xml:space="preserve">
+    <value>表示名</value>
+  </data>
+  <data name="K042" xml:space="preserve">
+    <value>自分を変更しない</value>
+  </data>
+  <data name="K043" xml:space="preserve">
+    <value>下書き：有効なルール {0} 件。Kranglerで非表示中のキャラクター：{1} 体。</value>
+  </data>
+  <data name="K045" xml:space="preserve">
+    <value>DTR表示</value>
+  </data>
+  <data name="K046" xml:space="preserve">
+    <value>DTRアイコン（最大3文字）</value>
+  </data>
+  <data name="K047" xml:space="preserve">
+    <value>DTR表示モード</value>
+  </data>
+  <data name="K048" xml:space="preserve">
+    <value>DTR表示モード：{0}</value>
+  </data>
+  <data name="K049" xml:space="preserve">
+    <value>設定した同行者を有効にし、今すぐ生成を試みます。生成にはKranglerの全体設定が有効である必要があります。</value>
+  </data>
+  <data name="K050" xml:space="preserve">
+    <value>Kranglerを有効化</value>
+  </data>
+  <data name="K051" xml:space="preserve">
+    <value>種族差別ルールを有効化</value>
+  </data>
+  <data name="K052" xml:space="preserve">
+    <value>魂の盗人を有効化</value>
+  </data>
+  <data name="K053" xml:space="preserve">
+    <value>このNPC名に一致する置換を有効にします。</value>
+  </data>
+  <data name="K055" xml:space="preserve">
+    <value>種族／部族／性別の完全一致ルール</value>
+  </data>
+  <data name="K057" xml:space="preserve">
+    <value>女性</value>
+  </data>
+  <data name="K059" xml:space="preserve">
+    <value>完了すると選択内容を一度だけ保存します。プリセット、魂の盗人、Amongus、空想の友達、外見の詳細設定、種族差別ルールは変更しません。</value>
+  </data>
+  <data name="K060" xml:space="preserve">
+    <value>チャットを難読化</value>
+  </data>
+  <data name="K061" xml:space="preserve">
+    <value>スクリーンショットのプライバシー保護のため、チャット本文を難読化します。</value>
+  </data>
+  <data name="K062" xml:space="preserve">
+    <value>性別</value>
+  </data>
+  <data name="K063" xml:space="preserve">
+    <value>全体プリセット</value>
+  </data>
+  <data name="K064" xml:space="preserve">
+    <value>手</value>
+  </data>
+  <data name="K065" xml:space="preserve">
+    <value>頭</value>
+  </data>
+  <data name="K069" xml:space="preserve">
+    <value>空想の友達</value>
+  </data>
+  <data name="K070" xml:space="preserve">
+    <value>元のまま</value>
+  </data>
+  <data name="K071" xml:space="preserve">
+    <value>必要に応じて自分のキャラクターを変更対象から外し、サーバー情報バーのKrangler表示を選びます。</value>
+  </data>
+  <data name="K072" xml:space="preserve">
+    <value>自分の外見を維持します。必要に応じて、ランダムな名前の代わりに固定表示名を使えます。</value>
+  </data>
+  <data name="K073" xml:space="preserve">
+    <value>外見をランダム化</value>
+  </data>
+  <data name="K074" xml:space="preserve">
+    <value>チャットを難読化</value>
+  </data>
+  <data name="K075" xml:space="preserve">
+    <value>チョコボをランダム化</value>
+  </data>
+  <data name="K076" xml:space="preserve">
+    <value>性別をランダム化</value>
+  </data>
+  <data name="K077" xml:space="preserve">
+    <value>ミニオンをランダム化</value>
+  </data>
+  <data name="K079" xml:space="preserve">
+    <value>NPCをランダム化</value>
+  </data>
+  <data name="K080" xml:space="preserve">
+    <value>プレイヤー名をランダム化</value>
+  </data>
+  <data name="K081" xml:space="preserve">
+    <value>種族をランダム化</value>
+  </data>
+  <data name="K082" xml:space="preserve">
+    <value>Krangler</value>
+  </data>
+  <data name="K083" xml:space="preserve">
+    <value>Kranglerのセットアップ</value>
+  </data>
+  <data name="K084" xml:space="preserve">
+    <value>ランダム化が有効</value>
+  </data>
+  <data name="K086" xml:space="preserve">
+    <value>前回の保存：プレイヤー {0} 人、NPC {1} 体、チョコボ {2} 羽</value>
+  </data>
+  <data name="K087" xml:space="preserve">
+    <value>脚</value>
+  </data>
+  <data name="K088" xml:space="preserve">
+    <value>1回の走査で処理する、画面内のプレイヤー数を制限します。</value>
+  </data>
+  <data name="K090" xml:space="preserve">
+    <value>男性</value>
+  </data>
+  <data name="K091" xml:space="preserve">
+    <value>全体設定</value>
+  </data>
+  <data name="K092" xml:space="preserve">
+    <value>すべてのKranglerによる変更を有効または無効にします。</value>
+  </data>
+  <data name="K093" xml:space="preserve">
+    <value>1回の処理の最大人数</value>
+  </data>
+  <data name="K094" xml:space="preserve">
+    <value>NPC置換は最大100件です。</value>
+  </data>
+  <data name="K095" xml:space="preserve">
+    <value>ミニオン</value>
+  </data>
+  <data name="K096" xml:space="preserve">
+    <value>名前</value>
+  </data>
+  <data name="K098" xml:space="preserve">
+    <value>プリセットファイルがありません。内蔵のNPC外見を使用します。</value>
+  </data>
+  <data name="K099" xml:space="preserve">
+    <value>検索に一致するプリセットがありません。</value>
+  </data>
+  <data name="K100" xml:space="preserve">
+    <value>プレイヤー以外のプリセット対象</value>
+  </data>
+  <data name="K101" xml:space="preserve">
+    <value>プレイヤー以外の対象</value>
+  </data>
+  <data name="K102" xml:space="preserve">
+    <value>未生成</value>
+  </data>
+  <data name="K103" xml:space="preserve">
+    <value>NPC名</value>
+  </data>
+  <data name="K104" xml:space="preserve">
+    <value>NPC</value>
+  </data>
+  <data name="K107" xml:space="preserve">
+    <value>セットアップを開く</value>
+  </data>
+  <data name="K108" xml:space="preserve">
+    <value>自分のキャラクターに使う任意の固定名です。空欄にすると本来の名前を維持します。</value>
+  </data>
+  <data name="K109" xml:space="preserve">
+    <value>概要</value>
+  </data>
+  <data name="K110" xml:space="preserve">
+    <value>パーティ {0}</value>
+  </data>
+  <data name="K111" xml:space="preserve">
+    <value>パーティ {0}（{1}）</value>
+  </data>
+  <data name="K112" xml:space="preserve">
+    <value>パーティ枠ごとの設定</value>
+  </data>
+  <data name="K115" xml:space="preserve">
+    <value>プリセットフォルダー：{0}\players, \npcs, \chocobos</value>
+  </data>
+  <data name="K116" xml:space="preserve">
+    <value>プリセット</value>
+  </data>
+  <data name="K117" xml:space="preserve">
+    <value>読み込み済みプリセット：{0}</value>
+  </data>
+  <data name="K118" xml:space="preserve">
+    <value>変更の反映制御</value>
+  </data>
+  <data name="K119" xml:space="preserve">
+    <value>種族</value>
+  </data>
+  <data name="K120" xml:space="preserve">
+    <value>種族／部族</value>
+  </data>
+  <data name="K121" xml:space="preserve">
+    <value>種族差別</value>
+  </data>
+  <data name="K122" xml:space="preserve">
+    <value>ランダム</value>
+  </data>
+  <data name="K123" xml:space="preserve">
+    <value>外見の詳細をランダム化</value>
+  </data>
+  <data name="K124" xml:space="preserve">
+    <value>性別をランダム化</value>
+  </data>
+  <data name="K125" xml:space="preserve">
+    <value>画面内のプレイヤーキャラクターの性別をランダム化します。</value>
+  </data>
+  <data name="K126" xml:space="preserve">
+    <value>髪、顔、目などの外見項目をランダム化します。</value>
+  </data>
+  <data name="K127" xml:space="preserve">
+    <value>種族と部族をランダム化</value>
+  </data>
+  <data name="K128" xml:space="preserve">
+    <value>画面内のプレイヤーキャラクターの種族と部族をランダム化します。</value>
+  </data>
+  <data name="K129" xml:space="preserve">
+    <value>画面内のプレイヤー名とパーティリストの名前をランダム化します。</value>
+  </data>
+  <data name="K130" xml:space="preserve">
+    <value>3段階の簡単セットアップを開き直します。詳細設定と種族差別ルールは変更しません。</value>
+  </data>
+  <data name="K131" xml:space="preserve">
+    <value>置換</value>
+  </data>
+  <data name="K132" xml:space="preserve">
+    <value>名前が完全一致する戦闘NPC・イベントNPCを、取り込んだローカルプリセットで置換します。</value>
+  </data>
+  <data name="K133" xml:space="preserve">
+    <value>置換後の部族</value>
+  </data>
+  <data name="K134" xml:space="preserve">
+    <value>置換後の性別</value>
+  </data>
+  <data name="K135" xml:space="preserve">
+    <value>確認して適用</value>
+  </data>
+  <data name="K136" xml:space="preserve">
+    <value>ルールはキャラクターの元のローカル上の種族・部族・性別に一致します。非表示は対象の3Dキャラクターと頭上の名前を消します。置換は対応する名前を仮名にし、他の外見変更の後に選択した部族と性別を適用します。</value>
+  </data>
+  <data name="K137" xml:space="preserve">
+    <value>実行時の設定元：{0}</value>
+  </data>
+  <data name="K138" xml:space="preserve">
+    <value>プリセットを検索...</value>
+  </data>
+  <data name="K139" xml:space="preserve">
+    <value>魂の盗人で保存する間隔（秒）です。外見の走査は引き続き5秒ごとに実行します。</value>
+  </data>
+  <data name="K141" xml:space="preserve">
+    <value>全体設定、ランダム、またはパーティ枠ごとの個別設定を選べます。
+
+</value>
+  </data>
+  <data name="K142" xml:space="preserve">
+    <value>自分の表示とDTR</value>
+  </data>
+  <data name="K143" xml:space="preserve">
+    <value>自分の表示名：{0}</value>
+  </data>
+  <data name="K144" xml:space="preserve">
+    <value>DTRバーに表示</value>
+  </data>
+  <data name="K145" xml:space="preserve">
+    <value>サーバー情報バーにKranglerの状態を表示します。DTR表示をクリックすると有効／無効を切り替えます。</value>
+  </data>
+  <data name="K146" xml:space="preserve">
+    <value>Kranglerが{0}のときに表示</value>
+  </data>
+  <data name="K147" xml:space="preserve">
+    <value>魂の盗人</value>
+  </data>
+  <data name="K148" xml:space="preserve">
+    <value>魂の盗人の前回保存：プレイヤー {0} 人、NPC {1} 体、チョコボ {2} 羽</value>
+  </data>
+  <data name="K149" xml:space="preserve">
+    <value>Kranglerが有効な間、自分の画面だけに表示される、ターゲット不可のNPC同行者を1体生成します。</value>
+  </data>
+  <data name="K150" xml:space="preserve">
+    <value>生成済み</value>
+  </data>
+  <data name="K151" xml:space="preserve">
+    <value>状態：{0}</value>
+  </data>
+  <data name="K152" xml:space="preserve">
+    <value>ステップ {0} / 3</value>
+  </data>
+  <data name="K153" xml:space="preserve">
+    <value>Super Krangle Master 4000</value>
+  </data>
+  <data name="K155" xml:space="preserve">
+    <value>通常のSuper Krangleの動作確認ができるように、3月31日～4月2日のWuk Lamat自動イベントを抑止します。</value>
+  </data>
+  <data name="K157" xml:space="preserve">
+    <value>試しに生成</value>
+  </data>
+  <data name="K159" xml:space="preserve">
+    <value>日付に応じたWuk Lamatの強制設定が有効です。</value>
+  </data>
+  <data name="K160" xml:space="preserve">
+    <value>日付に応じたWuk Lamatの強制設定はデバッグ設定で抑止されています。</value>
+  </data>
+  <data name="K161" xml:space="preserve">
+    <value>これは下書きの一部です。ルールを適用で保存またはこの機能を無効化します。</value>
+  </data>
+  <data name="K163" xml:space="preserve">
+    <value>全体設定を使用</value>
+  </data>
+  <data name="K164" xml:space="preserve">
+    <value>通常の外見ランダム化の代わりに、取り込んだGlamourerプリセットを使用します。
+</value>
+  </data>
+  <data name="K166" xml:space="preserve">
+    <value>武器</value>
+  </data>
+  <data name="K167" xml:space="preserve">
+    <value>自分</value>
+  </data>
+  <data name="K168" xml:space="preserve">
+    <value>自分（{0}）</value>
+  </data>
+  <data name="K169" xml:space="preserve">
+    <value>空想の友達は待機中です。</value>
+  </data>
+  <data name="K170" xml:space="preserve">
+    <value>空想の友達のIPC要求に失敗しました。</value>
+  </data>
+  <data name="K171" xml:space="preserve">
+    <value>空想の友達は無効です。</value>
+  </data>
+  <data name="K172" xml:space="preserve">
+    <value>停止中：Kranglerが無効です。</value>
+  </data>
+  <data name="K173" xml:space="preserve">
+    <value>自分のキャラクターを待機中です。</value>
+  </data>
+  <data name="K174" xml:space="preserve">
+    <value>停止中：エリア移動またはカットシーン中です。</value>
+  </data>
+  <data name="K175" xml:space="preserve">
+    <value>停止中：オブジェクトテーブルが混雑しています。</value>
+  </data>
+  <data name="K176" xml:space="preserve">
+    <value>空想の友達を消去：{0}。</value>
+  </data>
+  <data name="K177" xml:space="preserve">
+    <value>空想の友達の生成に失敗しました。</value>
+  </data>
+  <data name="K178" xml:space="preserve">
+    <value>CreateBattleCharacterで空きオブジェクト枠が見つかりませんでした。</value>
+  </data>
+  <data name="K179" xml:space="preserve">
+    <value>生成したオブジェクトを取得できませんでした。</value>
+  </data>
+  <data name="K180" xml:space="preserve">
+    <value>空想の友達「{0}」を一部適用したプリセットで生成しました。体のカスタマイズ更新に失敗しました。</value>
+  </data>
+  <data name="K181" xml:space="preserve">
+    <value>空想の友達「{0}」を生成しました。</value>
+  </data>
+  <data name="K182" xml:space="preserve">
+    <value>「{0}」として一部適用したプリセット「{1}」で追従中。体のカスタマイズ更新に失敗しました。</value>
+  </data>
+  <data name="K183" xml:space="preserve">
+    <value>「{0}」としてプリセット「{1}」で追従中です。</value>
+  </data>
+  <data name="K184" xml:space="preserve">
+    <value>空想の友達を非表示：{0}</value>
+  </data>
+  <data name="K185" xml:space="preserve">
+    <value>プリセットに適用可能なプレイヤー形式の変更がありません。</value>
+  </data>
+  <data name="K186" xml:space="preserve">
+    <value>空想の友達は一部適用です。体のカスタマイズ更新に失敗しました。</value>
+  </data>
+  <data name="K187" xml:space="preserve">
+    <value>空想の友達のプリセット「{0}」を適用しました。</value>
+  </data>
+  <data name="K188" xml:space="preserve">
+    <value>プリセット「{0}」が見つかりません。</value>
+  </data>
+  <data name="K189" xml:space="preserve">
+    <value>空想の友達を非表示：プリセットが見つかりません。</value>
+  </data>
+  <data name="K190" xml:space="preserve">
+    <value>プリセット「{0}」はNPCのmodelId {1}を指定しています。空想の友達では使用できません。</value>
+  </data>
+  <data name="K191" xml:space="preserve">
+    <value>空想の友達を非表示：NPCモデル指定のプリセットは使用できません。</value>
+  </data>
+  <data name="K192" xml:space="preserve">
+    <value>プリセットに利用可能なプレイヤー形式の描画データがありません。</value>
+  </data>
+  <data name="K193" xml:space="preserve">
+    <value>キャラクターのポインターがnullでした。</value>
+  </data>
+  <data name="K194" xml:space="preserve">
+    <value>描画オブジェクトの準備ができていません。</value>
+  </data>
+  <data name="K195" xml:space="preserve">
+    <value>描画オブジェクトの種類は{0}です。</value>
+  </data>
+  <data name="K196" xml:space="preserve">
+    <value>描画オブジェクトのモデル種別は{0}です。</value>
+  </data>
+  <data name="K197" xml:space="preserve">
+    <value>空想の友達のキャラクターが失われました。</value>
+  </data>
+  <data name="K198" xml:space="preserve">
+    <value>キャラクターポインターがnullでした。</value>
+  </data>
+  <data name="K199" xml:space="preserve">
+    <value>プリセット「{0}」を拒否しました。空想の友達はNPCのmodelId {1}を適用できません。</value>
+  </data>
+  <data name="K200" xml:space="preserve">
+    <value>カスタマイズ準備={0}、要求={1}、装備準備={2}</value>
+  </data>
+  <data name="K201" xml:space="preserve">
+    <value>外見={0}、カスタマイズ要求={1}、更新={2}、装備={3}、武器={4}、追加={5}、メタデータ={6}</value>
+  </data>
+  <data name="K202" xml:space="preserve">
+    <value>プラグイン終了</value>
+  </data>
+  <data name="K203" xml:space="preserve">
+    <value>手動で無効化</value>
+  </data>
+  <data name="K204" xml:space="preserve">
+    <value>{0}により無効化</value>
+  </data>
+  <data name="K205" xml:space="preserve">
+    <value>Kranglerが無効</value>
+  </data>
+  <data name="K206" xml:space="preserve">
+    <value>ログインしていません</value>
+  </data>
+  <data name="K207" xml:space="preserve">
+    <value>エリア移動またはカットシーン</value>
+  </data>
+  <data name="K208" xml:space="preserve">
+    <value>オブジェクトテーブルの混雑</value>
+  </data>
+  <data name="K209" xml:space="preserve">
+    <value>ログアウト</value>
+  </data>
+  <data name="K210" xml:space="preserve">
+    <value>エリア変更 {0}</value>
+  </data>
+  <data name="K211" xml:space="preserve">
+    <value>{0}のプリセット要求で強制</value>
+  </data>
+  <data name="K212" xml:space="preserve">
+    <value>プリセット変更：{0}</value>
+  </data>
+  <data name="K213" xml:space="preserve">
+    <value>はい</value>
+  </data>
+  <data name="K214" xml:space="preserve">
+    <value>いいえ</value>
+  </data>
+  <data name="K215" xml:space="preserve">
+    <value>オブジェクト</value>
+  </data>
+  <data name="K216" xml:space="preserve">
+    <value>地形</value>
+  </data>
+  <data name="K217" xml:space="preserve">
+    <value>背景オブジェクト</value>
+  </data>
+  <data name="K218" xml:space="preserve">
+    <value>キャラクター基盤</value>
+  </data>
+  <data name="K219" xml:space="preserve">
+    <value>エフェクトオブジェクト</value>
+  </data>
+  <data name="K220" xml:space="preserve">
+    <value>光源</value>
+  </data>
+  <data name="K221" xml:space="preserve">
+    <value>不明な種類 6</value>
+  </data>
+  <data name="K222" xml:space="preserve">
+    <value>環境空間</value>
+  </data>
+  <data name="K223" xml:space="preserve">
+    <value>環境位置</value>
+  </data>
+  <data name="K224" xml:space="preserve">
+    <value>デカール</value>
+  </data>
+  <data name="K225" xml:space="preserve">
+    <value>不明な種類 10</value>
+  </data>
+  <data name="K226" xml:space="preserve">
+    <value>人間</value>
+  </data>
+  <data name="K227" xml:space="preserve">
+    <value>亜人</value>
+  </data>
+  <data name="K228" xml:space="preserve">
+    <value>モンスター</value>
+  </data>
+  <data name="K229" xml:space="preserve">
+    <value>武器</value>
+  </data>
+  <data name="K230" xml:space="preserve">
+    <value>プリセット '{0}' から外見の識別情報が変更</value>
+  </data>
+  <data name="Window appearance" xml:space="preserve"><value>ウィンドウの外観</value></data>
+  <data name="Compact visible on main window" xml:space="preserve"><value>メインウィンドウにコンパクト切替を表示</value></data>
+  <data name="Language visible on main window" xml:space="preserve"><value>メインウィンドウに言語選択を表示</value></data>
+  <data name="Transparency" xml:space="preserve"><value>透明度</value></data>
+  <data name="Opacity (%)" xml:space="preserve"><value>不透明度 (%)</value></data>
+  <data name="Auto-fade when unfocused" xml:space="preserve"><value>フォーカスがないときに自動で薄くする</value></data>
+  <data name="Unfocused opacity (%)" xml:space="preserve"><value>非フォーカス時の不透明度 (%)</value></data>
+  <data name="Unfocused delay (seconds)" xml:space="preserve"><value>非フォーカス時の待機時間 (秒)</value></data>
+</root>

@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="K000" xml:space="preserve"><value>({0} mẫu thiết lập)</value></data>
+  <data name="K001" xml:space="preserve"><value>Biểu tượng {0}</value></data>
+  <data name="K002" xml:space="preserve"><value>Mã biểu tượng {0}</value></data>
+  <data name="K003" xml:space="preserve"><value>♡ Ko-fi ♡</value></data>
+  <data name="K004" xml:space="preserve"><value>Phụ kiện</value></data>
+  <data name="K005" xml:space="preserve"><value>Đang hoạt động</value></data>
+  <data name="K006" xml:space="preserve"><value>Amongus</value></data>
+  <data name="K007" xml:space="preserve"><value>Ngoại hình</value></data>
+  <data name="K008" xml:space="preserve"><value>Áp dụng từ mẫu thiết lập</value></data>
+  <data name="K009" xml:space="preserve"><value>Áp dụng quy tắc</value></data>
+  <data name="K010" xml:space="preserve"><value>Quay lại</value></data>
+  <data name="K011" xml:space="preserve"><value>Độ trễ cơ bản trước lần vẽ lại tiếp theo trong hàng đợi. Độ trễ thực tế tăng theo số người xung quanh.</value></data>
+  <data name="K012" xml:space="preserve"><value>Độ trễ vẽ lại cơ bản</value></data>
+  <data name="K013" xml:space="preserve"><value>Xanh dương</value></data>
+  <data name="K014" xml:space="preserve"><value>Thân</value></data>
+  <data name="K015" xml:space="preserve"><value>Hiện đã chặn việc sửa đổi trực tiếp trên diện rộng đối với đối tượng không phải người chơi để tránh gây lỗi.</value></data>
+  <data name="K016" xml:space="preserve"><value>Hủy</value></data>
+  <data name="K017" xml:space="preserve"><value>Thu thập chocobo</value></data>
+  <data name="K018" xml:space="preserve"><value>Khoảng thời gian thu thập</value></data>
+  <data name="K019" xml:space="preserve"><value>Thu thập NPC</value></data>
+  <data name="K020" xml:space="preserve"><value>Thu thập người chơi</value></data>
+  <data name="K021" xml:space="preserve"><value>Trò chuyện</value></data>
+  <data name="K022" xml:space="preserve"><value>Chocobo</value></data>
+  <data name="K023" xml:space="preserve"><value>Chọn những nội dung chung mà Krangler sẽ thay đổi chỉ trên máy của bạn. Bạn có thể điều chỉnh từng tùy chọn sau trong cửa sổ chính.</value></data>
+  <data name="K024" xml:space="preserve"><value>Bộ tộc/Phân chủng</value></data>
+  <data name="K025" xml:space="preserve"><value>Màu</value></data>
+  <data name="K026" xml:space="preserve"><value>Chế độ gọn</value></data>
+  <data name="K027" xml:space="preserve"><value>Đối tượng mẫu thiết lập cho bạn đồng hành</value></data>
+  <data name="K028" xml:space="preserve"><value>Sao chép liên kết bài viết Lodestone có các ký tự gợi ý.</value></data>
+  <data name="K029" xml:space="preserve"><value>Sao chép liên kết hướng dẫn biểu tượng</value></data>
+  <data name="K030" xml:space="preserve"><value>Lựa chọn quyền riêng tư cơ bản</value></data>
+  <data name="K031" xml:space="preserve"><value>RGB tùy chỉnh</value></data>
+  <data name="K032" xml:space="preserve"><value>Tên hiển thị tùy chỉnh của bạn</value></data>
+  <data name="K033" xml:space="preserve"><value>Tùy chỉnh ký tự dùng cho biểu tượng ở trạng thái bật và tắt.</value></data>
+  <data name="K034" xml:space="preserve"><value>Gỡ lỗi</value></data>
+  <data name="K035" xml:space="preserve"><value>Đã ẩn điều khiển gỡ lỗi. Dùng /kr debug để bật hoặc tắt.</value></data>
+  <data name="K036" xml:space="preserve"><value>Xóa đối tượng</value></data>
+  <data name="K037" xml:space="preserve"><value>Tắt và xóa bạn đồng hành hiện tại chỉ hiển thị trên máy của bạn.</value></data>
+  <data name="K038" xml:space="preserve"><value>Tắt sự kiện Wuk Lamat tự động theo ngày</value></data>
+  <data name="K039" xml:space="preserve"><value>Đã tắt</value></data>
+  <data name="K040" xml:space="preserve"><value>Bỏ thay đổi</value></data>
+  <data name="K041" xml:space="preserve"><value>Tên hiển thị</value></data>
+  <data name="K042" xml:space="preserve"><value>Không biến đổi chính mình</value></data>
+  <data name="K043" xml:space="preserve"><value>Bản nháp: {0} quy tắc đang bật. Krangler hiện đang ẩn: {1} đối tượng.</value></data>
+  <data name="K044" xml:space="preserve"><value>Thanh DTR</value></data>
+  <data name="K045" xml:space="preserve"><value>Mục DTR</value></data>
+  <data name="K046" xml:space="preserve"><value>Biểu tượng DTR (tối đa 3 ký tự)</value></data>
+  <data name="K047" xml:space="preserve"><value>Chế độ DTR</value></data>
+  <data name="K048" xml:space="preserve"><value>Chế độ DTR: {0}</value></data>
+  <data name="K049" xml:space="preserve"><value>Bật và thử tạo bạn đồng hành đã cấu hình ngay. Nút bật/tắt chính của Krangler vẫn quyết định việc tạo đối tượng.</value></data>
+  <data name="K050" xml:space="preserve"><value>Bật Krangler</value></data>
+  <data name="K051" xml:space="preserve"><value>Bật quy tắc phân biệt chủng tộc</value></data>
+  <data name="K052" xml:space="preserve"><value>Bật Kẻ trộm linh hồn</value></data>
+  <data name="K053" xml:space="preserve"><value>Bật chính xác mục thay thế NPC này.</value></data>
+  <data name="K054" xml:space="preserve"><value>Đã bật</value></data>
+  <data name="K055" xml:space="preserve"><value>Quy tắc chính xác theo chủng tộc / bộ tộc / giới tính</value></data>
+  <data name="K056" xml:space="preserve"><value>Bàn chân</value></data>
+  <data name="K057" xml:space="preserve"><value>Nữ</value></data>
+  <data name="K058" xml:space="preserve"><value>Hoàn tất</value></data>
+  <data name="K059" xml:space="preserve"><value>Hoàn tất sẽ lưu các lựa chọn này một lần. Trình hướng dẫn không thay đổi mẫu thiết lập, Kẻ trộm linh hồn, Amongus, Bạn tưởng tượng, cài đặt ngoại hình nâng cao và quy tắc phân biệt chủng tộc.</value></data>
+  <data name="K060" xml:space="preserve"><value>Làm nhiễu trò chuyện</value></data>
+  <data name="K061" xml:space="preserve"><value>Làm nhiễu nội dung trò chuyện để bảo vệ quyền riêng tư trong ảnh chụp màn hình.</value></data>
+  <data name="K062" xml:space="preserve"><value>Giới tính</value></data>
+  <data name="K063" xml:space="preserve"><value>Mẫu thiết lập chung</value></data>
+  <data name="K064" xml:space="preserve"><value>Bàn tay</value></data>
+  <data name="K065" xml:space="preserve"><value>Đầu</value></data>
+  <data name="K066" xml:space="preserve"><value>Ẩn</value></data>
+  <data name="K067" xml:space="preserve"><value>Biểu tượng + Chữ</value></data>
+  <data name="K068" xml:space="preserve"><value>Chỉ biểu tượng</value></data>
+  <data name="K069" xml:space="preserve"><value>Bạn tưởng tượng</value></data>
+  <data name="K070" xml:space="preserve"><value>Giữ nguyên</value></data>
+  <data name="K071" xml:space="preserve"><value>Giữ nguyên nhân vật của bạn nếu muốn và chọn cách Krangler hiển thị trên thanh thông tin máy chủ.</value></data>
+  <data name="K072" xml:space="preserve"><value>Giữ nguyên ngoại hình nhân vật của bạn và tùy chọn dùng tên hiển thị cố định thay cho tên ngẫu nhiên.</value></data>
+  <data name="K073" xml:space="preserve"><value>Biến đổi ngoại hình</value></data>
+  <data name="K074" xml:space="preserve"><value>Biến đổi trò chuyện</value></data>
+  <data name="K075" xml:space="preserve"><value>Biến đổi chocobo</value></data>
+  <data name="K076" xml:space="preserve"><value>Biến đổi giới tính</value></data>
+  <data name="K077" xml:space="preserve"><value>Biến đổi thú cưng</value></data>
+  <data name="K078" xml:space="preserve"><value>Biến đổi tên</value></data>
+  <data name="K079" xml:space="preserve"><value>Biến đổi NPC</value></data>
+  <data name="K080" xml:space="preserve"><value>Biến đổi tên người chơi</value></data>
+  <data name="K081" xml:space="preserve"><value>Biến đổi chủng tộc</value></data>
+  <data name="K082" xml:space="preserve"><value>Krangler</value></data>
+  <data name="K083" xml:space="preserve"><value>Thiết lập Krangler</value></data>
+  <data name="K084" xml:space="preserve"><value>ĐANG BIẾN ĐỔI</value></data>
+  <data name="K085" xml:space="preserve"><value>Ngôn ngữ</value></data>
+  <data name="K086" xml:space="preserve"><value>Lần thu thập gần nhất: {0} người chơi, {1} NPC, {2} chocobo</value></data>
+  <data name="K087" xml:space="preserve"><value>Chân</value></data>
+  <data name="K088" xml:space="preserve"><value>Giới hạn số người chơi đang hiển thị được xử lý trong một lượt quét.</value></data>
+  <data name="K089" xml:space="preserve"><value>Đang tải phông chữ giao diện...</value></data>
+  <data name="K090" xml:space="preserve"><value>Nam</value></data>
+  <data name="K091" xml:space="preserve"><value>Điều khiển chính</value></data>
+  <data name="K092" xml:space="preserve"><value>Nút bật/tắt chính - bật hoặc tắt toàn bộ hoạt động biến đổi.</value></data>
+  <data name="K093" xml:space="preserve"><value>Số người chơi tối đa mỗi chu kỳ</value></data>
+  <data name="K094" xml:space="preserve"><value>Tối đa 100 mục thay thế NPC.</value></data>
+  <data name="K095" xml:space="preserve"><value>Thú cưng</value></data>
+  <data name="K096" xml:space="preserve"><value>Tên</value></data>
+  <data name="K097" xml:space="preserve"><value>Tiếp theo</value></data>
+  <data name="K098" xml:space="preserve"><value>Chưa tải tệp mẫu thiết lập nào. Sẽ dùng ngoại hình NPC có sẵn.</value></data>
+  <data name="K099" xml:space="preserve"><value>Không có mẫu thiết lập nào khớp với tìm kiếm hiện tại.</value></data>
+  <data name="K100" xml:space="preserve"><value>Đối tượng mẫu thiết lập không phải người chơi</value></data>
+  <data name="K101" xml:space="preserve"><value>Đối tượng không phải người chơi</value></data>
+  <data name="K102" xml:space="preserve"><value>Chưa được tạo</value></data>
+  <data name="K103" xml:space="preserve"><value>Tên NPC</value></data>
+  <data name="K104" xml:space="preserve"><value>NPC</value></data>
+  <data name="K105" xml:space="preserve"><value>Tắt</value></data>
+  <data name="K106" xml:space="preserve"><value>Bật</value></data>
+  <data name="K107" xml:space="preserve"><value>Mở trình hướng dẫn thiết lập</value></data>
+  <data name="K108" xml:space="preserve"><value>Tên cố định tùy chọn cho nhân vật của bạn. Để trống để giữ tên thật.</value></data>
+  <data name="K109" xml:space="preserve"><value>Tổng quan</value></data>
+  <data name="K110" xml:space="preserve"><value>Nhóm {0}</value></data>
+  <data name="K111" xml:space="preserve"><value>Nhóm {0} ({1})</value></data>
+  <data name="K112" xml:space="preserve"><value>Ghi đè vị trí trong nhóm</value></data>
+  <data name="K113" xml:space="preserve"><value>Hồng</value></data>
+  <data name="K114" xml:space="preserve"><value>Mẫu thiết lập</value></data>
+  <data name="K115" xml:space="preserve"><value>Thư mục mẫu thiết lập: {0}\players, \npcs, \chocobos</value></data>
+  <data name="K116" xml:space="preserve"><value>Mẫu thiết lập</value></data>
+  <data name="K117" xml:space="preserve"><value>Mẫu thiết lập đã tải: {0}</value></data>
+  <data name="K118" xml:space="preserve"><value>Điều khiển lan truyền</value></data>
+  <data name="K119" xml:space="preserve"><value>Chủng tộc</value></data>
+  <data name="K120" xml:space="preserve"><value>Chủng tộc / bộ tộc</value></data>
+  <data name="K121" xml:space="preserve"><value>Phân biệt chủng tộc</value></data>
+  <data name="K122" xml:space="preserve"><value>Ngẫu nhiên</value></data>
+  <data name="K123" xml:space="preserve"><value>Ngẫu nhiên hóa chi tiết ngoại hình</value></data>
+  <data name="K124" xml:space="preserve"><value>Ngẫu nhiên hóa giới tính</value></data>
+  <data name="K125" xml:space="preserve"><value>Ngẫu nhiên hóa giới tính của các nhân vật người chơi đang hiển thị.</value></data>
+  <data name="K126" xml:space="preserve"><value>Ngẫu nhiên hóa tóc, khuôn mặt, mắt và các mục ngoại hình khác.</value></data>
+  <data name="K127" xml:space="preserve"><value>Ngẫu nhiên hóa chủng tộc và bộ tộc</value></data>
+  <data name="K128" xml:space="preserve"><value>Ngẫu nhiên hóa chủng tộc và phân chủng của các nhân vật người chơi đang hiển thị.</value></data>
+  <data name="K129" xml:space="preserve"><value>Ngẫu nhiên hóa tên người chơi đang hiển thị và tên trong danh sách nhóm.</value></data>
+  <data name="K130" xml:space="preserve"><value>Mở lại thiết lập nhanh ba bước mà không thay đổi cài đặt nâng cao hoặc quy tắc phân biệt chủng tộc.</value></data>
+  <data name="K131" xml:space="preserve"><value>Thay thế</value></data>
+  <data name="K132" xml:space="preserve"><value>Thay thế các NPC chiến đấu và sự kiện có tên khớp chính xác bằng mẫu thiết lập cục bộ đã nhập.</value></data>
+  <data name="K133" xml:space="preserve"><value>Bộ tộc thay thế</value></data>
+  <data name="K134" xml:space="preserve"><value>Giới tính thay thế</value></data>
+  <data name="K135" xml:space="preserve"><value>Xem lại và áp dụng</value></data>
+  <data name="K136" xml:space="preserve"><value>Quy tắc dựa trên danh tính cục bộ ban đầu của đối tượng. Ẩn sẽ xóa đối tượng 3D khớp quy tắc và bảng tên trong thế giới; Thay thế sẽ dùng tên giả ở nơi được hỗ trợ và áp dụng bộ tộc, giới tính đã chọn sau các thay đổi ngoại hình khác.</value></data>
+  <data name="K137" xml:space="preserve"><value>Nguồn khi chạy: {0}</value></data>
+  <data name="K138" xml:space="preserve"><value>Tìm mẫu thiết lập...</value></data>
+  <data name="K139" xml:space="preserve"><value>Số giây giữa các lượt thu thập của Kẻ trộm linh hồn. Việc quét ngoại hình vẫn theo chu kỳ 5 giây của Krangler.</value></data>
+  <data name="K140" xml:space="preserve"><value>Chọn mẫu thiết lập</value></data>
+  <data name="K141" xml:space="preserve"><value>Có thể chọn mẫu chung, ngẫu nhiên hoặc ghi đè theo vị trí trong nhóm.
+
+</value></data>
+  <data name="K142" xml:space="preserve"><value>Hiển thị bản thân và DTR</value></data>
+  <data name="K143" xml:space="preserve"><value>Tên hiển thị của bạn: {0}</value></data>
+  <data name="K144" xml:space="preserve"><value>Hiển thị mục trên thanh DTR</value></data>
+  <data name="K145" xml:space="preserve"><value>Hiển thị trạng thái Krangler trên thanh thông tin máy chủ. Nhấn mục DTR để bật hoặc tắt.</value></data>
+  <data name="K146" xml:space="preserve"><value>Hiển thị khi Krangler {0}</value></data>
+  <data name="K147" xml:space="preserve"><value>Kẻ trộm linh hồn</value></data>
+  <data name="K148" xml:space="preserve"><value>Lần thu thập gần nhất của Kẻ trộm linh hồn: {0} người chơi, {1} NPC, {2} chocobo</value></data>
+  <data name="K149" xml:space="preserve"><value>Tạo một NPC bạn đồng hành giả, chỉ hiển thị trên máy của bạn và không thể chọn làm mục tiêu khi Krangler bật.</value></data>
+  <data name="K150" xml:space="preserve"><value>Đã tạo</value></data>
+  <data name="K151" xml:space="preserve"><value>Trạng thái: {0}</value></data>
+  <data name="K152" xml:space="preserve"><value>Bước {0} trong 3</value></data>
+  <data name="K153" xml:space="preserve"><value>Super Krangle Master 4000</value></data>
+  <data name="K154" xml:space="preserve"><value>Ủng hộ phát triển trên Ko-fi</value></data>
+  <data name="K155" xml:space="preserve"><value>Tắt sự kiện Wuk Lamat tự động từ ngày 31 tháng 3 đến ngày 2 tháng 4 để có thể thử nghiệm Super Krangle bình thường.</value></data>
+  <data name="K156" xml:space="preserve"><value>Xanh ngọc</value></data>
+  <data name="K157" xml:space="preserve"><value>Thử tạo đối tượng</value></data>
+  <data name="K158" xml:space="preserve"><value>Chỉ chữ</value></data>
+  <data name="K159" xml:space="preserve"><value>Chế độ ghi đè Wuk Lamat theo ngày hiện đang hoạt động.</value></data>
+  <data name="K160" xml:space="preserve"><value>Chế độ ghi đè Wuk Lamat theo ngày hiện bị tắt trong cài đặt gỡ lỗi.</value></data>
+  <data name="K161" xml:space="preserve"><value>Đây là một phần của bản nháp. Dùng Áp dụng quy tắc để lưu hoặc tắt thẻ này.</value></data>
+  <data name="K162" xml:space="preserve"><value>Không thể tải phông chữ giao diện. Xem nhật ký plugin.</value></data>
+  <data name="K163" xml:space="preserve"><value>Dùng mẫu chung</value></data>
+  <data name="K164" xml:space="preserve"><value>Dùng mẫu thiết lập Glamourer đã nhập thay cho việc biến đổi ngoại hình thông thường.
+</value></data>
+  <data name="K165" xml:space="preserve"><value>Cảnh báo: {0}</value></data>
+  <data name="K166" xml:space="preserve"><value>Vũ khí</value></data>
+  <data name="K167" xml:space="preserve"><value>Bạn</value></data>
+  <data name="K168" xml:space="preserve"><value>Bạn ({0})</value></data>
+  <data name="K169" xml:space="preserve"><value>Bạn tưởng tượng đang chờ.</value></data>
+  <data name="K170" xml:space="preserve"><value>Yêu cầu IPC của Bạn tưởng tượng thất bại.</value></data>
+  <data name="K171" xml:space="preserve"><value>Bạn tưởng tượng đã tắt.</value></data>
+  <data name="K172" xml:space="preserve"><value>Bị chặn: Krangler đã tắt.</value></data>
+  <data name="K173" xml:space="preserve"><value>Đang chờ người chơi cục bộ.</value></data>
+  <data name="K174" xml:space="preserve"><value>Bị chặn: đang chuyển khu vực hoặc xem cảnh phim.</value></data>
+  <data name="K175" xml:space="preserve"><value>Bị chặn: bảng đối tượng chịu tải cao.</value></data>
+  <data name="K176" xml:space="preserve"><value>Đã xóa Bạn tưởng tượng: {0}.</value></data>
+  <data name="K177" xml:space="preserve"><value>Không thể tạo Bạn tưởng tượng.</value></data>
+  <data name="K178" xml:space="preserve"><value>CreateBattleCharacter không trả về vị trí đối tượng trống.</value></data>
+  <data name="K179" xml:space="preserve"><value>Không thể xác định đối tượng đã tạo.</value></data>
+  <data name="K180" xml:space="preserve"><value>Đã tạo Bạn tưởng tượng '{0}' với mẫu thiết lập áp dụng một phần: làm mới ngoại hình thân thất bại.</value></data>
+  <data name="K181" xml:space="preserve"><value>Đã tạo Bạn tưởng tượng '{0}'.</value></data>
+  <data name="K182" xml:space="preserve"><value>Đang theo sau dưới tên '{0}' với mẫu thiết lập áp dụng một phần '{1}': làm mới ngoại hình thân thất bại.</value></data>
+  <data name="K183" xml:space="preserve"><value>Đang theo sau dưới tên '{0}' với mẫu thiết lập '{1}'.</value></data>
+  <data name="K184" xml:space="preserve"><value>Bạn tưởng tượng bị ẩn: {0}</value></data>
+  <data name="K185" xml:space="preserve"><value>Việc áp dụng mẫu thiết lập không báo cáo thay đổi sẵn sàng nào theo kiểu người chơi.</value></data>
+  <data name="K186" xml:space="preserve"><value>Bạn tưởng tượng áp dụng một phần: làm mới ngoại hình thân thất bại.</value></data>
+  <data name="K187" xml:space="preserve"><value>Đã áp dụng mẫu thiết lập Bạn tưởng tượng '{0}'.</value></data>
+  <data name="K188" xml:space="preserve"><value>Không tìm thấy mẫu thiết lập '{0}'.</value></data>
+  <data name="K189" xml:space="preserve"><value>Bạn tưởng tượng bị ẩn: không tìm thấy mẫu thiết lập.</value></data>
+  <data name="K190" xml:space="preserve"><value>Mẫu thiết lập '{0}' yêu cầu modelId NPC chính xác {1}, hiện bị chặn đối với Bạn tưởng tượng.</value></data>
+  <data name="K191" xml:space="preserve"><value>Bạn tưởng tượng bị ẩn: mẫu thiết lập mô hình NPC chính xác bị chặn.</value></data>
+  <data name="K192" xml:space="preserve"><value>Việc chuẩn bị mẫu thiết lập không báo cáo dữ liệu vẽ sẵn sàng nào theo kiểu người chơi.</value></data>
+  <data name="K193" xml:space="preserve"><value>con trỏ đối tượng là null.</value></data>
+  <data name="K194" xml:space="preserve"><value>đối tượng vẽ chưa sẵn sàng.</value></data>
+  <data name="K195" xml:space="preserve"><value>kiểu đối tượng vẽ là {0}.</value></data>
+  <data name="K196" xml:space="preserve"><value>kiểu mô hình đối tượng vẽ là {0}.</value></data>
+  <data name="K197" xml:space="preserve"><value>Đã mất đối tượng Bạn tưởng tượng.</value></data>
+  <data name="K198" xml:space="preserve"><value>Con trỏ nhân vật là null.</value></data>
+  <data name="K199" xml:space="preserve"><value>Đã chặn mẫu thiết lập '{0}' vì Bạn tưởng tượng không thể áp dụng modelId NPC chính xác {1}.</value></data>
+  <data name="K200" xml:space="preserve"><value>ngoại hình đã nạp={0}, ngoại hình được yêu cầu={1}, trang bị đã nạp={2}</value></data>
+  <data name="K201" xml:space="preserve"><value>ngoại hình={0}, ngoại hình được yêu cầu={1}, làm mới={2}, trang bị={3}, vũ khí={4}, bổ sung={5}, siêu dữ liệu={6}</value></data>
+  <data name="K202" xml:space="preserve"><value>dỡ plugin</value></data>
+  <data name="K203" xml:space="preserve"><value>tắt thủ công</value></data>
+  <data name="K204" xml:space="preserve"><value>bị tắt bởi {0}</value></data>
+  <data name="K205" xml:space="preserve"><value>Krangler đã tắt</value></data>
+  <data name="K206" xml:space="preserve"><value>chưa đăng nhập</value></data>
+  <data name="K207" xml:space="preserve"><value>chuyển khu vực hoặc cảnh phim</value></data>
+  <data name="K208" xml:space="preserve"><value>bảng đối tượng chịu tải cao</value></data>
+  <data name="K209" xml:space="preserve"><value>đăng xuất</value></data>
+  <data name="K210" xml:space="preserve"><value>thay đổi lãnh thổ {0}</value></data>
+  <data name="K211" xml:space="preserve"><value>được yêu cầu bởi mẫu thiết lập {0}</value></data>
+  <data name="K212" xml:space="preserve"><value>thay đổi mẫu thiết lập: {0}</value></data>
+  <data name="K213" xml:space="preserve"><value>Đúng</value></data>
+  <data name="K214" xml:space="preserve"><value>Sai</value></data>
+  <data name="K215" xml:space="preserve"><value>Đối tượng</value></data>
+  <data name="K216" xml:space="preserve"><value>Địa hình</value></data>
+  <data name="K217" xml:space="preserve"><value>Đối tượng nền</value></data>
+  <data name="K218" xml:space="preserve"><value>Mô hình nhân vật cơ sở</value></data>
+  <data name="K219" xml:space="preserve"><value>Đối tượng hiệu ứng</value></data>
+  <data name="K220" xml:space="preserve"><value>Ánh sáng</value></data>
+  <data name="K221" xml:space="preserve"><value>Kiểu chưa rõ 6</value></data>
+  <data name="K222" xml:space="preserve"><value>Không gian môi trường</value></data>
+  <data name="K223" xml:space="preserve"><value>Vị trí môi trường</value></data>
+  <data name="K224" xml:space="preserve"><value>Họa tiết phủ</value></data>
+  <data name="K225" xml:space="preserve"><value>Kiểu chưa rõ 10</value></data>
+  <data name="K226" xml:space="preserve"><value>Người</value></data>
+  <data name="K227" xml:space="preserve"><value>Á nhân</value></data>
+  <data name="K228" xml:space="preserve"><value>Quái vật</value></data>
+  <data name="K229" xml:space="preserve"><value>Vũ khí</value></data>
+  <data name="K230" xml:space="preserve"><value>danh tính ngoại hình đã thay đổi so với mẫu thiết lập '{0}'</value></data>
+  <data name="Window appearance" xml:space="preserve"><value>Giao diện cửa sổ</value></data>
+  <data name="Compact visible on main window" xml:space="preserve"><value>Hiển thị chế độ gọn trên cửa sổ chính</value></data>
+  <data name="Language visible on main window" xml:space="preserve"><value>Hiển thị lựa chọn ngôn ngữ trên cửa sổ chính</value></data>
+  <data name="Transparency" xml:space="preserve"><value>Độ trong suốt</value></data>
+  <data name="Opacity (%)" xml:space="preserve"><value>Độ đục (%)</value></data>
+  <data name="Auto-fade when unfocused" xml:space="preserve"><value>Tự giảm độ đục khi mất tiêu điểm</value></data>
+  <data name="Unfocused opacity (%)" xml:space="preserve"><value>Độ đục khi mất tiêu điểm (%)</value></data>
+  <data name="Unfocused delay (seconds)" xml:space="preserve"><value>Độ trễ khi mất tiêu điểm (giây)</value></data>
+</root>

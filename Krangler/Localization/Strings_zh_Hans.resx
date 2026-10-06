@@ -1,0 +1,719 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms</value>
+  </resheader>
+  <data name="K005" xml:space="preserve">
+    <value>启用</value>
+  </data>
+  <data name="K010" xml:space="preserve">
+    <value>返回</value>
+  </data>
+  <data name="K013" xml:space="preserve">
+    <value>蓝色</value>
+  </data>
+  <data name="K016" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="K025" xml:space="preserve">
+    <value>颜色</value>
+  </data>
+  <data name="K026" xml:space="preserve">
+    <value>紧凑模式</value>
+  </data>
+  <data name="K031" xml:space="preserve">
+    <value>自定义RGB</value>
+  </data>
+  <data name="K039" xml:space="preserve">
+    <value>禁用</value>
+  </data>
+  <data name="K044" xml:space="preserve">
+    <value>DTR栏</value>
+  </data>
+  <data name="K054" xml:space="preserve">
+    <value>启用</value>
+  </data>
+  <data name="K058" xml:space="preserve">
+    <value>完成</value>
+  </data>
+  <data name="K066" xml:space="preserve">
+    <value>隐藏</value>
+  </data>
+  <data name="K067" xml:space="preserve">
+    <value>图标＋文本</value>
+  </data>
+  <data name="K068" xml:space="preserve">
+    <value>仅图标</value>
+  </data>
+  <data name="K085" xml:space="preserve">
+    <value>语言</value>
+  </data>
+  <data name="K089" xml:space="preserve">
+    <value>正在加载界面字体...</value>
+  </data>
+  <data name="K097" xml:space="preserve">
+    <value>下一步</value>
+  </data>
+  <data name="K106" xml:space="preserve">
+    <value>开</value>
+  </data>
+  <data name="K113" xml:space="preserve">
+    <value>粉色</value>
+  </data>
+  <data name="K114" xml:space="preserve">
+    <value>预设</value>
+  </data>
+  <data name="K140" xml:space="preserve">
+    <value>选择预设</value>
+  </data>
+  <data name="K156" xml:space="preserve">
+    <value>青色</value>
+  </data>
+  <data name="K158" xml:space="preserve">
+    <value>仅文本</value>
+  </data>
+  <data name="K162" xml:space="preserve">
+    <value>界面字体加载失败，请查看插件日志。</value>
+  </data>
+  <data name="K165" xml:space="preserve">
+    <value>警告：{0}</value>
+  </data>
+  <data name="K056" xml:space="preserve">
+    <value>脚部</value>
+  </data>
+  <data name="K078" xml:space="preserve">
+    <value>随机化名称</value>
+  </data>
+  <data name="K105" xml:space="preserve">
+    <value>关</value>
+  </data>
+  <data name="K029" xml:space="preserve">
+    <value>复制图标指南链接</value>
+  </data>
+  <data name="K154" xml:space="preserve">
+    <value>在Ko-fi支持开发</value>
+  </data>
+  <data name="K000" xml:space="preserve">
+    <value>（{0} 个预设）</value>
+  </data>
+  <data name="K001" xml:space="preserve">
+    <value>{0}状态图标</value>
+  </data>
+  <data name="K002" xml:space="preserve">
+    <value>{0}状态图标代码</value>
+  </data>
+  <data name="K003" xml:space="preserve">
+    <value>♡ Ko-fi ♡</value>
+  </data>
+  <data name="K004" xml:space="preserve">
+    <value>饰品</value>
+  </data>
+  <data name="K006" xml:space="preserve">
+    <value>Amongus</value>
+  </data>
+  <data name="K007" xml:space="preserve">
+    <value>外观</value>
+  </data>
+  <data name="K008" xml:space="preserve">
+    <value>从预设应用</value>
+  </data>
+  <data name="K009" xml:space="preserve">
+    <value>应用规则</value>
+  </data>
+  <data name="K011" xml:space="preserve">
+    <value>队列中下次重绘前的基础等待帧数。实际等待时间随周围角色数量增加。</value>
+  </data>
+  <data name="K012" xml:space="preserve">
+    <value>基础重绘延迟</value>
+  </data>
+  <data name="K014" xml:space="preserve">
+    <value>身体</value>
+  </data>
+  <data name="K015" xml:space="preserve">
+    <value>为避免崩溃，目前已禁用对非玩家角色的广泛原生修改。</value>
+  </data>
+  <data name="K017" xml:space="preserve">
+    <value>保存陆行鸟</value>
+  </data>
+  <data name="K018" xml:space="preserve">
+    <value>保存间隔</value>
+  </data>
+  <data name="K019" xml:space="preserve">
+    <value>保存NPC</value>
+  </data>
+  <data name="K020" xml:space="preserve">
+    <value>保存玩家</value>
+  </data>
+  <data name="K021" xml:space="preserve">
+    <value>聊天</value>
+  </data>
+  <data name="K022" xml:space="preserve">
+    <value>陆行鸟</value>
+  </data>
+  <data name="K023" xml:space="preserve">
+    <value>选择Krangler要修改的项目，这些修改仅在本地可见。稍后可在主窗口中细调所有选项。</value>
+  </data>
+  <data name="K024" xml:space="preserve">
+    <value>部族/亚种</value>
+  </data>
+  <data name="K027" xml:space="preserve">
+    <value>伙伴预设目标</value>
+  </data>
+  <data name="K028" xml:space="preserve">
+    <value>复制介绍推荐符号的Lodestone博客链接。</value>
+  </data>
+  <data name="K030" xml:space="preserve">
+    <value>基本隐私选项</value>
+  </data>
+  <data name="K032" xml:space="preserve">
+    <value>自己的固定显示名称</value>
+  </data>
+  <data name="K033" xml:space="preserve">
+    <value>自定义启用和禁用状态下图标模式使用的符号。</value>
+  </data>
+  <data name="K034" xml:space="preserve">
+    <value>调试</value>
+  </data>
+  <data name="K035" xml:space="preserve">
+    <value>调试控件已隐藏。使用/kr debug切换显示。</value>
+  </data>
+  <data name="K036" xml:space="preserve">
+    <value>移除</value>
+  </data>
+  <data name="K037" xml:space="preserve">
+    <value>禁用并移除当前仅本地可见的跟随伙伴。</value>
+  </data>
+  <data name="K038" xml:space="preserve">
+    <value>禁用按日期触发的Wuk Lamat自动事件</value>
+  </data>
+  <data name="K040" xml:space="preserve">
+    <value>放弃修改</value>
+  </data>
+  <data name="K041" xml:space="preserve">
+    <value>显示名称</value>
+  </data>
+  <data name="K042" xml:space="preserve">
+    <value>不修改自己</value>
+  </data>
+  <data name="K043" xml:space="preserve">
+    <value>草稿：{0} 条启用规则。Krangler当前隐藏了{1} 个角色。</value>
+  </data>
+  <data name="K045" xml:space="preserve">
+    <value>DTR条目</value>
+  </data>
+  <data name="K046" xml:space="preserve">
+    <value>DTR图标（最多3个字符）</value>
+  </data>
+  <data name="K047" xml:space="preserve">
+    <value>DTR模式</value>
+  </data>
+  <data name="K048" xml:space="preserve">
+    <value>DTR模式：{0}</value>
+  </data>
+  <data name="K049" xml:space="preserve">
+    <value>启用已配置的跟随伙伴并尝试立即生成。Krangler总开关仍须开启。</value>
+  </data>
+  <data name="K050" xml:space="preserve">
+    <value>启用Krangler</value>
+  </data>
+  <data name="K051" xml:space="preserve">
+    <value>启用种族歧视规则</value>
+  </data>
+  <data name="K052" xml:space="preserve">
+    <value>启用灵魂窃贼</value>
+  </data>
+  <data name="K053" xml:space="preserve">
+    <value>启用此精确NPC替换。</value>
+  </data>
+  <data name="K055" xml:space="preserve">
+    <value>精确种族 / 部族 / 性别规则</value>
+  </data>
+  <data name="K057" xml:space="preserve">
+    <value>女性</value>
+  </data>
+  <data name="K059" xml:space="preserve">
+    <value>完成时一次性保存这些选项。此向导不修改预设、灵魂窃贼、Amongus、幻想伙伴、高级外观设置及种族歧视规则。</value>
+  </data>
+  <data name="K060" xml:space="preserve">
+    <value>混淆聊天</value>
+  </data>
+  <data name="K061" xml:space="preserve">
+    <value>混淆聊天文本以保护截图中的隐私。</value>
+  </data>
+  <data name="K062" xml:space="preserve">
+    <value>性别</value>
+  </data>
+  <data name="K063" xml:space="preserve">
+    <value>全局预设</value>
+  </data>
+  <data name="K064" xml:space="preserve">
+    <value>手部</value>
+  </data>
+  <data name="K065" xml:space="preserve">
+    <value>头部</value>
+  </data>
+  <data name="K069" xml:space="preserve">
+    <value>幻想伙伴</value>
+  </data>
+  <data name="K070" xml:space="preserve">
+    <value>保留原样</value>
+  </data>
+  <data name="K071" xml:space="preserve">
+    <value>可选择保持自己的角色不变，并设置Krangler在服务器信息栏中的显示方式。</value>
+  </data>
+  <data name="K072" xml:space="preserve">
+    <value>保持自己角色的外观不变，也可使用固定显示名称代替随机名称。</value>
+  </data>
+  <data name="K073" xml:space="preserve">
+    <value>随机化外观</value>
+  </data>
+  <data name="K074" xml:space="preserve">
+    <value>混淆聊天</value>
+  </data>
+  <data name="K075" xml:space="preserve">
+    <value>随机化陆行鸟</value>
+  </data>
+  <data name="K076" xml:space="preserve">
+    <value>随机化性别</value>
+  </data>
+  <data name="K077" xml:space="preserve">
+    <value>随机化宠物</value>
+  </data>
+  <data name="K079" xml:space="preserve">
+    <value>随机化NPC</value>
+  </data>
+  <data name="K080" xml:space="preserve">
+    <value>随机化玩家名称</value>
+  </data>
+  <data name="K081" xml:space="preserve">
+    <value>随机化种族</value>
+  </data>
+  <data name="K082" xml:space="preserve">
+    <value>Krangler</value>
+  </data>
+  <data name="K083" xml:space="preserve">
+    <value>Krangler初始设置</value>
+  </data>
+  <data name="K084" xml:space="preserve">
+    <value>随机化已启用</value>
+  </data>
+  <data name="K086" xml:space="preserve">
+    <value>上次保存：{0} 名玩家、{1} 个NPC、{2} 只陆行鸟</value>
+  </data>
+  <data name="K087" xml:space="preserve">
+    <value>腿部</value>
+  </data>
+  <data name="K088" xml:space="preserve">
+    <value>限制每轮扫描处理的可见玩家数量。</value>
+  </data>
+  <data name="K090" xml:space="preserve">
+    <value>男性</value>
+  </data>
+  <data name="K091" xml:space="preserve">
+    <value>总开关</value>
+  </data>
+  <data name="K092" xml:space="preserve">
+    <value>总开关可启用或禁用所有Krangler修改。</value>
+  </data>
+  <data name="K093" xml:space="preserve">
+    <value>每轮最多玩家数</value>
+  </data>
+  <data name="K094" xml:space="preserve">
+    <value>最多100条NPC替换。</value>
+  </data>
+  <data name="K095" xml:space="preserve">
+    <value>宠物</value>
+  </data>
+  <data name="K096" xml:space="preserve">
+    <value>名称</value>
+  </data>
+  <data name="K098" xml:space="preserve">
+    <value>未加载预设文件，将使用内置NPC外观。</value>
+  </data>
+  <data name="K099" xml:space="preserve">
+    <value>没有符合搜索条件的预设。</value>
+  </data>
+  <data name="K100" xml:space="preserve">
+    <value>非玩家预设目标</value>
+  </data>
+  <data name="K101" xml:space="preserve">
+    <value>非玩家目标</value>
+  </data>
+  <data name="K102" xml:space="preserve">
+    <value>未生成</value>
+  </data>
+  <data name="K103" xml:space="preserve">
+    <value>NPC名称</value>
+  </data>
+  <data name="K104" xml:space="preserve">
+    <value>NPC</value>
+  </data>
+  <data name="K107" xml:space="preserve">
+    <value>打开设置向导</value>
+  </data>
+  <data name="K108" xml:space="preserve">
+    <value>为自己的角色设置可选的固定名称。留空则保留真实名称。</value>
+  </data>
+  <data name="K109" xml:space="preserve">
+    <value>概览</value>
+  </data>
+  <data name="K110" xml:space="preserve">
+    <value>小队 {0}</value>
+  </data>
+  <data name="K111" xml:space="preserve">
+    <value>小队 {0}（{1}）</value>
+  </data>
+  <data name="K112" xml:space="preserve">
+    <value>小队位置单独设置</value>
+  </data>
+  <data name="K115" xml:space="preserve">
+    <value>预设文件夹：{0}\players, \npcs, \chocobos</value>
+  </data>
+  <data name="K116" xml:space="preserve">
+    <value>预设</value>
+  </data>
+  <data name="K117" xml:space="preserve">
+    <value>已加载预设：{0}</value>
+  </data>
+  <data name="K118" xml:space="preserve">
+    <value>修改传播控制</value>
+  </data>
+  <data name="K119" xml:space="preserve">
+    <value>种族</value>
+  </data>
+  <data name="K120" xml:space="preserve">
+    <value>种族 / 部族</value>
+  </data>
+  <data name="K121" xml:space="preserve">
+    <value>种族歧视</value>
+  </data>
+  <data name="K122" xml:space="preserve">
+    <value>随机</value>
+  </data>
+  <data name="K123" xml:space="preserve">
+    <value>随机化外观细节</value>
+  </data>
+  <data name="K124" xml:space="preserve">
+    <value>随机化性别</value>
+  </data>
+  <data name="K125" xml:space="preserve">
+    <value>随机化可见玩家角色的性别。</value>
+  </data>
+  <data name="K126" xml:space="preserve">
+    <value>随机化发型、脸部、眼睛及其他外观项目。</value>
+  </data>
+  <data name="K127" xml:space="preserve">
+    <value>随机化种族和部族</value>
+  </data>
+  <data name="K128" xml:space="preserve">
+    <value>随机化可见玩家角色的种族和亚种。</value>
+  </data>
+  <data name="K129" xml:space="preserve">
+    <value>随机化可见玩家名称及小队列表中的名称。</value>
+  </data>
+  <data name="K130" xml:space="preserve">
+    <value>重新打开三步快速设置，保留高级设置和种族歧视规则。</value>
+  </data>
+  <data name="K131" xml:space="preserve">
+    <value>替换</value>
+  </data>
+  <data name="K132" xml:space="preserve">
+    <value>使用导入的本地预设替换名称精确匹配的战斗及事件NPC。</value>
+  </data>
+  <data name="K133" xml:space="preserve">
+    <value>替换后部族</value>
+  </data>
+  <data name="K134" xml:space="preserve">
+    <value>替换后性别</value>
+  </data>
+  <data name="K135" xml:space="preserve">
+    <value>检查并应用</value>
+  </data>
+  <data name="K136" xml:space="preserve">
+    <value>规则匹配角色原始的本地种族、部族和性别。隐藏会移除匹配的3D角色及其场景名牌。替换会为支持的名称使用化名，并在其他外观修改完成后应用所选部族和性别。</value>
+  </data>
+  <data name="K137" xml:space="preserve">
+    <value>运行时来源：{0}</value>
+  </data>
+  <data name="K138" xml:space="preserve">
+    <value>搜索预设...</value>
+  </data>
+  <data name="K139" xml:space="preserve">
+    <value>灵魂窃贼的保存间隔，单位为秒。外观扫描仍每5秒执行一次。</value>
+  </data>
+  <data name="K141" xml:space="preserve">
+    <value>可使用全局设置、随机选择，或为每个小队位置单独设置。
+
+</value>
+  </data>
+  <data name="K142" xml:space="preserve">
+    <value>自身显示与DTR</value>
+  </data>
+  <data name="K143" xml:space="preserve">
+    <value>自己的显示名称：{0}</value>
+  </data>
+  <data name="K144" xml:space="preserve">
+    <value>显示DTR栏条目</value>
+  </data>
+  <data name="K145" xml:space="preserve">
+    <value>在服务器信息栏中显示Krangler状态。点击DTR条目可切换启用或禁用。</value>
+  </data>
+  <data name="K146" xml:space="preserve">
+    <value>Krangler处于{0}状态时显示</value>
+  </data>
+  <data name="K147" xml:space="preserve">
+    <value>灵魂窃贼</value>
+  </data>
+  <data name="K148" xml:space="preserve">
+    <value>灵魂窃贼上次保存：{0} 名玩家、{1} 个NPC、{2} 只陆行鸟</value>
+  </data>
+  <data name="K149" xml:space="preserve">
+    <value>Krangler启用时生成一个仅本地可见、不可选中的虚拟NPC跟随伙伴。</value>
+  </data>
+  <data name="K150" xml:space="preserve">
+    <value>已生成</value>
+  </data>
+  <data name="K151" xml:space="preserve">
+    <value>状态：{0}</value>
+  </data>
+  <data name="K152" xml:space="preserve">
+    <value>第{0}步，共3步</value>
+  </data>
+  <data name="K153" xml:space="preserve">
+    <value>Super Krangle Master 4000</value>
+  </data>
+  <data name="K155" xml:space="preserve">
+    <value>禁用3月31日至4月2日的Wuk Lamat自动事件，以便正常测试Super Krangle。</value>
+  </data>
+  <data name="K157" xml:space="preserve">
+    <value>测试生成</value>
+  </data>
+  <data name="K159" xml:space="preserve">
+    <value>按日期触发的Wuk Lamat强制设置当前已启用。</value>
+  </data>
+  <data name="K160" xml:space="preserve">
+    <value>按日期触发的Wuk Lamat强制设置当前被调试设置禁用。</value>
+  </data>
+  <data name="K161" xml:space="preserve">
+    <value>这是草稿的一部分。使用应用规则保存或禁用此功能。</value>
+  </data>
+  <data name="K163" xml:space="preserve">
+    <value>使用全局设置</value>
+  </data>
+  <data name="K164" xml:space="preserve">
+    <value>使用导入的Glamourer预设代替常规外观随机化。
+</value>
+  </data>
+  <data name="K166" xml:space="preserve">
+    <value>武器</value>
+  </data>
+  <data name="K167" xml:space="preserve">
+    <value>自己</value>
+  </data>
+  <data name="K168" xml:space="preserve">
+    <value>自己（{0}）</value>
+  </data>
+  <data name="K169" xml:space="preserve">
+    <value>幻想伙伴待机中。</value>
+  </data>
+  <data name="K170" xml:space="preserve">
+    <value>幻想伙伴的IPC请求失败。</value>
+  </data>
+  <data name="K171" xml:space="preserve">
+    <value>幻想伙伴已禁用。</value>
+  </data>
+  <data name="K172" xml:space="preserve">
+    <value>已阻止：Krangler已禁用。</value>
+  </data>
+  <data name="K173" xml:space="preserve">
+    <value>正在等待本地玩家。</value>
+  </data>
+  <data name="K174" xml:space="preserve">
+    <value>已阻止：正在切换区域或播放过场。</value>
+  </data>
+  <data name="K175" xml:space="preserve">
+    <value>已阻止：对象表负载过高。</value>
+  </data>
+  <data name="K176" xml:space="preserve">
+    <value>已移除幻想伙伴：{0}。</value>
+  </data>
+  <data name="K177" xml:space="preserve">
+    <value>无法生成幻想伙伴。</value>
+  </data>
+  <data name="K178" xml:space="preserve">
+    <value>CreateBattleCharacter未找到空闲对象槽位。</value>
+  </data>
+  <data name="K179" xml:space="preserve">
+    <value>无法找到已创建的对象。</value>
+  </data>
+  <data name="K180" xml:space="preserve">
+    <value>已使用部分预设生成幻想伙伴“{0}”：身体自定义刷新失败。</value>
+  </data>
+  <data name="K181" xml:space="preserve">
+    <value>已生成幻想伙伴“{0}”。</value>
+  </data>
+  <data name="K182" xml:space="preserve">
+    <value>正以“{0}”跟随，使用部分预设“{1}”：身体自定义刷新失败。</value>
+  </data>
+  <data name="K183" xml:space="preserve">
+    <value>正以“{0}”跟随，使用预设“{1}”。</value>
+  </data>
+  <data name="K184" xml:space="preserve">
+    <value>幻想伙伴已隐藏：{0}</value>
+  </data>
+  <data name="K185" xml:space="preserve">
+    <value>预设未提供可用的玩家式修改。</value>
+  </data>
+  <data name="K186" xml:space="preserve">
+    <value>幻想伙伴仅部分应用：身体自定义刷新失败。</value>
+  </data>
+  <data name="K187" xml:space="preserve">
+    <value>已应用幻想伙伴预设“{0}”。</value>
+  </data>
+  <data name="K188" xml:space="preserve">
+    <value>未找到预设“{0}”。</value>
+  </data>
+  <data name="K189" xml:space="preserve">
+    <value>幻想伙伴已隐藏：未找到预设。</value>
+  </data>
+  <data name="K190" xml:space="preserve">
+    <value>预设“{0}”请求精确NPC modelId {1}，幻想伙伴已禁用此功能。</value>
+  </data>
+  <data name="K191" xml:space="preserve">
+    <value>幻想伙伴已隐藏：精确NPC模型预设已被禁用。</value>
+  </data>
+  <data name="K192" xml:space="preserve">
+    <value>预设未提供可用的玩家式绘制数据。</value>
+  </data>
+  <data name="K193" xml:space="preserve">
+    <value>角色指针为空。</value>
+  </data>
+  <data name="K194" xml:space="preserve">
+    <value>绘制对象尚未就绪。</value>
+  </data>
+  <data name="K195" xml:space="preserve">
+    <value>绘制对象类型为{0}。</value>
+  </data>
+  <data name="K196" xml:space="preserve">
+    <value>绘制对象模型类型为{0}。</value>
+  </data>
+  <data name="K197" xml:space="preserve">
+    <value>幻想伙伴角色已丢失。</value>
+  </data>
+  <data name="K198" xml:space="preserve">
+    <value>游戏角色指针为空。</value>
+  </data>
+  <data name="K199" xml:space="preserve">
+    <value>已阻止预设“{0}”：幻想伙伴无法应用精确NPC modelId {1}。</value>
+  </data>
+  <data name="K200" xml:space="preserve">
+    <value>自定义已准备={0}，自定义请求={1}，装备已准备={2}</value>
+  </data>
+  <data name="K201" xml:space="preserve">
+    <value>外观={0}，自定义请求={1}，刷新={2}，装备={3}，武器={4}，附加={5}，元数据={6}</value>
+  </data>
+  <data name="K202" xml:space="preserve">
+    <value>插件卸载</value>
+  </data>
+  <data name="K203" xml:space="preserve">
+    <value>手动禁用</value>
+  </data>
+  <data name="K204" xml:space="preserve">
+    <value>由{0}禁用</value>
+  </data>
+  <data name="K205" xml:space="preserve">
+    <value>Krangler已禁用</value>
+  </data>
+  <data name="K206" xml:space="preserve">
+    <value>尚未登录</value>
+  </data>
+  <data name="K207" xml:space="preserve">
+    <value>区域切换或过场</value>
+  </data>
+  <data name="K208" xml:space="preserve">
+    <value>对象表负载过高</value>
+  </data>
+  <data name="K209" xml:space="preserve">
+    <value>登出</value>
+  </data>
+  <data name="K210" xml:space="preserve">
+    <value>区域变更 {0}</value>
+  </data>
+  <data name="K211" xml:space="preserve">
+    <value>由{0}的预设请求强制触发</value>
+  </data>
+  <data name="K212" xml:space="preserve">
+    <value>预设变更：{0}</value>
+  </data>
+  <data name="K213" xml:space="preserve">
+    <value>是</value>
+  </data>
+  <data name="K214" xml:space="preserve">
+    <value>否</value>
+  </data>
+  <data name="K215" xml:space="preserve">
+    <value>对象</value>
+  </data>
+  <data name="K216" xml:space="preserve">
+    <value>地形</value>
+  </data>
+  <data name="K217" xml:space="preserve">
+    <value>背景对象</value>
+  </data>
+  <data name="K218" xml:space="preserve">
+    <value>角色基础</value>
+  </data>
+  <data name="K219" xml:space="preserve">
+    <value>特效对象</value>
+  </data>
+  <data name="K220" xml:space="preserve">
+    <value>光源</value>
+  </data>
+  <data name="K221" xml:space="preserve">
+    <value>未知类型 6</value>
+  </data>
+  <data name="K222" xml:space="preserve">
+    <value>环境空间</value>
+  </data>
+  <data name="K223" xml:space="preserve">
+    <value>环境位置</value>
+  </data>
+  <data name="K224" xml:space="preserve">
+    <value>贴花</value>
+  </data>
+  <data name="K225" xml:space="preserve">
+    <value>未知类型 10</value>
+  </data>
+  <data name="K226" xml:space="preserve">
+    <value>人类</value>
+  </data>
+  <data name="K227" xml:space="preserve">
+    <value>亚人</value>
+  </data>
+  <data name="K228" xml:space="preserve">
+    <value>怪物</value>
+  </data>
+  <data name="K229" xml:space="preserve">
+    <value>武器</value>
+  </data>
+  <data name="K230" xml:space="preserve">
+    <value>外观身份已从预设 '{0}' 更改</value>
+  </data>
+  <data name="Window appearance" xml:space="preserve"><value>窗口外观</value></data>
+  <data name="Compact visible on main window" xml:space="preserve"><value>在主窗口显示紧凑模式开关</value></data>
+  <data name="Language visible on main window" xml:space="preserve"><value>在主窗口显示语言选择</value></data>
+  <data name="Transparency" xml:space="preserve"><value>透明度</value></data>
+  <data name="Opacity (%)" xml:space="preserve"><value>不透明度 (%)</value></data>
+  <data name="Auto-fade when unfocused" xml:space="preserve"><value>失去焦点后自动淡化</value></data>
+  <data name="Unfocused opacity (%)" xml:space="preserve"><value>未聚焦时的不透明度 (%)</value></data>
+  <data name="Unfocused delay (seconds)" xml:space="preserve"><value>失去焦点后的等待时间 (秒)</value></data>
+</root>

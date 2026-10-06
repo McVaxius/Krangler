@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="K000" xml:space="preserve"><value>({0} prasetel)</value></data>
+  <data name="K001" xml:space="preserve"><value>Ikon {0}</value></data>
+  <data name="K002" xml:space="preserve"><value>Kode Ikon {0}</value></data>
+  <data name="K003" xml:space="preserve"><value>♡ Ko-fi ♡</value></data>
+  <data name="K004" xml:space="preserve"><value>Aksesori</value></data>
+  <data name="K005" xml:space="preserve"><value>Aktif</value></data>
+  <data name="K006" xml:space="preserve"><value>Amongus</value></data>
+  <data name="K007" xml:space="preserve"><value>Penampilan</value></data>
+  <data name="K008" xml:space="preserve"><value>Terapkan dari Prasetel</value></data>
+  <data name="K009" xml:space="preserve"><value>Terapkan Aturan</value></data>
+  <data name="K010" xml:space="preserve"><value>Kembali</value></data>
+  <data name="K011" xml:space="preserve"><value>Jeda dasar sebelum penggambaran ulang berikutnya dalam antrean. Jeda sebenarnya bertambah sesuai jumlah orang di sekitar.</value></data>
+  <data name="K012" xml:space="preserve"><value>Jeda Dasar Penggambaran Ulang</value></data>
+  <data name="K013" xml:space="preserve"><value>Biru</value></data>
+  <data name="K014" xml:space="preserve"><value>Tubuh</value></data>
+  <data name="K015" xml:space="preserve"><value>Perubahan langsung secara luas terhadap entitas bukan pemain saat ini diblokir agar aplikasi tidak berhenti mendadak.</value></data>
+  <data name="K016" xml:space="preserve"><value>Batal</value></data>
+  <data name="K017" xml:space="preserve"><value>Tangkap Chocobo</value></data>
+  <data name="K018" xml:space="preserve"><value>Interval Penangkapan</value></data>
+  <data name="K019" xml:space="preserve"><value>Tangkap NPC</value></data>
+  <data name="K020" xml:space="preserve"><value>Tangkap Pemain</value></data>
+  <data name="K021" xml:space="preserve"><value>Obrolan</value></data>
+  <data name="K022" xml:space="preserve"><value>Chocobo</value></data>
+  <data name="K023" xml:space="preserve"><value>Pilih bagian umum yang ingin Anda ubah dengan Krangler hanya di komputer Anda. Setiap opsi dapat disesuaikan nanti di jendela utama.</value></data>
+  <data name="K024" xml:space="preserve"><value>Klan/Subras</value></data>
+  <data name="K025" xml:space="preserve"><value>Warna</value></data>
+  <data name="K026" xml:space="preserve"><value>Mode ringkas</value></data>
+  <data name="K027" xml:space="preserve"><value>Target Prasetel Pendamping</value></data>
+  <data name="K028" xml:space="preserve"><value>Menyalin tautan blog Lodestone yang berisi simbol yang disarankan.</value></data>
+  <data name="K029" xml:space="preserve"><value>Salin Tautan Panduan Ikon</value></data>
+  <data name="K030" xml:space="preserve"><value>Pilihan privasi dasar</value></data>
+  <data name="K031" xml:space="preserve"><value>RGB Kustom</value></data>
+  <data name="K032" xml:space="preserve"><value>Nama Tampilan Diri Kustom</value></data>
+  <data name="K033" xml:space="preserve"><value>Sesuaikan simbol ikon untuk mode aktif dan nonaktif.</value></data>
+  <data name="K034" xml:space="preserve"><value>Debug</value></data>
+  <data name="K035" xml:space="preserve"><value>Kontrol debug disembunyikan. Gunakan /kr debug untuk mengaktifkan atau menonaktifkannya.</value></data>
+  <data name="K036" xml:space="preserve"><value>Hapus Entitas</value></data>
+  <data name="K037" xml:space="preserve"><value>Nonaktifkan dan hapus pengikut saat ini yang hanya terlihat di komputer Anda.</value></data>
+  <data name="K038" xml:space="preserve"><value>Nonaktifkan acara Wuk Lamat otomatis berdasarkan tanggal</value></data>
+  <data name="K039" xml:space="preserve"><value>Nonaktif</value></data>
+  <data name="K040" xml:space="preserve"><value>Buang Perubahan</value></data>
+  <data name="K041" xml:space="preserve"><value>Nama Tampilan</value></data>
+  <data name="K042" xml:space="preserve"><value>Jangan Ubah Karakter Sendiri</value></data>
+  <data name="K043" xml:space="preserve"><value>Draf: {0} aturan aktif. Entitas yang saat ini disembunyikan Krangler: {1}.</value></data>
+  <data name="K044" xml:space="preserve"><value>Bilah DTR</value></data>
+  <data name="K045" xml:space="preserve"><value>Entri DTR</value></data>
+  <data name="K046" xml:space="preserve"><value>Ikon DTR (maksimal 3 karakter)</value></data>
+  <data name="K047" xml:space="preserve"><value>Mode DTR</value></data>
+  <data name="K048" xml:space="preserve"><value>Mode DTR: {0}</value></data>
+  <data name="K049" xml:space="preserve"><value>Aktifkan dan coba munculkan pengikut yang dikonfigurasi sekarang. Sakelar utama Krangler tetap menentukan apakah pengikut dapat dimunculkan.</value></data>
+  <data name="K050" xml:space="preserve"><value>Aktifkan Krangler</value></data>
+  <data name="K051" xml:space="preserve"><value>Aktifkan Aturan Rasisme</value></data>
+  <data name="K052" xml:space="preserve"><value>Aktifkan Pencuri Jiwa</value></data>
+  <data name="K053" xml:space="preserve"><value>Aktifkan penggantian NPC persis ini.</value></data>
+  <data name="K054" xml:space="preserve"><value>Diaktifkan</value></data>
+  <data name="K055" xml:space="preserve"><value>Aturan Ras / Klan / Gender Persis</value></data>
+  <data name="K056" xml:space="preserve"><value>Kaki</value></data>
+  <data name="K057" xml:space="preserve"><value>Perempuan</value></data>
+  <data name="K058" xml:space="preserve"><value>Selesai</value></data>
+  <data name="K059" xml:space="preserve"><value>Selesai menyimpan pilihan ini satu kali. Prasetel, Pencuri Jiwa, Amongus, Teman Imajiner, pengaturan penampilan lanjutan, dan aturan Rasisme tidak diubah oleh panduan ini.</value></data>
+  <data name="K060" xml:space="preserve"><value>Acak teks obrolan</value></data>
+  <data name="K061" xml:space="preserve"><value>Acak teks obrolan untuk menjaga privasi dalam tangkapan layar.</value></data>
+  <data name="K062" xml:space="preserve"><value>Gender</value></data>
+  <data name="K063" xml:space="preserve"><value>Prasetel Global</value></data>
+  <data name="K064" xml:space="preserve"><value>Tangan</value></data>
+  <data name="K065" xml:space="preserve"><value>Kepala</value></data>
+  <data name="K066" xml:space="preserve"><value>Sembunyikan</value></data>
+  <data name="K067" xml:space="preserve"><value>Ikon + Teks</value></data>
+  <data name="K068" xml:space="preserve"><value>Hanya Ikon</value></data>
+  <data name="K069" xml:space="preserve"><value>Teman Imajiner</value></data>
+  <data name="K070" xml:space="preserve"><value>Pertahankan asli</value></data>
+  <data name="K071" xml:space="preserve"><value>Pertahankan karakter sendiri jika diinginkan, dan pilih cara Krangler tampil di bilah informasi server.</value></data>
+  <data name="K072" xml:space="preserve"><value>Pertahankan penampilan karakter sendiri dan, bila diinginkan, gunakan nama tampilan tetap sebagai pengganti nama acak.</value></data>
+  <data name="K073" xml:space="preserve"><value>Ubah Penampilan</value></data>
+  <data name="K074" xml:space="preserve"><value>Ubah Obrolan</value></data>
+  <data name="K075" xml:space="preserve"><value>Ubah Chocobo</value></data>
+  <data name="K076" xml:space="preserve"><value>Ubah Gender</value></data>
+  <data name="K077" xml:space="preserve"><value>Ubah Minion</value></data>
+  <data name="K078" xml:space="preserve"><value>Ubah Nama</value></data>
+  <data name="K079" xml:space="preserve"><value>Ubah NPC</value></data>
+  <data name="K080" xml:space="preserve"><value>Ubah nama pemain</value></data>
+  <data name="K081" xml:space="preserve"><value>Ubah Ras</value></data>
+  <data name="K082" xml:space="preserve"><value>Krangler</value></data>
+  <data name="K083" xml:space="preserve"><value>Pengaturan Krangler</value></data>
+  <data name="K084" xml:space="preserve"><value>PERUBAHAN AKTIF</value></data>
+  <data name="K085" xml:space="preserve"><value>Bahasa</value></data>
+  <data name="K086" xml:space="preserve"><value>Penangkapan terakhir: {0} pemain, {1} NPC, {2} chocobo</value></data>
+  <data name="K087" xml:space="preserve"><value>Tungkai</value></data>
+  <data name="K088" xml:space="preserve"><value>Batasi jumlah pemain yang terlihat yang diproses dalam satu pemindaian.</value></data>
+  <data name="K089" xml:space="preserve"><value>Memuat font antarmuka...</value></data>
+  <data name="K090" xml:space="preserve"><value>Laki-laki</value></data>
+  <data name="K091" xml:space="preserve"><value>Kontrol Utama</value></data>
+  <data name="K092" xml:space="preserve"><value>Sakelar utama - mengaktifkan atau menonaktifkan semua perubahan.</value></data>
+  <data name="K093" xml:space="preserve"><value>Pemain Maksimal per Siklus</value></data>
+  <data name="K094" xml:space="preserve"><value>Maksimal 100 penggantian NPC.</value></data>
+  <data name="K095" xml:space="preserve"><value>Minion</value></data>
+  <data name="K096" xml:space="preserve"><value>Nama</value></data>
+  <data name="K097" xml:space="preserve"><value>Berikutnya</value></data>
+  <data name="K098" xml:space="preserve"><value>Tidak ada file prasetel yang dimuat. Penampilan NPC bawaan akan digunakan.</value></data>
+  <data name="K099" xml:space="preserve"><value>Tidak ada prasetel yang cocok dengan pencarian saat ini.</value></data>
+  <data name="K100" xml:space="preserve"><value>Target Prasetel Bukan Pemain</value></data>
+  <data name="K101" xml:space="preserve"><value>Target Bukan Pemain</value></data>
+  <data name="K102" xml:space="preserve"><value>Belum dimunculkan</value></data>
+  <data name="K103" xml:space="preserve"><value>Nama NPC</value></data>
+  <data name="K104" xml:space="preserve"><value>NPC</value></data>
+  <data name="K105" xml:space="preserve"><value>Mati</value></data>
+  <data name="K106" xml:space="preserve"><value>Nyala</value></data>
+  <data name="K107" xml:space="preserve"><value>Buka Panduan Pengaturan</value></data>
+  <data name="K108" xml:space="preserve"><value>Nama tetap opsional untuk karakter sendiri. Biarkan kosong untuk mempertahankan nama asli.</value></data>
+  <data name="K109" xml:space="preserve"><value>Ringkasan</value></data>
+  <data name="K110" xml:space="preserve"><value>Grup {0}</value></data>
+  <data name="K111" xml:space="preserve"><value>Grup {0} ({1})</value></data>
+  <data name="K112" xml:space="preserve"><value>Penggantian per Slot Grup</value></data>
+  <data name="K113" xml:space="preserve"><value>Merah Muda</value></data>
+  <data name="K114" xml:space="preserve"><value>Prasetel</value></data>
+  <data name="K115" xml:space="preserve"><value>Folder prasetel: {0}\players, \npcs, \chocobos</value></data>
+  <data name="K116" xml:space="preserve"><value>Prasetel</value></data>
+  <data name="K117" xml:space="preserve"><value>Prasetel dimuat: {0}</value></data>
+  <data name="K118" xml:space="preserve"><value>Kontrol Penyebaran</value></data>
+  <data name="K119" xml:space="preserve"><value>Ras</value></data>
+  <data name="K120" xml:space="preserve"><value>Ras / klan</value></data>
+  <data name="K121" xml:space="preserve"><value>Rasisme</value></data>
+  <data name="K122" xml:space="preserve"><value>Acak</value></data>
+  <data name="K123" xml:space="preserve"><value>Acak detail penampilan</value></data>
+  <data name="K124" xml:space="preserve"><value>Acak gender</value></data>
+  <data name="K125" xml:space="preserve"><value>Acak gender karakter pemain yang terlihat.</value></data>
+  <data name="K126" xml:space="preserve"><value>Acak rambut, wajah, mata, dan bagian penampilan lainnya.</value></data>
+  <data name="K127" xml:space="preserve"><value>Acak ras dan klan</value></data>
+  <data name="K128" xml:space="preserve"><value>Acak ras dan subras karakter pemain yang terlihat.</value></data>
+  <data name="K129" xml:space="preserve"><value>Acak nama pemain yang terlihat dan nama dalam daftar grup.</value></data>
+  <data name="K130" xml:space="preserve"><value>Buka kembali pengaturan cepat tiga langkah tanpa mengubah pengaturan lanjutan atau aturan Rasisme.</value></data>
+  <data name="K131" xml:space="preserve"><value>Ganti</value></data>
+  <data name="K132" xml:space="preserve"><value>Ganti NPC pertempuran dan acara yang namanya cocok persis dengan prasetel lokal yang diimpor.</value></data>
+  <data name="K133" xml:space="preserve"><value>Klan Pengganti</value></data>
+  <data name="K134" xml:space="preserve"><value>Gender Pengganti</value></data>
+  <data name="K135" xml:space="preserve"><value>Tinjau dan terapkan</value></data>
+  <data name="K136" xml:space="preserve"><value>Aturan dicocokkan dengan identitas lokal asli entitas. Sembunyikan menghapus entitas 3D yang cocok beserta label namanya di dunia; Ganti menggunakan nama samaran untuk nama yang didukung dan menerapkan klan serta gender pilihan setelah perubahan penampilan lainnya.</value></data>
+  <data name="K137" xml:space="preserve"><value>Sumber saat berjalan: {0}</value></data>
+  <data name="K138" xml:space="preserve"><value>Cari prasetel...</value></data>
+  <data name="K139" xml:space="preserve"><value>Detik antara penangkapan Pencuri Jiwa. Pemindaian penampilan tetap mengikuti interval 5 detik Krangler.</value></data>
+  <data name="K140" xml:space="preserve"><value>Pilih prasetel</value></data>
+  <data name="K141" xml:space="preserve"><value>Pilihan dapat bersifat global, acak, atau diganti per slot grup.
+
+</value></data>
+  <data name="K142" xml:space="preserve"><value>Tampilan diri dan DTR</value></data>
+  <data name="K143" xml:space="preserve"><value>Nama tampilan diri: {0}</value></data>
+  <data name="K144" xml:space="preserve"><value>Tampilkan Entri Bilah DTR</value></data>
+  <data name="K145" xml:space="preserve"><value>Tampilkan status Krangler di bilah informasi server. Klik entri DTR untuk mengaktifkan atau menonaktifkan.</value></data>
+  <data name="K146" xml:space="preserve"><value>Ditampilkan saat Krangler {0}</value></data>
+  <data name="K147" xml:space="preserve"><value>Pencuri Jiwa</value></data>
+  <data name="K148" xml:space="preserve"><value>Penangkapan terakhir Pencuri Jiwa: {0} pemain, {1} NPC, {2} chocobo</value></data>
+  <data name="K149" xml:space="preserve"><value>Munculkan satu NPC pengikut semu yang hanya terlihat di komputer Anda dan tidak dapat ditargetkan selama Krangler aktif.</value></data>
+  <data name="K150" xml:space="preserve"><value>Dimunculkan</value></data>
+  <data name="K151" xml:space="preserve"><value>Status: {0}</value></data>
+  <data name="K152" xml:space="preserve"><value>Langkah {0} dari 3</value></data>
+  <data name="K153" xml:space="preserve"><value>Super Krangle Master 4000</value></data>
+  <data name="K154" xml:space="preserve"><value>Dukung pengembangan di Ko-fi</value></data>
+  <data name="K155" xml:space="preserve"><value>Nonaktifkan acara Wuk Lamat otomatis dari 31 Maret hingga 2 April agar pengujian Super Krangle biasa dapat dilakukan.</value></data>
+  <data name="K156" xml:space="preserve"><value>Hijau Kebiruan</value></data>
+  <data name="K157" xml:space="preserve"><value>Uji Pemunculan</value></data>
+  <data name="K158" xml:space="preserve"><value>Hanya Teks</value></data>
+  <data name="K159" xml:space="preserve"><value>Penggantian Wuk Lamat berdasarkan tanggal sedang aktif.</value></data>
+  <data name="K160" xml:space="preserve"><value>Penggantian Wuk Lamat berdasarkan tanggal saat ini dinonaktifkan melalui pengaturan debug.</value></data>
+  <data name="K161" xml:space="preserve"><value>Ini bagian dari draf. Gunakan Terapkan Aturan untuk menyimpan atau menonaktifkan tab.</value></data>
+  <data name="K162" xml:space="preserve"><value>Font antarmuka gagal dimuat. Lihat log plugin.</value></data>
+  <data name="K163" xml:space="preserve"><value>Gunakan Global</value></data>
+  <data name="K164" xml:space="preserve"><value>Gunakan prasetel Glamourer yang diimpor sebagai pengganti perubahan penampilan biasa.
+</value></data>
+  <data name="K165" xml:space="preserve"><value>Peringatan: {0}</value></data>
+  <data name="K166" xml:space="preserve"><value>Senjata</value></data>
+  <data name="K167" xml:space="preserve"><value>Anda</value></data>
+  <data name="K168" xml:space="preserve"><value>Anda ({0})</value></data>
+  <data name="K169" xml:space="preserve"><value>Teman Imajiner siaga.</value></data>
+  <data name="K170" xml:space="preserve"><value>Permintaan IPC Teman Imajiner gagal.</value></data>
+  <data name="K171" xml:space="preserve"><value>Teman Imajiner dinonaktifkan.</value></data>
+  <data name="K172" xml:space="preserve"><value>Diblokir: Krangler dinonaktifkan.</value></data>
+  <data name="K173" xml:space="preserve"><value>Menunggu pemain lokal.</value></data>
+  <data name="K174" xml:space="preserve"><value>Diblokir: perpindahan zona atau cutscene.</value></data>
+  <data name="K175" xml:space="preserve"><value>Diblokir: tabel entitas kelebihan beban.</value></data>
+  <data name="K176" xml:space="preserve"><value>Teman Imajiner dihapus: {0}.</value></data>
+  <data name="K177" xml:space="preserve"><value>Gagal memunculkan Teman Imajiner.</value></data>
+  <data name="K178" xml:space="preserve"><value>CreateBattleCharacter tidak mengembalikan slot entitas kosong.</value></data>
+  <data name="K179" xml:space="preserve"><value>Entitas yang dibuat tidak dapat ditemukan.</value></data>
+  <data name="K180" xml:space="preserve"><value>Teman Imajiner '{0}' dimunculkan dengan prasetel parsial: penyegaran kustomisasi tubuh gagal.</value></data>
+  <data name="K181" xml:space="preserve"><value>Teman Imajiner '{0}' dimunculkan.</value></data>
+  <data name="K182" xml:space="preserve"><value>Mengikuti sebagai '{0}' dengan prasetel parsial '{1}': penyegaran kustomisasi tubuh gagal.</value></data>
+  <data name="K183" xml:space="preserve"><value>Mengikuti sebagai '{0}' dengan prasetel '{1}'.</value></data>
+  <data name="K184" xml:space="preserve"><value>Teman Imajiner disembunyikan: {0}</value></data>
+  <data name="K185" xml:space="preserve"><value>Penerapan prasetel tidak melaporkan perubahan siap pakai yang sesuai dengan pemain.</value></data>
+  <data name="K186" xml:space="preserve"><value>Teman Imajiner parsial: penyegaran kustomisasi tubuh gagal.</value></data>
+  <data name="K187" xml:space="preserve"><value>Prasetel Teman Imajiner '{0}' diterapkan.</value></data>
+  <data name="K188" xml:space="preserve"><value>Prasetel '{0}' tidak ditemukan.</value></data>
+  <data name="K189" xml:space="preserve"><value>Teman Imajiner disembunyikan: prasetel tidak ditemukan.</value></data>
+  <data name="K190" xml:space="preserve"><value>Prasetel '{0}' meminta modelId NPC persis {1}, yang diblokir untuk Teman Imajiner.</value></data>
+  <data name="K191" xml:space="preserve"><value>Teman Imajiner disembunyikan: prasetel model NPC persis diblokir.</value></data>
+  <data name="K192" xml:space="preserve"><value>Persiapan prasetel tidak melaporkan data gambar siap pakai yang sesuai dengan pemain.</value></data>
+  <data name="K193" xml:space="preserve"><value>pointer entitas bernilai null.</value></data>
+  <data name="K194" xml:space="preserve"><value>objek gambar belum siap.</value></data>
+  <data name="K195" xml:space="preserve"><value>tipe objek gambar adalah {0}.</value></data>
+  <data name="K196" xml:space="preserve"><value>tipe model objek gambar adalah {0}.</value></data>
+  <data name="K197" xml:space="preserve"><value>Entitas Teman Imajiner hilang.</value></data>
+  <data name="K198" xml:space="preserve"><value>Pointer karakter bernilai null.</value></data>
+  <data name="K199" xml:space="preserve"><value>Prasetel '{0}' diblokir karena Teman Imajiner tidak dapat menerapkan modelId NPC persis {1}.</value></data>
+  <data name="K200" xml:space="preserve"><value>kustomisasi disiapkan={0}, kustomisasi diminta={1}, perlengkapan disiapkan={2}</value></data>
+  <data name="K201" xml:space="preserve"><value>penampilan={0}, kustomisasi diminta={1}, penyegaran={2}, perlengkapan={3}, senjata={4}, bonus={5}, metadata={6}</value></data>
+  <data name="K202" xml:space="preserve"><value>pelepasan plugin</value></data>
+  <data name="K203" xml:space="preserve"><value>dinonaktifkan secara manual</value></data>
+  <data name="K204" xml:space="preserve"><value>dinonaktifkan oleh {0}</value></data>
+  <data name="K205" xml:space="preserve"><value>Krangler dinonaktifkan</value></data>
+  <data name="K206" xml:space="preserve"><value>belum masuk</value></data>
+  <data name="K207" xml:space="preserve"><value>perpindahan zona atau cutscene</value></data>
+  <data name="K208" xml:space="preserve"><value>tabel entitas kelebihan beban</value></data>
+  <data name="K209" xml:space="preserve"><value>keluar</value></data>
+  <data name="K210" xml:space="preserve"><value>perubahan wilayah {0}</value></data>
+  <data name="K211" xml:space="preserve"><value>dipaksa oleh permintaan prasetel {0}</value></data>
+  <data name="K212" xml:space="preserve"><value>perubahan prasetel: {0}</value></data>
+  <data name="K213" xml:space="preserve"><value>Benar</value></data>
+  <data name="K214" xml:space="preserve"><value>Salah</value></data>
+  <data name="K215" xml:space="preserve"><value>Objek</value></data>
+  <data name="K216" xml:space="preserve"><value>Medan</value></data>
+  <data name="K217" xml:space="preserve"><value>Objek Latar</value></data>
+  <data name="K218" xml:space="preserve"><value>Dasar Karakter</value></data>
+  <data name="K219" xml:space="preserve"><value>Objek Efek</value></data>
+  <data name="K220" xml:space="preserve"><value>Cahaya</value></data>
+  <data name="K221" xml:space="preserve"><value>Tipe Tidak Dikenal 6</value></data>
+  <data name="K222" xml:space="preserve"><value>Ruang Lingkungan</value></data>
+  <data name="K223" xml:space="preserve"><value>Lokasi Lingkungan</value></data>
+  <data name="K224" xml:space="preserve"><value>Dekal</value></data>
+  <data name="K225" xml:space="preserve"><value>Tipe Tidak Dikenal 10</value></data>
+  <data name="K226" xml:space="preserve"><value>Manusia</value></data>
+  <data name="K227" xml:space="preserve"><value>Demihuman</value></data>
+  <data name="K228" xml:space="preserve"><value>Monster</value></data>
+  <data name="K229" xml:space="preserve"><value>Senjata</value></data>
+  <data name="K230" xml:space="preserve"><value>identitas kustomisasi berubah dari prasetel '{0}'</value></data>
+  <data name="Window appearance" xml:space="preserve"><value>Tampilan jendela</value></data>
+  <data name="Compact visible on main window" xml:space="preserve"><value>Tampilkan mode ringkas di jendela utama</value></data>
+  <data name="Language visible on main window" xml:space="preserve"><value>Tampilkan pilihan bahasa di jendela utama</value></data>
+  <data name="Transparency" xml:space="preserve"><value>Transparansi</value></data>
+  <data name="Opacity (%)" xml:space="preserve"><value>Opasitas (%)</value></data>
+  <data name="Auto-fade when unfocused" xml:space="preserve"><value>Redupkan otomatis saat tidak fokus</value></data>
+  <data name="Unfocused opacity (%)" xml:space="preserve"><value>Opasitas saat tidak fokus (%)</value></data>
+  <data name="Unfocused delay (seconds)" xml:space="preserve"><value>Jeda saat tidak fokus (detik)</value></data>
+</root>
