@@ -100,7 +100,6 @@ public sealed class Plugin : IDalamudPlugin
     private DateTime lastAppearanceScan = DateTime.MinValue;
     private DateTime lastPartyListScan = DateTime.MinValue;
     private bool hasLoggedAppearanceScan;
-    private bool hasLoggedPartyList;
     private bool hasLoggedEventActivation;
     private readonly HashSet<string> loggedSoulThiefSkipReasons = new(StringComparer.Ordinal);
     private DateTime lastEventFlagReset = DateTime.MinValue;
@@ -465,7 +464,6 @@ public sealed class Plugin : IDalamudPlugin
                 Log.Information("[Krangler] Krangling activated");
                 hasLoggedNameplateUpdate = false;
                 hasLoggedAppearanceScan = false;
-                hasLoggedPartyList = false;
             }
             else
             {
@@ -549,7 +547,6 @@ public sealed class Plugin : IDalamudPlugin
 
         // Force immediate name-surface scan to re-apply krangling.
         lastPartyListScan = DateTime.MinValue;
-        hasLoggedPartyList = false;
     }
 
     private void OnTerritoryChanged(ushort territory)
@@ -2805,22 +2802,18 @@ public sealed class Plugin : IDalamudPlugin
 
     private unsafe void KranglePartyList()
     {
-        // Log.Information("[Krangler] PartyList scan started - checking addon visibility");
         
         var addon = Instance()->GetAddonByName("_PartyList");
         if (addon == null)
         {
-            Log.Information("[Krangler] _PartyList addon not found");
             return;
         }
         
         if (!addon->IsVisible) 
         {
-            // Log.Information("[Krangler] _PartyList addon found but not visible");
             return;
         }
         
-        // Log.Information("[Krangler] _PartyList addon found and visible - scanning party members");
 
         // Rule-only replacement maps are built from locally loaded players. Party members
         // that are not loaded cannot be classified safely and are intentionally left alone.
@@ -2828,26 +2821,15 @@ public sealed class Plugin : IDalamudPlugin
 
         if (nameMap.Count == 0)
         {
-            // Log.Information("[Krangler] No valid party members found with names");
             return;
         }
 
-        Log.Information($"[Krangler] Starting text node scan with {nameMap.Count} name mappings");
 
-        // Diagnostic: Log party member names once so we know what we're looking for
-        if (!hasLoggedPartyList)
-        {
-            foreach (var (orig, krangled) in nameMap)
-                Log.Information($"[Krangler] PartyList name mapping: '{orig}' -> '{krangled}'");
-        }
 
         // Walk all text nodes in the addon via UldManager NodeList
-        var replacedCount = 0;
         var nodeCount = addon->UldManager.NodeListCount;
 
-        Log.Information($"[Krangler] _PartyList addon: {nodeCount} nodes in UldManager NodeList");
 
-        var textNodesFound = 0;
         for (var i = 0; i < nodeCount; i++)
         {
             var node = addon->UldManager.NodeList[i];
@@ -2856,17 +2838,10 @@ public sealed class Plugin : IDalamudPlugin
             // Check direct text nodes
             if (node->Type == NodeType.Text)
             {
-                textNodesFound++;
                 var textNode = (AtkTextNode*)node;
                 var text = textNode->NodeText.ToString();
                 if (string.IsNullOrEmpty(text)) continue;
 
-                // Diagnostic: Log first batch of text node contents once
-                if (!hasLoggedPartyList && text.Length > 1 && text.Length < 60)
-                {
-                    var cleanText = StripSeStringPayloads(text);
-                    Log.Information($"[Krangler] PartyList text node [{i}] id={node->NodeId}: raw={text.Length}ch clean='{cleanText}'");
-                }
 
                 foreach (var (original, krangled) in nameMap)
                 {
@@ -2898,15 +2873,10 @@ public sealed class Plugin : IDalamudPlugin
                             var replacementText = krangled.Length >= partialLength ? 
                                 krangled.Substring(0, partialLength) : krangled;
                             
-                            // Only log detailed matching for text that might contain names (longer than 10 chars)
-                            if (!hasLoggedPartyList && cleanText.Length > 10)
-                                Log.Information($"[Krangler] Matching: original='{original}' found='{actualTextInNode}' replace='{replacementText}'");
                             
                             // Replace the actual text we found, not the full original
                             var newText = text.Replace(actualTextInNode, replacementText);
                             textNode->SetText(newText);
-                            Log.Information($"[Krangler] REPLACED: '{actualTextInNode}' -> '{replacementText}' in text node");
-                            replacedCount++;
                             break;
                         }
                     }
@@ -2914,14 +2884,9 @@ public sealed class Plugin : IDalamudPlugin
                     // Fallback to full contains match (for cases where full name exists)
                     if (cleanText.Contains(original))
                     {
-                        // Only log detailed matching for text that might contain names (longer than 10 chars)
-                        if (!hasLoggedPartyList && cleanText.Length > 10)
-                            Log.Information($"[Krangler] Full Match: original='{original}' replace='{krangled}'");
                         
                         var newText = text.Replace(original, krangled);
                         textNode->SetText(newText);
-                        Log.Information($"[Krangler] FULL REPLACED: '{original}' -> '{krangled}' in text node");
-                        replacedCount++;
                         break;
                     }
                 }
@@ -2939,17 +2904,10 @@ public sealed class Plugin : IDalamudPlugin
                         var subNode = comp->Component->UldManager.NodeList[j];
                         if (subNode == null || subNode->Type != NodeType.Text) continue;
 
-                        textNodesFound++;
                         var textNode = (AtkTextNode*)subNode;
                         var text = textNode->NodeText.ToString();
                         if (string.IsNullOrEmpty(text)) continue;
 
-                        // Diagnostic: Log component text nodes once
-                        if (!hasLoggedPartyList && text.Length > 1 && text.Length < 60)
-                        {
-                            var cleanText = StripSeStringPayloads(text);
-                            Log.Information($"[Krangler] PartyList component [{i}] sub [{j}] id={subNode->NodeId}: raw={text.Length}ch clean='{cleanText}'");
-                        }
 
                         foreach (var (original, krangled) in nameMap)
                         {
@@ -2981,15 +2939,10 @@ public sealed class Plugin : IDalamudPlugin
                                     var replacementText = krangled.Length >= partialLength ? 
                                         krangled.Substring(0, partialLength) : krangled;
                                     
-                                    // Only log detailed matching for text that might contain names (longer than 10 chars)
-                                    if (!hasLoggedPartyList && cleanText.Length > 10)
-                                        Log.Information($"[Krangler] Component Matching: original='{original}' found='{actualTextInNode}' replace='{replacementText}'");
                                     
                                     // Replace the actual text we found, not the full original
                                     var newText = text.Replace(actualTextInNode, replacementText);
                                     textNode->SetText(newText);
-                                    Log.Information($"[Krangler] COMPONENT REPLACED: '{actualTextInNode}' -> '{replacementText}'");
-                                    replacedCount++;
                                     break;
                                 }
                             }
@@ -2997,14 +2950,9 @@ public sealed class Plugin : IDalamudPlugin
                             // Fallback to full contains match (for cases where full name exists)
                             if (cleanText.Contains(original))
                             {
-                                // Only log detailed matching for text that might contain names (longer than 10 chars)
-                                if (!hasLoggedPartyList && cleanText.Length > 10)
-                                    Log.Information($"[Krangler] Component Full Match: original='{original}' replace='{krangled}'");
                                 
                                 var newText = text.Replace(original, krangled);
                                 textNode->SetText(newText);
-                                Log.Information($"[Krangler] COMPONENT FULL REPLACED: '{original}' -> '{krangled}'");
-                                replacedCount++;
                                 break;
                             }
                         }
@@ -3013,11 +2961,6 @@ public sealed class Plugin : IDalamudPlugin
             }
         }
 
-        if (!hasLoggedPartyList)
-        {
-            Log.Information($"[Krangler] Party list scan: {nameMap.Count} members, {textNodesFound} text nodes found, {replacedCount} text nodes replaced");
-            hasLoggedPartyList = true;
-        }
     }
 
     private unsafe void KranglePartyMemberList()
@@ -3698,7 +3641,6 @@ public sealed class Plugin : IDalamudPlugin
 
         hasLoggedEventActivation = false;
         hasLoggedAppearanceScan = false;
-        hasLoggedPartyList = false;
         lastAppearanceScan = DateTime.MinValue;
         lastPartyListScan = DateTime.MinValue;
 
@@ -3837,7 +3779,6 @@ public sealed class Plugin : IDalamudPlugin
     private void RefreshNameKrangleSurfaces()
     {
         hasLoggedNameplateUpdate = false;
-        hasLoggedPartyList = false;
         lastPartyListScan = DateTime.MinValue;
     }
 

@@ -6,6 +6,7 @@ using System.Numerics;
 using System.Reflection;
 using AethertekUI;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using Krangler.Models;
 
@@ -34,6 +35,24 @@ public class MainWindow : Window, IDisposable
         Size = new Vector2(1414, 963);
         SizeCondition = ImGuiCond.FirstUseEver;
         SizeConstraints = new WindowSizeConstraints { MinimumSize = new(900, 640), MaximumSize = new(2200, 1600) };
+        TitleBarButtons.Add(new()
+        {
+            Icon = FontAwesomeIcon.Palette, Priority = 0, IconOffset = new(2, 1),
+            Click = button => { if (button == ImGuiMouseButton.Left) selectedSection = 2; },
+            ShowTooltip = () => UiGui.SetTooltip("Appearance"),
+        });
+        TitleBarButtons.Add(new()
+        {
+            Icon = FontAwesomeIcon.Wrench, Priority = -10, IconOffset = new(2, 1),
+            Click = button => { if (button == ImGuiMouseButton.Left) plugin.OpenSetupWizard(); },
+            ShowTooltip = () => UiGui.SetTooltip("Open Setup Wizard"),
+        });
+        TitleBarButtons.Add(new()
+        {
+            Icon = FontAwesomeIcon.PowerOff, Priority = -20, IconOffset = new(2, 1),
+            Click = button => { if (button == ImGuiMouseButton.Left) SetMasterEnabled(!plugin.Configuration.Enabled); },
+            ShowTooltip = () => MaterialText.SetTooltip(UiText.T("Enable Krangler") + ": " + UiText.T(plugin.Configuration.Enabled ? "Enabled" : "Disabled")),
+        });
     }
 
     public override void PreDraw()
@@ -48,7 +67,7 @@ public class MainWindow : Window, IDisposable
     {
         windowMotion.DrawChrome();
         var title=WindowName.Split("##", 2)[0];
-        UiGui.Title(title,$"{UiText.T(title)} {typeof(Plugin).Assembly.GetName().Version}");
+        UiGui.TitleWithButtons(title,$"{UiText.T(title)} {typeof(Plugin).Assembly.GetName().Version}", this);
         ApplyQueuedWindowPlacement();
         DrawTabbedInterface();
     }
@@ -268,16 +287,18 @@ public class MainWindow : Window, IDisposable
     {
         var enabled = config.Enabled;
         if (UiGui.Checkbox("Enable Krangler", ref enabled))
-        {
-            config.Enabled = enabled;
-            if (!enabled)
-                Services.KrangleService.ClearCache();
-            config.Save();
-        }
+            SetMasterEnabled(enabled);
         if (ImGui.IsItemHovered())
             UiGui.SetTooltip("Master toggle - enables or disables all krangling.");
 
         ImGui.Spacing();
+    }
+
+    private void SetMasterEnabled(bool enabled)
+    {
+        plugin.Configuration.Enabled = enabled;
+        if (!enabled) Services.KrangleService.ClearCache();
+        plugin.Configuration.Save();
     }
 
     private void DrawDtrSection(Configuration config)

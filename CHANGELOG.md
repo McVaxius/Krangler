@@ -1,5 +1,17 @@
 # Krangler Changelog
 
+## Unreleased - CJK atlas construction
+
+- Request a 4096 x 4096 managed atlas and merge one bundled Noto CJK face per font role for the selected language, including Simplified and Traditional Chinese aliases. Preserve existing font sizes, glyph ranges, Windows and symbol fonts, and font lifecycle.
+
+## Unreleased - Native titlebar shortcuts
+
+- Add Appearance, Open Setup Wizard and the existing master toggle to the native titlebar. Retain all body controls, disable-time cache cleanup, native identities and the non-collapsible window flag. Reserve native icon space when repainting the translated title.
+
+## Unreleased - Quiet party-list scanning
+
+- Remove routine party-list scan, mapping and replacement diagnostics and their unused tracking fields. Preserve the one-second scan cadence, text-node matching and replacement behavior, genuine errors and other lifecycle messages.
+
 ## Unreleased - GitHub Actions dependency alignment
 
 - Pin the existing AethertekUI Actions checkout to published revision `6c193cf06ac67f954c549cafc2033ac0efdd630a`, which includes the Hindi text host and renderer. This fixes missing-text-API compilation after a consumer is published before its library; local workflow validation and hosted build results are separate.

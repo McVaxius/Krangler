@@ -5,6 +5,7 @@ using System.IO;
 using System.Numerics;
 using AethertekUI;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface.Windowing;
 
 namespace Krangler.Windows;
 
@@ -241,13 +242,25 @@ internal static class UiGui
         var open=ImGui.BeginPopupModal(original,flags);if(open) Title(original.Split("##",2)[0]);return open;
     }
     internal static void Title(string original,string? display=null)
+        => TitleWithButtons(original, display, null);
+
+    internal static void TitleWithButtons(string original,string? display, Window? owner)
     {
         var translated=display ?? UiText.T(original);if (translated==original) return;
         var style=ImGui.GetStyle();var fontSize=ImGui.GetFontSize();var height=ImGui.GetFrameHeight();
         var flags=ImGuiP.GetCurrentWindow().Flags;
         var collapseLeft=(flags & (ImGuiWindowFlags.NoCollapse|ImGuiWindowFlags.Modal))==0 && style.WindowMenuButtonPosition==ImGuiDir.Left;
         var p=ImGui.GetWindowPos()+new Vector2(style.FramePadding.X+(collapseLeft?fontSize+style.ItemInnerSpacing.X:0),style.FramePadding.Y);
-        var dl=ImGui.GetWindowDrawList();dl.PushClipRect(ImGui.GetWindowPos(),ImGui.GetWindowPos()+new Vector2(ImGui.GetWindowSize().X-2*height,height),false);
+        var reserved = 2 * height;
+        if (owner is not null)
+        {
+            var count = owner.TitleBarButtons.Count(button => !owner.IsClickthrough || button.AvailableClickthrough);
+            if (owner.AllowPinning || owner.AllowClickthrough || owner.AllowBackgroundBlur) count++;
+            reserved = fontSize + 2 * style.FramePadding.X + count * (fontSize + style.ItemInnerSpacing.X);
+            if ((flags & ImGuiWindowFlags.NoCollapse) == 0 && style.WindowMenuButtonPosition == ImGuiDir.Right)
+                reserved += fontSize + style.ItemInnerSpacing.X;
+        }
+        var dl=ImGui.GetWindowDrawList();dl.PushClipRect(ImGui.GetWindowPos(),ImGui.GetWindowPos()+new Vector2(Math.Max(0,ImGui.GetWindowSize().X-reserved),height),false);
         try
         {
         var background=style.Colors[(int)(ImGui.IsWindowFocused(ImGuiFocusedFlags.RootAndChildWindows)?ImGuiCol.TitleBgActive:ImGuiCol.TitleBg)];
