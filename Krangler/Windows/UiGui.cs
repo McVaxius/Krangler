@@ -31,6 +31,8 @@ internal static class UiGui
     internal static bool Button(string original,Vector2 size=default,string? display=null)
     {
         var translated=display ?? Visible(original);
+        using var controls = ImGui.GetStyle().FramePadding.Y == 0 || MaterialControls.Context == MaterialControlContext.Dense
+            ? default(MaterialControls.ControlScope) : MaterialControls.Push(MaterialControlContext.Toolbar);
         using var height = MaterialText.PushLineHeight(translated);
         if (MaterialText.RequiresShaping(translated) && size.Y > 0)
             size.Y = Math.Max(size.Y, MaterialText.Measure(translated).Y + ImGui.GetStyle().FramePadding.Y * 2);

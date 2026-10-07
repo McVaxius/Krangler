@@ -274,7 +274,8 @@ public class MainWindow : Window, IDisposable
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered,MaterialColor.Layer(colors.PrimaryContainer,colors.OnPrimaryContainer,.08f));
             ImGui.PushStyleColor(ImGuiCol.ButtonActive,MaterialColor.Layer(colors.PrimaryContainer,colors.OnPrimaryContainer,.14f));
             using (UiText.Font(UiFontRole.Heading))
-                if (UiGui.Button("Open Setup Wizard",new Vector2((KranglerPresentation.Compact?326:337)*scale,(KranglerPresentation.Compact?48:58)*scale))) plugin.OpenSetupWizard();
+                if (UiGui.Button("Open Setup Wizard",new Vector2((KranglerPresentation.Compact?326:337)*scale,
+                    MaterialControlMetrics.Measure(MaterialTheme.Metrics, ImGui.GetTextLineHeight(), MaterialControlContext.Toolbar).Height))) plugin.OpenSetupWizard();
             ImGui.PopStyleColor(3);
             if (ImGui.IsItemHovered()) UiGui.SetTooltip("Reopen the three-step quick setup without changing advanced settings or Racism rules.");
         });
@@ -368,7 +369,9 @@ public class MainWindow : Window, IDisposable
         {
         var guideWidth=MaterialText.Measure(UiText.T("Copy Icon Guide Link")).X+40*scale;
         SameLineIfFits(guideWidth/scale);
-        var guideMin=ImGui.GetCursorScreenPos();var guideHeight=(KranglerPresentation.Compact?56:80)*scale;
+        var guideMin=ImGui.GetCursorScreenPos();
+        var guideMetrics=MaterialControlMetrics.Measure(MaterialTheme.Metrics, ImGui.GetTextLineHeight(), MaterialControlContext.Toolbar);
+        var guideHeight=Math.Max(guideMetrics.Height,32*scale+(KranglerPresentation.Compact?4:8)*scale);
         ImGui.PushStyleVar(ImGuiStyleVar.FramePadding,new Vector2(ImGui.GetStyle().FramePadding.X,(guideHeight-ImGui.GetTextLineHeight())*.5f));
         ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize,0);
         ImGui.PushStyleColor(ImGuiCol.Button,Vector4.Zero);ImGui.PushStyleColor(ImGuiCol.ButtonHovered,Vector4.Zero);ImGui.PushStyleColor(ImGuiCol.ButtonActive,Vector4.Zero);
