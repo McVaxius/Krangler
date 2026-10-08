@@ -3,9 +3,9 @@
   <PropertyGroup>
     <TargetFramework>net10.0-windows</TargetFramework>
     <PlatformTarget>x64</PlatformTarget>
-    <Version>2.0.0.2</Version>
-    <FileVersion>2.0.0.2</FileVersion>
-    <AssemblyVersion>2.0.0.2</AssemblyVersion>
+    <Version>2.0.0.3</Version>
+    <FileVersion>2.0.0.3</FileVersion>
+    <AssemblyVersion>2.0.0.3</AssemblyVersion>
     <PackageProjectUrl>https://github.com/McVaxius</PackageProjectUrl>
     <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
     <IsPackable>false</IsPackable>
@@ -46,6 +46,7 @@
       <PresetFiles Include="data\presets\*.json" />
     </ItemGroup>
     <Copy SourceFiles="@(PluginFiles)" DestinationFolder="$(PluginOutput)" />
+    <Copy SourceFiles="$(ProjectDir)images\icon.png" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(PresetFiles)" DestinationFolder="$(PluginOutput)\data\presets" />
   </Target>
 </Project>

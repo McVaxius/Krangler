@@ -61,13 +61,15 @@ public class MainWindow : Window, IDisposable
     }
 
     public override void PostDraw()
-        => windowMotion.Restore(this);
+    {
+        windowMotion.Restore(this);
+        var title = WindowName.Split("##", 2)[0];
+        UiGui.ImageTitle(this, $"{UiText.T(title)} {typeof(Plugin).Assembly.GetName().Version}", plugin.OriginalIcon);
+    }
 
     public override void Draw()
     {
         windowMotion.DrawChrome();
-        var title=WindowName.Split("##", 2)[0];
-        UiGui.TitleWithButtons(title,$"{UiText.T(title)} {typeof(Plugin).Assembly.GetName().Version}", this);
         ApplyQueuedWindowPlacement();
         DrawTabbedInterface();
     }
@@ -169,7 +171,16 @@ public class MainWindow : Window, IDisposable
         var scale=MaterialTheme.Metrics.Scale;
         var origin=ImGui.GetCursorScreenPos();
         ImGui.SetCursorPosX(ImGui.GetCursorPosX()+(KranglerPresentation.Compact?5:12)*scale);
-        using (UiText.Font(KranglerPresentation.Compact?UiFontRole.Heading:UiFontRole.Title)) MaterialText.Text("Krangler");
+        using (UiText.Font(KranglerPresentation.Compact?UiFontRole.Heading:UiFontRole.Title))
+        {
+            var icon = plugin.OriginalIcon;
+            var imageMin = ImGui.GetCursorScreenPos();
+            var imageSize = new Vector2(ImGui.GetTextLineHeight());
+            MaterialCanvas.DrawImage(ImGui.GetWindowDrawList(), icon.Handle, icon.Size, imageMin, imageMin + imageSize);
+            ImGui.Dummy(imageSize);
+            ImGui.SameLine();
+            MaterialText.Text("Krangler");
+        }
         if (plugin.Configuration.UiCompactVisibleOnMainWindow) { SameLineIfFits(32); plugin.DrawCompactPreference(); }
         var languageName=UiText.Languages.FirstOrDefault(language=>language.Code==plugin.Configuration.UiLanguage).Name??"English";
         var transparencyWidth = ImGui.GetFrameHeight() + ImGui.GetStyle().ItemInnerSpacing.X + MaterialText.Measure(UiText.T("Transparency")).X;

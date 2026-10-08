@@ -26,9 +26,15 @@ Closing or cancelling the wizard discards its draft. Finishing applies only the 
 
 The DTR entry can show text, icon plus text, or icon only. Clicking it toggles Krangler's master state.
 
-The main header and **Appearance** share a compact-mode checkbox (**C**), a theme colour swatch, and a language selector. Compact mode reduces spacing across the main window and setup wizard while keeping the same controls. The interface supports English, German, French, Spanish, Italian, Russian, Japanese, Korean, Simplified Chinese, Vietnamese, Brazilian Portuguese, Indonesian, Polish, and Turkish; imported preset names, player names, commands, and logs keep their original text.
+The main header exposes compact mode (**C**) and language; **Appearance** also provides the theme colour swatch and these preferences. Compact mode reduces spacing across the main window and setup wizard while keeping the same controls. The interface supports English, German, French, Spanish, Italian, Russian, Japanese, Korean, Simplified Chinese, Vietnamese, Brazilian Portuguese, Indonesian, Polish, Turkish, and Hindi; imported preset names, player names, commands, and logs keep their original text.
 
 Choose teal, blue, pink, or a custom RGB colour to recolour the decorative theme. Active and warning states keep their meaning. These preferences use Krangler's existing configuration save path and preserve existing gameplay settings. Narrower windows wrap the DTR icon groups and replacement controls as needed.
+
+**Transparency** applies to the complete plugin window, including its titlebar and popups. Appearance provides normal opacity, automatic focus fade, faded opacity and delay; defaults are 100%, fading to 50% after 10 seconds without focus and restoring on focus. Compact and language controls can be hidden independently on Main while remaining available in Appearance.
+
+The titlebar opens Appearance or Guided Setup and toggles Krangler's master state. The packaged icon appears beside Main branding and in its titlebar. Appearance changes and name privacy continue to act locally; the setup wizard applies its reviewed draft when finished.
+
+Hindi is enabled only when the local font check passes. Otherwise the selector shows disabled **Hindi (unavailable)** while other languages remain usable. A saved Hindi choice that fails its required-font check shows an English status and **Use English**; that button explicitly saves English. Font failures never change the saved language automatically.
 
 ## Exact identity rules
 

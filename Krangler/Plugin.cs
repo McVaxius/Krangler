@@ -57,6 +57,10 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IFramework Framework { get; private set; } = null!;
     [PluginService] internal static IDtrBar DtrBar { get; private set; } = null!;
     [PluginService] internal static ITextureProvider TextureProvider { get; private set; } = null!;
+
+    internal Dalamud.Interface.Textures.TextureWraps.IDalamudTextureWrap OriginalIcon
+        => TextureProvider.GetFromFile(System.IO.Path.Combine(
+            PluginInterface.AssemblyLocation.DirectoryName ?? "", "icon.png")).GetWrapOrEmpty();
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
     [PluginService] internal static IGameGui GameGui { get; private set; } = null!;
     [PluginService] internal static IGameInteropProvider GameInterop { get; private set; } = null!;
@@ -92,6 +96,7 @@ public sealed class Plugin : IDalamudPlugin
     private uint appliedAccent;
     private Vector3 accentDraft;
     private int checkedFontGeneration = -1;
+    private int checkedHindiGeneration = -1;
     private bool fontIssueLogged;
 
     private IDtrBarEntry? dtrEntry;
@@ -4964,6 +4969,16 @@ public sealed class Plugin : IDalamudPlugin
             DrawFontStatus(uiFonts.LoadException is null);
             return;
         }
+        if (checkedHindiGeneration != uiFonts.Generation)
+        {
+            var generation = uiFonts.Generation;
+            var hindiAvailable = true;
+            foreach (var size in KranglerPresentation.FontSizes)
+                hindiAvailable &= shapedText.Renderer.TryCheckGlyphs(["हिन्दी"], size * ImGuiHelpers.GlobalScale, out _);
+            languageOptions.Replace(UiText.Languages.Select(l => new MaterialOption<string>(l.Code, l.Code,
+                l.Code == "hi" && !hindiAvailable ? "Hindi (unavailable)" : l.Name, l.Code == "hi" && !hindiAvailable)).ToArray());
+            checkedHindiGeneration = generation;
+        }
         if (checkedFontGeneration != uiFonts.Generation)
         {
             try
@@ -5017,7 +5032,12 @@ public sealed class Plugin : IDalamudPlugin
             if (ImGui.Begin("Krangler##FontStatus", ImGuiWindowFlags.AlwaysAutoResize))
             {
                 fontStatusDecorations.Paint();
-                MaterialText.TextWrapped(UiText.T(loading ? "Loading UI fonts..." : "UI fonts failed to load. See the plugin log."));
+                if (appliedLanguage == "hi")
+                {
+                    ImGui.TextWrapped(loading ? "Loading Hindi UI fonts..." : "Hindi UI fonts are unavailable. See the plugin log.");
+                    if (!loading && ImGui.Button("Use English")) { Configuration.UiLanguage = "en"; Configuration.Save(); }
+                }
+                else MaterialText.TextWrapped(UiText.T(loading ? "Loading UI fonts..." : "UI fonts failed to load. See the plugin log."));
             }
         }
         finally
@@ -5038,7 +5058,7 @@ public sealed class Plugin : IDalamudPlugin
             uiText=new(language,role=>uiFonts!.Push(role));
             uiFonts=new(PluginInterface.UiBuilder.FontAtlas,uiText.GlyphRanges(),language);
             languageOptions=new(UiText.Languages.Select(l=>new MaterialOption<string>(l.Code,l.Code,l.Name)).ToArray());
-            appliedLanguage=language;checkedFontGeneration=-1;fontIssueLogged=false;
+            appliedLanguage=language;checkedFontGeneration=-1;checkedHindiGeneration=-1;fontIssueLogged=false;
         }
         if (uiTheme is null || appliedAccent!=(Configuration.UiAccentRgb&0xFFFFFF))
         {
