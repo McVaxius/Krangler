@@ -14,6 +14,7 @@ namespace Krangler.Windows;
 
 public class MainWindow : Window, IDisposable
 {
+    private readonly AethertekUI.Dalamud.MaterialSupportLog supportLog = new();
     private readonly AethertekUI.Dalamud.MaterialWindowMotion windowMotion = new();
     private readonly Plugin plugin;
     private string presetSearch = string.Empty;
@@ -515,6 +516,7 @@ public class MainWindow : Window, IDisposable
                          ImGuiTableFlags.ScrollY |
                          ImGuiTableFlags.ScrollX |
                          ImGuiTableFlags.SizingFixedFit;
+        using var tightRows = plugin.Configuration.UiCompact ? MaterialTable.PushTightRows() : default;
         if (ImGui.BeginTable("##PlayerIdentityRules", 8, tableFlags, new Vector2(0, Math.Max(160,ImGui.GetContentRegionAvail().Y-110*MaterialTheme.Metrics.Scale))))
         {
             ImGui.TableSetupScrollFreeze(0, 1);
@@ -928,6 +930,8 @@ public class MainWindow : Window, IDisposable
 
     private void DrawDebugTab(Configuration config)
     {
+        supportLog.Draw(Plugin.PluginInterface, key => UiText.T(key),
+            path => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = path, UseShellExecute = true }), ex => Plugin.Log.Error(ex, "Dalamud log export failed."), Plugin.CommandManager);
         ImGui.Spacing();
         UiGui.Text("Debug");
         ImGui.Separator();
