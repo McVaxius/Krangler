@@ -1,5 +1,6 @@
 2026-10-09 - Tight compact list grids (I503/I509)
 
+
 - Use adjacent compact rows in player identity rules, retaining rule editors, row actions, column identities and scrolling.
 
 2026-10-09 - Separate XA Slave log-tools shortcut (I512)
