@@ -184,8 +184,8 @@ public class MainWindow : Window, IDisposable
         }
         if (plugin.Configuration.UiCompactVisibleOnMainWindow) { SameLineIfFits(32); plugin.DrawCompactPreference(); }
         var languageName=UiText.Languages.FirstOrDefault(language=>language.Code==plugin.Configuration.UiLanguage).Name??"English";
-        var transparencyWidth = ImGui.GetFrameHeight() + ImGui.GetStyle().ItemInnerSpacing.X + MaterialText.Measure(UiText.T("Transparency")).X;
-        var controlsWidth = transparencyWidth + ImGui.GetStyle().ItemSpacing.X
+        var transparencyWidth = plugin.Configuration.UiTransparencyVisibleOnMainWindow ? ImGui.GetFrameHeight() + ImGui.GetStyle().ItemInnerSpacing.X + MaterialText.Measure(UiText.T("Transparency")).X : 0;
+        var controlsWidth = transparencyWidth + (plugin.Configuration.UiTransparencyVisibleOnMainWindow ? ImGui.GetStyle().ItemSpacing.X : 0)
             + (plugin.Configuration.UiLanguageVisibleOnMainWindow ? (42 + 16) * scale + Math.Max((KranglerPresentation.Compact ? 188 : 182) * scale,
                 MathF.Ceiling(MaterialText.Measure(languageName).X + KranglerPresentation.ActionHeight * scale + 56 * scale)) : 0);
         var supportWidth=(KranglerPresentation.Compact?138:134)*scale;
@@ -206,9 +206,10 @@ public class MainWindow : Window, IDisposable
         MaterialText.AddText(ImGui.GetWindowDrawList(),supportMin+new Vector2(56*scale,(KranglerPresentation.ActionHeight*scale-ImGui.GetTextLineHeight())*.5f),ImGui.GetColorU32(ImGuiCol.Text),"Ko-fi");
         }
         if (ImGui.IsItemHovered()) UiGui.SetTooltip("Support development on Ko-fi");
-        if (SameLineIfFits((controlsWidth+supportGap-ImGui.GetStyle().ItemSpacing.X)/scale)) ImGui.SameLine(0,supportGap);
+        if (controlsWidth > 0 && SameLineIfFits((controlsWidth+supportGap-ImGui.GetStyle().ItemSpacing.X)/scale)) ImGui.SameLine(0,supportGap);
         if (plugin.Configuration.UiLanguageVisibleOnMainWindow) plugin.DrawAppearanceSelector(includeAccent: false);
-        SameLineIfFits(transparencyWidth / scale); plugin.DrawTransparencyToggle();
+        if (plugin.Configuration.UiTransparencyVisibleOnMainWindow)
+        { SameLineIfFits(transparencyWidth / scale); plugin.DrawTransparencyToggle(); }
         ImGui.SetCursorScreenPos(new Vector2(origin.X,Math.Max(origin.Y+KranglerPresentation.HeaderHeight*scale,ImGui.GetItemRectMax().Y+12*scale)));
     }
 

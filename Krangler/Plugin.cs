@@ -327,7 +327,8 @@ public sealed class Plugin : IDalamudPlugin
         var savedConfiguration = PluginInterface.GetPluginConfig() as Configuration;
         var isFirstRun = savedConfiguration == null;
         Configuration = savedConfiguration ?? Configuration.CreateFirstRun();
-        if (!isFirstRun && Configuration.Sanitize())
+        var compactMigrated = Configuration.ApplyCompactDefaults();
+        if ((!isFirstRun && Configuration.Sanitize()) || compactMigrated)
             Configuration.Save();
 
         AppearanceService = new AppearanceService(Log, ObjectTable, Configuration);
@@ -5163,6 +5164,9 @@ public sealed class Plugin : IDalamudPlugin
         var compactVisible = config.UiCompactVisibleOnMainWindow;
         if (UiGui.Checkbox("Compact visible on main window###window-compact-visible", ref compactVisible))
         { config.UiCompactVisibleOnMainWindow = compactVisible; changed = true; }
+        var transparencyVisible = config.UiTransparencyVisibleOnMainWindow;
+        if (UiGui.Checkbox("Transparency visible on main window###UiTransparencyVisibleOnMainWindowSettings", ref transparencyVisible))
+        { config.UiTransparencyVisibleOnMainWindow = transparencyVisible; changed = true; }
         var languageVisible = config.UiLanguageVisibleOnMainWindow;
         if (UiGui.Checkbox("Language visible on main window###window-language-visible", ref languageVisible))
         { config.UiLanguageVisibleOnMainWindow = languageVisible; changed = true; }
