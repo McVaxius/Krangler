@@ -65,7 +65,7 @@ public class MainWindow : Window, IDisposable
     {
         windowMotion.Restore(this);
         var title = WindowName.Split("##", 2)[0];
-        UiGui.ImageTitle(this, $"{UiText.T(title)} {typeof(Plugin).Assembly.GetName().Version}", plugin.OriginalIcon);
+        UiGui.ImageTitleWithStatus(this, $"{UiText.T(title)} {typeof(Plugin).Assembly.GetName().Version}", plugin.OriginalIcon, status: plugin.TitlebarStatus);
     }
 
     public override void Draw()

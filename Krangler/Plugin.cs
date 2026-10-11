@@ -74,6 +74,17 @@ public sealed class Plugin : IDalamudPlugin
     private const string CommandName = "/krangler";
     private const string AliasCommandName = "/kr";
 
+    internal AethertekUI.MaterialTitlebarStatus? TitlebarStatus
+    {
+        get
+        {
+            if (!Configuration.UiShowTitlebarStatus) return null;
+            var state = UiText.T(Configuration.Enabled || DadPrivacyLease.IsActive ? "On" : "Off");
+            var details = state + " \u00b7 " + UiText.F("Names: {0} \u00b7 Chat: {1}", UiText.T(IsEffectiveNameKranglingEnabled ? "On" : "Off"), UiText.T(IsEffectiveChatKranglingEnabled ? "On" : "Off"));
+            return new(Configuration.UiDetailedTitlebarStatus ? details : state, state, details);
+        }
+    }
+
     public Configuration Configuration { get; init; }
     public AppearanceService AppearanceService { get; init; }
     public GlamourerPresetService GlamourerPresetService { get; init; }
@@ -5197,6 +5208,12 @@ public sealed class Plugin : IDalamudPlugin
 
     internal void DrawWindowSettings()
     {
+        var showTitlebarStatus = Configuration.UiShowTitlebarStatus;
+        if (UiGui.Checkbox(UiText.T("Show titlebar status") + "###UiShowTitlebarStatus", ref showTitlebarStatus))
+        { Configuration.UiShowTitlebarStatus = showTitlebarStatus; Configuration.Save(); }
+        var detailedTitlebarStatus = Configuration.UiDetailedTitlebarStatus;
+        if (UiGui.Checkbox(UiText.T("Detailed titlebar status") + "###UiDetailedTitlebarStatus", ref detailedTitlebarStatus))
+        { Configuration.UiDetailedTitlebarStatus = detailedTitlebarStatus; Configuration.Save(); }
         var config = Configuration;
         var changed = false;
         var compactVisible = config.UiCompactVisibleOnMainWindow;

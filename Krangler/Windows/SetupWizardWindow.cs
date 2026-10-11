@@ -98,7 +98,10 @@ public sealed class SetupWizardWindow : Window
     }
 
     public override void PostDraw()
-        => windowMotion.Restore(this);
+    {
+        windowMotion.Restore(this);
+        UiGui.ImageTitleWithStatus(this, UiText.T(WindowName.Split("##", 2)[0]), plugin.OriginalIcon, status: plugin.TitlebarStatus);
+    }
 
     public override void Draw()
     {
