@@ -103,7 +103,7 @@ public sealed class SetupWizardWindow : Window
     public override void Draw()
     {
         windowMotion.DrawChrome();
-        UiGui.Title(WindowName.Split("##",2)[0]);
+        UiGui.TitleWithButtons(WindowName.Split("##",2)[0], null, this);
         draft ??= WizardDraft.From(plugin.Configuration);
 
         UiGui.Text(UiText.F($"Step {step + 1} of 3"));
