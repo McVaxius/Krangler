@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Krangler;
 using Krangler.Services;
 
 var tests = new (string Name, Action Run)[]
@@ -11,6 +12,13 @@ var tests = new (string Name, Action Run)[]
     ("effective name/chat privacy includes self", EffectivePrivacyIncludesSelf),
     ("unrelated configured features remain unchanged", UnrelatedFeaturesRemainUnchanged),
     ("lease operations perform zero persistent saves", LeaseOperationsPerformZeroSaves),
+    ("random identities are stable within an epoch", RandomIdentitiesStayStable),
+    ("new epochs rotate all generated identities", RandomEpochsRotate),
+    ("legacy mappings survive randomized mode roundtrip", LegacyMappingsSurviveRoundtrip),
+    ("randomized setting defaults on and preserves explicit legacy choice", RandomizedSettingRoundtrip),
+    ("actual appearance generators share the identity epoch", AppearanceUsesIdentityEpoch),
+    ("fixed preset choices survive new epochs", FixedPresetChoiceSurvives),
+    ("all shipped catalogs include randomized-mode controls", RandomizedCatalogs),
 };
 
 foreach (var (name, run) in tests)
@@ -19,8 +27,123 @@ foreach (var (name, run) in tests)
     Console.WriteLine($"PASS {name}");
 }
 
-Console.WriteLine($"PASS {tests.Length} Krangler DAD privacy lease tests");
+Console.WriteLine($"PASS {tests.Length} Krangler tests");
 return;
+
+static string[] IdentitySnapshot() => Enumerable.Range(0, 24).SelectMany(i => new[]
+{
+    KrangleService.KrangleName($"Example{i} Adventurer@ExampleWorld{i}"),
+    KrangleService.KrangleServer($"ExampleWorld{i}"),
+    KrangleService.KrangleFCTag($"«Group{i}»"),
+    KrangleService.KrangleTitle($"<Example title {i}>"),
+}).ToArray();
+
+static int SelectionSeed(string input) => (int)typeof(KrangleService).GetMethod("GetStableHash",
+    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!.Invoke(null, [input])!;
+
+static void RandomizedSettingRoundtrip()
+{
+    True(new Configuration().RandomizedMode);
+    var legacy = Newtonsoft.Json.JsonConvert.DeserializeObject<Configuration>("{\"Enabled\":true,\"KrangleChat\":false}")!;
+    True(legacy.RandomizedMode && legacy.Enabled && !legacy.KrangleChat);
+    legacy.RandomizedMode = false;
+    var saved = Newtonsoft.Json.JsonConvert.SerializeObject(legacy);
+    var restored = Newtonsoft.Json.JsonConvert.DeserializeObject<Configuration>(saved)!;
+    True(!restored.RandomizedMode && restored.Enabled && !restored.KrangleChat);
+}
+
+static string[] AppearanceSnapshot() => Enumerable.Range(0, 24).Select(i =>
+{
+    var name = $"Example{i} Adventurer";
+    var (race, tribe, gender) = AppearanceService.GetRandomRaceGender(name);
+    return $"{race}/{tribe}/{gender}:" + string.Join(',', AppearanceService.GetRandomAppearance(name, race, gender)
+        .OrderBy(pair => pair.Key).Select(pair => $"{pair.Key}={pair.Value}"));
+}).ToArray();
+
+static void AppearanceUsesIdentityEpoch()
+{
+    KrangleService.BeginEpoch(false);
+    var legacy = AppearanceSnapshot();
+    KrangleService.BeginEpoch(true);
+    var first = AppearanceSnapshot();
+    True(first.SequenceEqual(AppearanceSnapshot()));
+    KrangleService.BeginEpoch(true);
+    True(!first.SequenceEqual(AppearanceSnapshot()));
+    KrangleService.BeginEpoch(false);
+    True(legacy.SequenceEqual(AppearanceSnapshot()));
+}
+
+static void FixedPresetChoiceSurvives()
+{
+    var service = (GlamourerPresetService)System.Runtime.CompilerServices.RuntimeHelpers.GetUninitializedObject(typeof(GlamourerPresetService));
+    var fixedPreset = new Krangler.Models.GlamourerPreset { Name = "User's chosen look" };
+    typeof(GlamourerPresetService).GetField("presets", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+        .SetValue(service, new Dictionary<string, Krangler.Models.GlamourerPreset> { ["chosen"] = fixedPreset });
+    typeof(GlamourerPresetService).GetField("presetAliases", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+        .SetValue(service, new Dictionary<string, Krangler.Models.GlamourerPreset> { ["chosen"] = fixedPreset });
+    foreach (var randomized in new[] { false, true, true, false })
+    {
+        KrangleService.BeginEpoch(randomized);
+        True(ReferenceEquals(fixedPreset, service.ResolvePresetSelection("Example Adventurer", "chosen")));
+    }
+}
+
+static void RandomizedCatalogs()
+{
+    var assembly = typeof(KrangleService).Assembly;
+    var catalogs = assembly.GetManifestResourceNames().Where(name => name.StartsWith("Krangler.Localization.Strings_")).ToArray();
+    Equal(15, catalogs.Length);
+    HashSet<string>? expectedKeys = null;
+    foreach (var name in catalogs)
+    {
+        using var stream = assembly.GetManifestResourceStream(name)!;
+        using var reader = new System.Resources.ResourceReader(stream);
+        var entries = reader.Cast<System.Collections.DictionaryEntry>().ToDictionary(entry => (string)entry.Key, entry => (string)entry.Value!);
+        True(!string.IsNullOrWhiteSpace(entries["RandomizedMode"]));
+        True(!string.IsNullOrWhiteSpace(entries["RandomizedModeHelp"]));
+        expectedKeys ??= entries.Keys.ToHashSet();
+        True(expectedKeys.SetEquals(entries.Keys));
+    }
+}
+
+static void RandomIdentitiesStayStable()
+{
+    KrangleService.BeginEpoch(true);
+    var first = IdentitySnapshot();
+    var appearanceSeed = SelectionSeed("Example Adventurer_appearance");
+    KrangleService.ClearCache();
+    True(first.SequenceEqual(IdentitySnapshot()));
+    Equal(appearanceSeed, SelectionSeed("Example Adventurer_appearance"));
+    True(first[2].StartsWith('«') && first[2].EndsWith('»'));
+    True(first[3].StartsWith('<') && first[3].EndsWith('>'));
+}
+
+static void RandomEpochsRotate()
+{
+    KrangleService.BeginEpoch(true);
+    var previous = IdentitySnapshot();
+    var seed = SelectionSeed("Example Adventurer_appearance");
+    KrangleService.BeginEpoch(true);
+    var current = IdentitySnapshot();
+    True(seed != SelectionSeed("Example Adventurer_appearance"));
+    for (var field = 0; field < 4; field++)
+        True(previous.Where((_, i) => i % 4 == field).Where((value, i) => value != current[i * 4 + field]).Any());
+}
+
+static void LegacyMappingsSurviveRoundtrip()
+{
+    KrangleService.BeginEpoch(false);
+    // Values from the unchanged pre-epoch algorithm.
+    Equal(17, SelectionSeed(""));
+    Equal(18418, SelectionSeed("AB"));
+    var before = IdentitySnapshot();
+    KrangleService.BeginEpoch(true);
+    IdentitySnapshot();
+    KrangleService.BeginEpoch(false);
+    True(before.SequenceEqual(IdentitySnapshot()));
+    KrangleService.BeginEpoch(false);
+    True(before.SequenceEqual(IdentitySnapshot()));
+}
 
 static void AcquireAndReacquire()
 {

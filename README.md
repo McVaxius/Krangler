@@ -16,7 +16,7 @@ Closing or cancelling the wizard discards its draft. Finishing applies only the 
 ## Features and sections
 
 - **Overview** — current status, loaded preset count, Soul Thief capture summary, setup-wizard shortcut, and DTR display choices.
-- **Names** — deterministic exercise-themed pseudonyms, optional self exemption and self display name, plus independently controlled chat garbling.
+- **Names** — exercise-themed pseudonyms, optional self exemption and self display name, plus independently controlled chat garbling. **Randomized mode** defaults on: activation and area changes refresh generated identities and random appearances, which stay stable until the next change. Turn it off for the original deterministic mappings. Fixed names, identity rules and chosen presets remain explicit.
 - **Appearance** — local race, clan, gender, hair, face, eyes, and other supported customize-field randomization.
 - **Racism** — a fixed 32-row race/clan/gender table. Each exact source combination can be inactive, hidden, or replaced with a selected clan and gender. Rows are edited as a draft and saved only with **Apply Rules**.
 - **Presets** — Super Krangle preset selection and exact Amongus NPC replacement rules. Bundled presets are copied without overwriting user files, and Glamourer-style JSON presets can be imported into the plugin configuration's `data/presets` folder.

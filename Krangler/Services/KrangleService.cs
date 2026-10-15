@@ -20,6 +20,14 @@ public static class KrangleService
     };
 
     private static readonly Dictionary<string, string> Cache = new();
+    private static int epochSeed;
+
+    public static void BeginEpoch(bool randomized)
+    {
+        var next = randomized ? Random.Shared.Next(1, int.MaxValue) : 0;
+        epochSeed = randomized && next == epochSeed ? next ^ int.MinValue : next;
+        ClearCache();
+    }
 
     public static void ClearCache() => Cache.Clear();
 
@@ -154,14 +162,14 @@ public static class KrangleService
         return word;
     }
 
-    private static int GetStableHash(string input)
+    internal static int GetStableHash(string input)
     {
         unchecked
         {
             int hash = 17;
             foreach (var c in input)
                 hash = hash * 31 + c;
-            return hash;
+            return hash ^ epochSeed;
         }
     }
 }

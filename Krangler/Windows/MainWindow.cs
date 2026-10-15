@@ -396,6 +396,15 @@ public class MainWindow : Window, IDisposable
         UiGui.Text("Names");
         ImGui.Separator();
 
+        var randomizedMode = config.RandomizedMode;
+        if (UiGui.Checkbox("Randomized mode", ref randomizedMode))
+        {
+            config.RandomizedMode = randomizedMode;
+            config.Save();
+        }
+        if (ImGui.IsItemHovered())
+            UiGui.SetTooltip("Generate new names and random appearances on activation and area changes. Disable for legacy deterministic results.");
+
         var krangleNames = config.KrangleNames;
         if (UiGui.Checkbox("Krangle Names", ref krangleNames))
         {

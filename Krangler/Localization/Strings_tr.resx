@@ -274,4 +274,6 @@
   <data name="Show titlebar status" xml:space="preserve"><value>Başlık çubuğunda durumu göster</value></data>
   <data name="Detailed titlebar status" xml:space="preserve"><value>Ayrıntılı başlık çubuğu durumu</value></data>
   <data name="Names: {0} · Chat: {1}" xml:space="preserve"><value>Adlar: {0} · Sohbet: {1}</value></data>
+  <data name="RandomizedMode" xml:space="preserve"><value>Rastgele mod</value></data>
+  <data name="RandomizedModeHelp" xml:space="preserve"><value>Etkinleştirmede ve bölge değişimlerinde yeni adlar ve rastgele görünümler oluşturur. Eski sabit sonuçlar için kapatın.</value></data>
 </root>

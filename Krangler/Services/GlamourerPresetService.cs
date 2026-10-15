@@ -208,11 +208,11 @@ public class GlamourerPresetService
     {
         if (presets.Count == 0) return null;
 
-        var hash = GetStableHash(playerName);
+        var hash = KrangleService.GetStableHash(playerName);
         var orderedPresets = presets.Values
             .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
-        var index = Math.Abs(hash) % orderedPresets.Count;
+        var index = (int)(Math.Abs((long)hash) % orderedPresets.Count);
 
         return orderedPresets[index];
     }
@@ -574,16 +574,6 @@ public class GlamourerPresetService
         }
     }
 
-    private static int GetStableHash(string input)
-    {
-        unchecked
-        {
-            int hash = 17;
-            foreach (var c in input)
-                hash = hash * 31 + c;
-            return hash;
-        }
-    }
 }
 
 public sealed record GlamourerPresetSummary(string Name, string Key, string SourceFileName);

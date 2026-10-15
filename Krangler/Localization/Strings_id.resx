@@ -274,4 +274,6 @@
   <data name="Show titlebar status" xml:space="preserve"><value>Tampilkan status di bilah judul</value></data>
   <data name="Detailed titlebar status" xml:space="preserve"><value>Status terperinci di bilah judul</value></data>
   <data name="Names: {0} · Chat: {1}" xml:space="preserve"><value>Nama: {0} · Chat: {1}</value></data>
+  <data name="RandomizedMode" xml:space="preserve"><value>Mode acak</value></data>
+  <data name="RandomizedModeHelp" xml:space="preserve"><value>Buat nama dan tampilan acak baru saat diaktifkan dan berpindah area. Nonaktifkan untuk hasil tetap seperti sebelumnya.</value></data>
 </root>

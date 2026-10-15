@@ -744,4 +744,6 @@
   <data name="Show titlebar status" xml:space="preserve"><value>在标题栏显示状态</value></data>
   <data name="Detailed titlebar status" xml:space="preserve"><value>详细标题栏状态</value></data>
   <data name="Names: {0} · Chat: {1}" xml:space="preserve"><value>名称：{0} · 聊天：{1}</value></data>
+  <data name="RandomizedMode" xml:space="preserve"><value>随机模式</value></data>
+  <data name="RandomizedModeHelp" xml:space="preserve"><value>启用及切换区域时重新生成名称和随机外观。关闭后使用原有的固定结果。</value></data>
 </root>

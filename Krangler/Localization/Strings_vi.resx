@@ -274,4 +274,6 @@
   <data name="Show titlebar status" xml:space="preserve"><value>Hiện trạng thái trên thanh tiêu đề</value></data>
   <data name="Detailed titlebar status" xml:space="preserve"><value>Trạng thái chi tiết trên thanh tiêu đề</value></data>
   <data name="Names: {0} · Chat: {1}" xml:space="preserve"><value>Tên: {0} · Chat: {1}</value></data>
+  <data name="RandomizedMode" xml:space="preserve"><value>Chế độ ngẫu nhiên</value></data>
+  <data name="RandomizedModeHelp" xml:space="preserve"><value>Tạo tên và ngoại hình ngẫu nhiên mới khi bật hoặc đổi khu vực. Tắt để dùng kết quả cố định trước đây.</value></data>
 </root>

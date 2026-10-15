@@ -744,4 +744,6 @@
   <data name="Show titlebar status" xml:space="preserve"><value>Status in der Titelleiste anzeigen</value></data>
   <data name="Detailed titlebar status" xml:space="preserve"><value>Ausführlicher Status in der Titelleiste</value></data>
   <data name="Names: {0} · Chat: {1}" xml:space="preserve"><value>Namen: {0} · Chat: {1}</value></data>
+  <data name="RandomizedMode" xml:space="preserve"><value>Zufallsmodus</value></data>
+  <data name="RandomizedModeHelp" xml:space="preserve"><value>Beim Aktivieren und bei Gebietswechseln neue Namen und zufällige Erscheinungsbilder erzeugen. Für bisherige deterministische Ergebnisse deaktivieren.</value></data>
 </root>

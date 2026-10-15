@@ -1,3 +1,8 @@
+2026-10-15 - Randomized identities and appearances (I569/I570)
+
+- Default randomized mode refreshes generated names, worlds, titles, FC tags and random appearances when activated or changing areas, and keeps them stable between those events. Names settings retains selectable legacy deterministic results; explicit names, rules and fixed presets retain their choices.
+- Restore existing name surfaces and original looks before changing the transient selection seed. No identity seed is saved; translate the single control and help in all supported languages.
+
 2026-10-11 - Native titlebar status (I536)
 
 - Show effective privacy enablement and name/chat states in native main and setup titles. Keep concise state and available numeric progress when detailed wording is off; hover retains full details.

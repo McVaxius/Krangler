@@ -744,4 +744,6 @@
   <data name="Show titlebar status" xml:space="preserve"><value>Mostrar estado en la barra de título</value></data>
   <data name="Detailed titlebar status" xml:space="preserve"><value>Estado detallado en la barra de título</value></data>
   <data name="Names: {0} · Chat: {1}" xml:space="preserve"><value>Nombres: {0} · Chat: {1}</value></data>
+  <data name="RandomizedMode" xml:space="preserve"><value>Modo aleatorio</value></data>
+  <data name="RandomizedModeHelp" xml:space="preserve"><value>Generar nuevos nombres y apariencias al activar y cambiar de zona. Desactívalo para conservar los resultados deterministas anteriores.</value></data>
 </root>

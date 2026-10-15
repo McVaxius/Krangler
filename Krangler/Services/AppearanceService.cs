@@ -40,7 +40,7 @@ public class AppearanceService
     /// </summary>
     public static (byte race, byte tribe, byte gender) GetRandomRaceGender(string playerName)
     {
-        var hash = GetStableHash(playerName);
+        var hash = KrangleService.GetStableHash(playerName);
         var rng = new Random(hash);
 
         var raceId = (byte)(rng.Next(1, 9)); // 1-8
@@ -57,7 +57,7 @@ public class AppearanceService
     /// </summary>
     public static Dictionary<int, byte> GetRandomAppearance(string playerName, byte race, byte gender)
     {
-        var hash = GetStableHash(playerName + "_appearance");
+        var hash = KrangleService.GetStableHash(playerName + "_appearance");
         var rng = new Random(hash);
 
         var appearance = new Dictionary<int, byte>
@@ -103,14 +103,4 @@ public class AppearanceService
         appliedPlayers.Clear();
     }
 
-    private static int GetStableHash(string input)
-    {
-        unchecked
-        {
-            int hash = 17;
-            foreach (var c in input)
-                hash = hash * 31 + c;
-            return hash;
-        }
-    }
 }

@@ -112,6 +112,9 @@ public sealed class Plugin : IDalamudPlugin
 
     private IDtrBarEntry? dtrEntry;
     private bool wasEnabled;
+    private bool wasRandomizedMode;
+    private bool wasRandomizationActive;
+    private uint randomizationTerritory;
     private bool hasLoggedNameplateUpdate;
     private DateTime lastAppearanceScan = DateTime.MinValue;
     private DateTime lastPartyListScan = DateTime.MinValue;
@@ -338,6 +341,10 @@ public sealed class Plugin : IDalamudPlugin
         var savedConfiguration = PluginInterface.GetPluginConfig() as Configuration;
         var isFirstRun = savedConfiguration == null;
         Configuration = savedConfiguration ?? Configuration.CreateFirstRun();
+        KrangleService.BeginEpoch(Configuration.RandomizedMode);
+        wasRandomizedMode = Configuration.RandomizedMode;
+        wasRandomizationActive = Configuration.Enabled;
+        randomizationTerritory = ClientState.TerritoryType;
         var compactMigrated = Configuration.ApplyCompactDefaults();
         if ((!isFirstRun && Configuration.Sanitize()) || compactMigrated)
             Configuration.Save();
@@ -411,7 +418,7 @@ public sealed class Plugin : IDalamudPlugin
         if (isFirstRun)
             SetupWizardWindow.OpenWithFreshDraft();
 
-        Log.Information("===Krangler loaded===");
+        Log.Information("===Krangler loaded===; build=krangler-randomized-20261015-01");
     }
 
     private void OnCommand(string command, string args) => HandleCommand(args);
@@ -465,6 +472,11 @@ public sealed class Plugin : IDalamudPlugin
     private void Framework_OnUpdate(IFramework framework)
     {
         ApplyPendingDadPrivacyLeaseRefresh();
+        var randomizationActive = Configuration.Enabled || DadPrivacyLease.IsActive;
+        if (wasRandomizedMode != Configuration.RandomizedMode || (!wasRandomizationActive && randomizationActive))
+            RestartRandomization();
+        wasRandomizedMode = Configuration.RandomizedMode;
+        wasRandomizationActive = randomizationActive;
         ResetEventFlags();
         
         // Process staggered redraws — one character per N frames
@@ -549,18 +561,15 @@ public sealed class Plugin : IDalamudPlugin
     private void OnTerritoryChanged(uint territory)
     {
         ImaginaryFrenService.Despawn($"territory change {territory}");
-        IdentityRuleService.ResetIdentityCache();
+        if (randomizationTerritory != territory)
+        {
+            randomizationTerritory = territory;
+            RestartRandomization();
+        }
 
         if (!Configuration.Enabled && !DadPrivacyLease.IsActive) return;
         
         Log.Information($"[Krangler] Territory changed to {territory}, re-applying krangle mode");
-
-        if (Configuration.Enabled)
-        {
-            RevertAllAppearances();
-            lastAppearanceScan = DateTime.MinValue;
-            hasLoggedAppearanceScan = false;
-        }
 
         // Force immediate name-surface scan to re-apply krangling.
         lastPartyListScan = DateTime.MinValue;
@@ -568,6 +577,20 @@ public sealed class Plugin : IDalamudPlugin
 
     private void OnTerritoryChanged(ushort territory)
         => OnTerritoryChanged((uint)territory);
+
+    private void RestartRandomization()
+    {
+        // Restore using the old mapping before clearing it or capturing another look.
+        IdentityRuleService.RestoreAll();
+        RestoreNameKrangleSurfaces();
+        if (originalAppearanceData.Count > 0) RevertAllAppearances();
+        IdentityRuleService.ResetIdentityCache();
+        KrangleService.BeginEpoch(Configuration.RandomizedMode);
+        AppearanceService.Reset();
+        RefreshNameKrangleSurfaces();
+        lastAppearanceScan = DateTime.MinValue;
+        hasLoggedAppearanceScan = false;
+    }
 
     private unsafe CharacterBaseStruct* CreateCharacterBaseDetour(uint modelId, GameCustomizeData* customize, EquipmentModelId* equipment, byte unk)
     {
@@ -4871,7 +4894,7 @@ public sealed class Plugin : IDalamudPlugin
 
     private static (byte race, byte tribe, byte gender) GetSuperKrangleAppearance(string playerName)
     {
-        var hash = GetStableHash(playerName + "_super");
+        var hash = KrangleService.GetStableHash(playerName + "_super");
         var rng = new Random(hash);
 
         // Special NPC appearances - iconic characters
@@ -4898,7 +4921,7 @@ public sealed class Plugin : IDalamudPlugin
     /// </summary>
     private static Dictionary<int, byte> GetSuperKrangleFullAppearance(string playerName)
     {
-        var hash = GetStableHash(playerName + "_super_full");
+        var hash = KrangleService.GetStableHash(playerName + "_super_full");
         var rng = new Random(hash);
 
         // Select a base NPC template
@@ -4956,16 +4979,6 @@ public sealed class Plugin : IDalamudPlugin
         return result;
     }
 
-    private static int GetStableHash(string input)
-    {
-        unchecked
-        {
-            int hash = 17;
-            foreach (var c in input)
-                hash = hash * 31 + c;
-            return hash;
-        }
-    }
 
     private readonly System.Collections.Generic.Dictionary<Dalamud.Interface.Windowing.Window, AethertekUI.Dalamud.MaterialAppearanceTitleBar> appearanceTitleBars = new();
 

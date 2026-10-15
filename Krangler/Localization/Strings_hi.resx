@@ -760,4 +760,6 @@
   <data name="Show titlebar status" xml:space="preserve"><value>शीर्षक पट्टी में स्थिति दिखाएँ</value></data>
   <data name="Detailed titlebar status" xml:space="preserve"><value>शीर्षक पट्टी में विस्तृत स्थिति</value></data>
   <data name="Names: {0} · Chat: {1}" xml:space="preserve"><value>नाम: {0} · चैट: {1}</value></data>
+  <data name="RandomizedMode" xml:space="preserve"><value>यादृच्छिक मोड</value></data>
+  <data name="RandomizedModeHelp" xml:space="preserve"><value>सक्रिय करने और क्षेत्र बदलने पर नए नाम और यादृच्छिक रूप बनाएँ। पुराने निश्चित परिणामों के लिए इसे बंद करें।</value></data>
 </root>

@@ -48,6 +48,7 @@ public class Configuration : IPluginConfiguration
 
     // Master toggle
     public bool Enabled { get; set; } = false;
+    public bool RandomizedMode { get; set; } = true;
 
     // Feature toggles (all enabled by default)
     public bool KrangleNames { get; set; } = true;

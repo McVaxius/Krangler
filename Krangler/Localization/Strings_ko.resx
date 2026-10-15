@@ -744,4 +744,6 @@
   <data name="Show titlebar status" xml:space="preserve"><value>제목 표시줄에 상태 표시</value></data>
   <data name="Detailed titlebar status" xml:space="preserve"><value>자세한 제목 표시줄 상태</value></data>
   <data name="Names: {0} · Chat: {1}" xml:space="preserve"><value>이름: {0} · 채팅: {1}</value></data>
+  <data name="RandomizedMode" xml:space="preserve"><value>무작위 모드</value></data>
+  <data name="RandomizedModeHelp" xml:space="preserve"><value>활성화하거나 지역을 이동할 때 이름과 무작위 외형을 새로 생성합니다. 기존의 고정 결과를 사용하려면 끄세요.</value></data>
 </root>
