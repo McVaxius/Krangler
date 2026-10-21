@@ -106,6 +106,9 @@ public sealed class Plugin : IDalamudPlugin
     private string appliedLanguage = string.Empty;
     private uint appliedAccent;
     private Vector3 accentDraft;
+    private MaterialColorSettings colorDraft = new();
+    private MaterialColorSettings? appliedSavedColors;
+    private MaterialColorSettings? appliedColors;
     private int checkedFontGeneration = -1;
     private int checkedHindiGeneration = -1;
     private bool fontIssueLogged;
@@ -5003,15 +5006,21 @@ public sealed class Plugin : IDalamudPlugin
         foreach (var actions in appearanceTitleBars.Values) actions.DrawPopups();
     }
 
+    private bool DrawColourEditor(string id)
+    {
+        var changed = MaterialAppearanceSelector.DrawColors(id, ref colorDraft, ref accentDraft,
+            new(UiText.T("Color"), UiText.T("Language"), UiText.T("Teal"), UiText.T("Blue"), UiText.T("Pink"), UiText.T("Custom RGB")),
+            new(UiText.T("Auto"), UiText.T("Picker"), UiText.T("Default"), UiText.T("Background, controls and text follow your theme."), UiText.T("Theme colour"), UiText.T("Choose each colour independently."), UiText.T("Background"), UiText.T("Controls"), UiText.T("Text"), UiText.T("Aa  Preview text"), UiText.T("Control"), UiText.T("Switch to Picker to set each colour yourself."), UiText.T("Switch back to Auto to use the automatic theme.")), Configuration.UiCompact ? 298 : 316);
+        if (!changed) return false;
+        Configuration.UiColors = colorDraft;
+        Configuration.UiAccentRgb = MaterialColorSettings.ToRgb(accentDraft);
+        return true;
+    }
+
     private void DrawTitleColour()
     {
-        using var controls = MaterialControls.Push(KranglerPresentation.Controls(KranglerPresentation.ActionHeight,24));
-        if (!MaterialAppearanceSelector.DrawPalette("titlebar-colour", ref accentDraft,
-            new(UiText.T("Color"), UiText.T("Language"), UiText.T("Teal"), UiText.T("Blue"), UiText.T("Pink"), UiText.T("Custom RGB")))) return;
-        Configuration.UiAccentRgb = ((uint)Math.Clamp((int)MathF.Round(accentDraft.X * 255), 0, 255) << 16)
-            | ((uint)Math.Clamp((int)MathF.Round(accentDraft.Y * 255), 0, 255) << 8)
-            | (uint)Math.Clamp((int)MathF.Round(accentDraft.Z * 255), 0, 255);
-        Configuration.Save();
+        using var controls = MaterialControls.Push(KranglerPresentation.Controls(28, 18));
+        if (DrawColourEditor("titlebar-colour")) Configuration.Save();
     }
 
 
@@ -5123,11 +5132,19 @@ public sealed class Plugin : IDalamudPlugin
             languageOptions=new(UiText.Languages.Select(l=>new MaterialOption<string>(l.Code,l.Code,l.Name)).ToArray());
             appliedLanguage=language;checkedFontGeneration=-1;checkedHindiGeneration=-1;fontIssueLogged=false;
         }
-        if (uiTheme is null || appliedAccent!=(Configuration.UiAccentRgb&0xFFFFFF))
+        var savedColors = Configuration.UiColors ?? new MaterialColorSettings();
+        if (savedColors != appliedSavedColors)
         {
-            appliedAccent=Configuration.UiAccentRgb&0xFFFFFF;
-            uiTheme=KranglerPresentation.Theme(appliedAccent);
-            var rgb=KranglerPresentation.Rgb(appliedAccent);accentDraft=new(rgb.X,rgb.Y,rgb.Z);
+            colorDraft = savedColors;
+            appliedSavedColors = savedColors;
+        }
+        if (uiTheme is null || appliedAccent != (Configuration.UiAccentRgb & 0xFFFFFF) || colorDraft != appliedColors)
+        {
+            appliedAccent = Configuration.UiAccentRgb & 0xFFFFFF;
+            appliedColors = colorDraft;
+            uiTheme = KranglerPresentation.Theme(appliedAccent, colorDraft);
+            var rgb = KranglerPresentation.Rgb(appliedAccent);
+            accentDraft = new(rgb.X, rgb.Y, rgb.Z);
         }
     }
 
@@ -5137,8 +5154,7 @@ public sealed class Plugin : IDalamudPlugin
         using var controls=MaterialControls.Push(KranglerPresentation.Controls(KranglerPresentation.ActionHeight,24));
         var scale=MaterialTheme.Metrics.Scale;var colors=MaterialTheme.Current.Colors;
         var labels=new MaterialAppearanceLabels(UiText.T("Color"),UiText.T("Language"),UiText.T("Teal"),UiText.T("Blue"),UiText.T("Pink"),UiText.T("Custom RGB"));
-        var accentChanged = includeAccent && MaterialAppearanceSelector.DrawAccent("appearance", ref accentDraft, labels, 44);
-        if (includeAccent) ImGui.SameLine(0,32*scale);
+        var accentChanged = includeAccent && DrawColourEditor("appearance");
         var globe=ImGui.GetCursorScreenPos();ImGui.Dummy(new Vector2(42*scale,KranglerPresentation.ActionHeight*scale));
         MaterialIcons.Draw(MaterialIcon.Globe,globe+new Vector2(-5,(KranglerPresentation.ActionHeight-44)*.5f)*scale,44*scale,colors.OnSurfaceVariant);
         ImGui.SameLine(0,16*scale);
@@ -5148,8 +5164,6 @@ public sealed class Plugin : IDalamudPlugin
         var languageChanged=MaterialCombo.Draw("language",languageOptions,ref language,MaterialComboLayout.Default with { ConstrainFieldWidth=false },
             new MaterialControlAppearance(colors.SurfaceContainerLowest,colors.OnSurface,colors.OutlineVariant),width/scale,searchable:false);
         ImGui.PopID();
-        if (accentChanged) Configuration.UiAccentRgb=((uint)Math.Clamp((int)MathF.Round(accentDraft.X*255),0,255)<<16)
-            |((uint)Math.Clamp((int)MathF.Round(accentDraft.Y*255),0,255)<<8)|(uint)Math.Clamp((int)MathF.Round(accentDraft.Z*255),0,255);
         if (languageChanged) Configuration.UiLanguage=language;
         if (accentChanged || languageChanged) Configuration.Save();
     }

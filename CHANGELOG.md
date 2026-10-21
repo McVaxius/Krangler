@@ -1,3 +1,7 @@
+2026-10-20 - Independent UI colours
+
+- Add Auto (default) and Picker in Colour and Settings, with independent Background, Controls and Text choices. Preserve the existing automatic palette, saved manual choices, native controls and unrelated settings. Translate the editor in every supported language.
+
 2026-10-15 - Randomized identities and appearances (I569/I570)
 
 - Default randomized mode refreshes generated names, worlds, titles, FC tags and random appearances when activated or changing areas, and keeps them stable between those events. Names settings retains selectable legacy deterministic results; explicit names, rules and fixed presets retain their choices.
