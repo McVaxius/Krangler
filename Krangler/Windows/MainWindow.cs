@@ -121,17 +121,20 @@ public class MainWindow : Window, IDisposable
                     firstNavigationY+ImGui.GetStyle().ItemSpacing.Y*.5f+index*(KranglerPresentation.NavigationHeight*scale+ImGui.GetStyle().ItemSpacing.Y)));
                 var size = new Vector2(sidebarWidth-6*scale-ImGui.GetStyle().ItemSpacing.X, KranglerPresentation.NavigationHeight * scale);
                 var label = UiText.T(Sections[index]);
-                ImGui.PushStyleColor(ImGuiCol.Header,MaterialTheme.Current.Colors.TertiaryContainer);
+                ImGui.PushStyleColor(ImGuiCol.Header,MaterialTheme.Current.IsLcars ? MaterialLcars.Lilac : MaterialTheme.Current.Colors.TertiaryContainer);
                 ImGui.PushStyleColor(ImGuiCol.Text, Vector4.Zero);
-                if (ImGui.Selectable(Sections[index]+"##navigation", selectedSection == index, size: size)) selectedSection = index;
+                var clicked = ImGui.Selectable(Sections[index]+"##navigation", selectedSection == index, size: size);
+                if (clicked) selectedSection = index;
+                MaterialLcars.Feedback(clicked);
                 ImGui.PopStyleColor(2);
                 var min = ImGui.GetItemRectMin();
                 var max = ImGui.GetItemRectMax();
                 var color = selectedSection == index ? MaterialTheme.Current.Colors.OnSurface : MaterialTheme.Current.Colors.OnSurfaceVariant;
+                if (selectedSection == index && MaterialTheme.Current.IsLcars) color = MaterialLcars.Background;
                 var dl = ImGui.GetWindowDrawList();
                 if (selectedSection == index) dl.AddRectFilled(min, new Vector2(min.X+4*scale, max.Y), MaterialCanvas.Color(MaterialTheme.Current.Colors.Primary), 2*scale);
                 DrawSectionIcon(index,min+new Vector2(20,((max.Y-min.Y)/scale-38)*.5f)*scale,38*scale,
-                    selectedSection==index?MaterialTheme.Current.Colors.InversePrimary:color);
+                    selectedSection==index && !MaterialTheme.Current.IsLcars ? MaterialTheme.Current.Colors.InversePrimary : color);
                 MaterialText.AddText(dl,new Vector2(min.X+(KranglerPresentation.Compact?79:77)*scale,min.Y+(max.Y-min.Y-MaterialText.Measure(label).Y)*.5f),ImGui.GetColorU32(color),label);
                 if (MaterialText.Measure(label).X > max.X-min.X-87*scale && ImGui.IsItemHovered()) MaterialText.SetTooltip(label);
             }
@@ -169,6 +172,7 @@ public class MainWindow : Window, IDisposable
 
     private void DrawHeader()
     {
+        if (MaterialTheme.Current.IsLcars) MaterialLcars.Header(string.Empty);
         var scale=MaterialTheme.Metrics.Scale;
         var origin=ImGui.GetCursorScreenPos();
         ImGui.SetCursorPosX(ImGui.GetCursorPosX()+(KranglerPresentation.Compact?5:12)*scale);
@@ -242,8 +246,13 @@ public class MainWindow : Window, IDisposable
     {
         var scale=MaterialTheme.Metrics.Scale;
         var rootId=ImGui.GetID("");
+        if (MaterialTheme.Current.IsLcars)
+        {
+            var origin = ImGui.GetCursorScreenPos();
+            MaterialLcars.PanelFrame(origin, origin + new Vector2(ImGui.GetContentRegionAvail().X, logicalHeight * scale), 1);
+        }
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding,new Vector2(KranglerPresentation.PanelPadding,0)*scale);
-        ImGui.PushStyleColor(ImGuiCol.ChildBg,KranglerPresentation.Compact?MaterialTheme.Current.Colors.SurfaceContainerLowest:MaterialTheme.Current.Colors.Surface);
+        ImGui.PushStyleColor(ImGuiCol.ChildBg,MaterialTheme.Current.IsLcars ? Vector4.Zero : KranglerPresentation.Compact?MaterialTheme.Current.Colors.SurfaceContainerLowest:MaterialTheme.Current.Colors.Surface);
         if (ImGui.BeginChild(id,new Vector2(0,logicalHeight*scale),true,ImGuiWindowFlags.AlwaysUseWindowPadding|ImGuiWindowFlags.HorizontalScrollbar))
         {
             ImGuiP.PushOverrideID(rootId);draw();ImGui.PopID();
@@ -257,7 +266,9 @@ public class MainWindow : Window, IDisposable
         {
             var scale=MaterialTheme.Metrics.Scale;var panel=ImGui.GetWindowPos()-new Vector2(ImGui.GetScrollX(),ImGui.GetScrollY());
             ImGui.SetCursorScreenPos(panel+new Vector2(KranglerPresentation.PanelPadding,KranglerPresentation.Compact?12:17)*scale);
-            using (UiText.Font(KranglerPresentation.Compact?UiFontRole.Heading:UiFontRole.Title)) UiGui.Text("Overview");
+            using (UiText.Font(MaterialTheme.Current.IsLcars ? UiFontRole.BodyStrong : KranglerPresentation.Compact?UiFontRole.Heading:UiFontRole.Title))
+                if (MaterialTheme.Current.IsLcars) MaterialLcars.PanelHeading(UiText.T("Overview"), 1);
+                else UiGui.Text("Overview");
             ImGui.SetCursorScreenPos(panel+new Vector2(KranglerPresentation.PanelPadding,KranglerPresentation.Compact?56:72)*scale);ImGui.Separator();
             ImGui.SetCursorScreenPos(panel+new Vector2(KranglerPresentation.Compact?24:26,KranglerPresentation.Compact?78:107)*scale);
             DrawStatus(config);
@@ -307,7 +318,9 @@ public class MainWindow : Window, IDisposable
     {
         var scale=MaterialTheme.Metrics.Scale;var panel=ImGui.GetWindowPos()-new Vector2(ImGui.GetScrollX(),ImGui.GetScrollY());
         ImGui.SetCursorScreenPos(panel+new Vector2(KranglerPresentation.PanelPadding,KranglerPresentation.Compact?12:17)*scale);
-        using (UiText.Font(KranglerPresentation.Compact?UiFontRole.Heading:UiFontRole.Title)) UiGui.Text("DTR Bar");
+        using (UiText.Font(MaterialTheme.Current.IsLcars ? UiFontRole.BodyStrong : KranglerPresentation.Compact?UiFontRole.Heading:UiFontRole.Title))
+            if (MaterialTheme.Current.IsLcars) MaterialLcars.PanelHeading(UiText.T("DTR Bar"), 1);
+            else UiGui.Text("DTR Bar");
         ImGui.SetCursorScreenPos(panel+new Vector2(KranglerPresentation.PanelPadding,KranglerPresentation.Compact?55:70)*scale);ImGui.Separator();
         ImGui.SetCursorScreenPos(panel+new Vector2(KranglerPresentation.Compact?28:34,KranglerPresentation.Compact?70:92)*scale);
 

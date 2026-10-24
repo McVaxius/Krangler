@@ -34,6 +34,7 @@ internal static class UiGui
         using var controls = ImGui.GetStyle().FramePadding.Y == 0 || MaterialControls.Context == MaterialControlContext.Dense
             ? default(MaterialControls.ControlScope) : MaterialControls.Push(MaterialControlContext.Toolbar);
         using var height = MaterialText.PushLineHeight(translated);
+        using var nativeButtons = MaterialLcars.NativeButtonStyle();
         if (MaterialText.RequiresShaping(translated) && size.Y > 0)
             size.Y = Math.Max(size.Y, MaterialText.Measure(translated).Y + ImGui.GetStyle().FramePadding.Y * 2);
         var natural=MaterialText.Measure(translated).X+ImGui.GetStyle().FramePadding.X*2;
@@ -43,6 +44,7 @@ internal static class UiGui
         var min=ImGui.GetItemRectMin();var max=ImGui.GetItemRectMax();
         Ink(translated,min+(max-min-MaterialText.Measure(translated))*.5f,min,max);
         if (MaterialText.Measure(translated).X>max.X-min.X-ImGui.GetStyle().FramePadding.X*2 && ImGui.IsItemHovered()) MaterialText.SetTooltip(translated);
+        MaterialLcars.Feedback(clicked);
         return clicked;
     }
     internal static bool SmallButton(string label)
@@ -61,11 +63,12 @@ internal static class UiGui
         if (MaterialText.RequiresShaping(translated) && textSize.Y > ImGui.GetTextLineHeight())
             shapedHeight.Style(ImGuiStyleVar.FramePadding, new Vector2(padding.X, padding.Y + (textSize.Y - ImGui.GetTextLineHeight()) * .5f));
         var height=ImGui.GetFrameHeight();var colors=MaterialTheme.Current.Colors;
+        var checkedFill = MaterialTheme.Current.IsLcars ? MaterialLcars.ControlBlue : colors.Primary;
         MaterialLayout.FitNextItemWidth(0,height+gap.X+textSize.X);
-        ImGui.PushStyleColor(ImGuiCol.FrameBg,value?colors.Primary:colors.SurfaceContainerLowest);
-        ImGui.PushStyleColor(ImGuiCol.FrameBgHovered,MaterialColor.Layer(value?colors.Primary:colors.SurfaceContainerLowest,colors.OnSurface,.08f));
-        ImGui.PushStyleColor(ImGuiCol.FrameBgActive,MaterialColor.Layer(value?colors.Primary:colors.SurfaceContainerLowest,colors.OnSurface,.14f));
-        ImGui.PushStyleColor(ImGuiCol.CheckMark,colors.OnPrimary);
+        ImGui.PushStyleColor(ImGuiCol.FrameBg,value?checkedFill:colors.SurfaceContainerLowest);
+        ImGui.PushStyleColor(ImGuiCol.FrameBgHovered,MaterialColor.Layer(value?checkedFill:colors.SurfaceContainerLowest,colors.OnSurface,.08f));
+        ImGui.PushStyleColor(ImGuiCol.FrameBgActive,MaterialColor.Layer(value?checkedFill:colors.SurfaceContainerLowest,colors.OnSurface,.14f));
+        ImGui.PushStyleColor(ImGuiCol.CheckMark,MaterialTheme.Current.IsLcars ? MaterialLcars.Text : colors.OnPrimary);
         ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize,MaterialTheme.Metrics.Scale);
         ImGui.PushStyleVar(ImGuiStyleVar.ItemInnerSpacing,new Vector2(Math.Max(0,gap.X+textSize.X-MaterialText.Measure(original).X),gap.Y));
         ImGui.PushStyleColor(ImGuiCol.Text,Vector4.Zero);var changed=ImGui.Checkbox(label,ref value);ImGui.PopStyleColor();ImGui.PopStyleVar();
@@ -74,6 +77,7 @@ internal static class UiGui
         var p=min+new Vector2(height+gap.X,(height-textSize.Y)*.5f);
         using (labelRole is { } inkRole?UiText.Font(inkRole):null)
             MaterialText.AddText(ImGui.GetWindowDrawList(),p,ImGui.GetColorU32(ImGuiCol.Text),translated);
+        MaterialLcars.Feedback(changed, MaterialUiSoundCue.Toggle);
         return changed;
     }
     internal static bool RadioButton(string label,bool selected,string? display=null)
@@ -84,7 +88,9 @@ internal static class UiGui
         ImGui.PushStyleVar(ImGuiStyleVar.ItemInnerSpacing,new Vector2(Math.Max(0,gap.X+MaterialText.Measure(translated).X-MaterialText.Measure(original).X),gap.Y));
         ImGui.PushStyleColor(ImGuiCol.Text,Vector4.Zero);var changed=ImGui.RadioButton(label,selected);ImGui.PopStyleColor();ImGui.PopStyleVar();
         var min=ImGui.GetItemRectMin();var p=min+new Vector2(ImGui.GetFrameHeight()+gap.X,ImGui.GetStyle().FramePadding.Y);
-        Ink(translated,p,min,new Vector2(p.X+MaterialText.Measure(translated).X,ImGui.GetItemRectMax().Y));return changed;
+        Ink(translated,p,min,new Vector2(p.X+MaterialText.Measure(translated).X,ImGui.GetItemRectMax().Y));
+        MaterialLcars.Feedback(changed, MaterialUiSoundCue.Toggle);
+        return changed;
     }
     internal static bool CollapsingHeader(string label,ImGuiTreeNodeFlags flags=ImGuiTreeNodeFlags.None)
     {
@@ -150,7 +156,9 @@ internal static class UiGui
         var origin=ImGui.GetCursorScreenPos();
         ImGui.PushStyleColor(ImGuiCol.Text,Vector4.Zero);var changed=ImGui.Selectable(label,selected,flags,size);ImGui.PopStyleColor();
         var min=ImGui.GetItemRectMin();var max=ImGui.GetItemRectMax();Ink(Visible(label),origin,min,max);
-        if (MaterialText.Measure(Visible(label)).X>max.X-min.X && ImGui.IsItemHovered()) MaterialText.SetTooltip(Visible(label));return changed;
+        if (MaterialText.Measure(Visible(label)).X>max.X-min.X && ImGui.IsItemHovered()) MaterialText.SetTooltip(Visible(label));
+        MaterialLcars.Feedback(changed);
+        return changed;
     }
     private static (Vector2 Min,Vector2 PreviousMax,float Width,string Label,ImGuiWindowPtr Window,ImDrawListPtr Drawing) FitField(string label,float minimum,bool showLabel=true,float? preferred=null)
     {

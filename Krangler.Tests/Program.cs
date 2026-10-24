@@ -1,6 +1,11 @@
 using System.Text.Json;
 using Krangler;
 using Krangler.Services;
+using AethertekUI;
+using Dalamud.Bindings.ImGui;
+using System.Numerics;
+using System.Reflection;
+using System.Linq.Expressions;
 
 var tests = new (string Name, Action Run)[]
 {
@@ -19,6 +24,8 @@ var tests = new (string Name, Action Run)[]
     ("actual appearance generators share the identity epoch", AppearanceUsesIdentityEpoch),
     ("fixed preset choices survive new epochs", FixedPresetChoiceSurvives),
     ("all shipped catalogs include randomized-mode controls", RandomizedCatalogs),
+    ("LCARS appearance preserves legacy privacy and Picker values", LcarsAppearanceRoundtrip),
+    ("native LCARS actions preserve IDs, styles and single feedback", NativeLcarsActions),
 };
 
 foreach (var (name, run) in tests)
@@ -50,6 +57,113 @@ static void RandomizedSettingRoundtrip()
     var saved = Newtonsoft.Json.JsonConvert.SerializeObject(legacy);
     var restored = Newtonsoft.Json.JsonConvert.DeserializeObject<Configuration>(saved)!;
     True(!restored.RandomizedMode && restored.Enabled && !restored.KrangleChat);
+}
+
+static void LcarsAppearanceRoundtrip()
+{
+    const string legacy = """{"Version":2,"Enabled":true,"KrangleNames":false,"KrangleChat":true,"RandomizedMode":false,"UiLanguage":"ja","UiColors":{"Mode":1,"BackgroundRgb":1193046,"ControlsRgb":5666970,"TextRgb":14544639},"FutureAppearanceSetting":{"choice":"unchanged"}}""";
+    var config = Newtonsoft.Json.JsonConvert.DeserializeObject<Configuration>(legacy)!;
+    True(config.UiLcarsSoundsMuted);
+    var picker = config.UiColors;
+    True(picker.Mode == AethertekUI.MaterialColorMode.Picker);
+    config.UiColors = picker with { Mode = AethertekUI.MaterialColorMode.Lcars };
+    config.UiLcarsSoundsMuted = false;
+    var saved = Newtonsoft.Json.JsonConvert.SerializeObject(config);
+    var restored = Newtonsoft.Json.JsonConvert.DeserializeObject<Configuration>(saved)!;
+    True(restored.UiColors == picker with { Mode = AethertekUI.MaterialColorMode.Lcars });
+    True(!restored.UiLcarsSoundsMuted && restored.Enabled && !restored.KrangleNames && restored.KrangleChat && !restored.RandomizedMode);
+    True(restored.UiLanguage == "ja" && (string?)restored.AdditionalSettings!["FutureAppearanceSetting"]["choice"] == "unchanged");
+    restored.UiColors = restored.UiColors with { Mode = AethertekUI.MaterialColorMode.Auto };
+    var automatic = Newtonsoft.Json.JsonConvert.DeserializeObject<Configuration>(Newtonsoft.Json.JsonConvert.SerializeObject(restored))!;
+    True(automatic.UiColors == picker with { Mode = AethertekUI.MaterialColorMode.Auto });
+}
+
+static unsafe void NativeLcarsActions()
+{
+    const BindingFlags members = BindingFlags.Static | BindingFlags.NonPublic;
+    var assembly = typeof(Configuration).Assembly;
+    var gui = assembly.GetType("Krangler.Windows.UiGui", true)!;
+    var presentation = assembly.GetType("Krangler.Windows.KranglerPresentation", true)!;
+    var textType = assembly.GetType("Krangler.Windows.UiText", true)!;
+    var constructor = textType.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance).Single();
+    var callbackType = constructor.GetParameters()[1].ParameterType;
+    var role = Expression.Parameter(callbackType.GenericTypeArguments[0]);
+    var callback = Expression.Lambda(callbackType, Expression.Constant(new EmptyUiFont(), typeof(IDisposable)), role).Compile();
+    using var text = (IDisposable)constructor.Invoke(["en", callback]);
+    using var textScope = (IDisposable)textType.GetMethod("Enter", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(text, null)!;
+    var themeFactory = presentation.GetMethod("Theme", members, null, [typeof(uint), typeof(MaterialColorSettings)], null)!;
+    var button = gui.GetMethod("Button", members)!;
+    var checkbox = gui.GetMethod("Checkbox", members, null, [typeof(string), typeof(bool).MakeByRefType(), typeof(string)], null)!;
+    var surface = presentation.GetMethod("Surface", members)!;
+    var previousContext = ImGui.GetCurrentContext();
+    var context = ImGui.CreateContext();
+    try
+    {
+        var io = ImGui.GetIO();
+        io.IniFilename = null; io.LogFilename = null;
+        io.DisplaySize = new(1000, 900); io.DeltaTime = 1f / 60;
+        io.Fonts.AddFontDefault();
+        byte* pixels = null; int width = 0, height = 0;
+        io.Fonts.GetTexDataAsRGBA32(0, &pixels, &width, &height);
+        io.Fonts.SetTexID(0, new ImTextureID((nint)1));
+        foreach (var mode in new[] { MaterialColorMode.Auto, MaterialColorMode.Picker, MaterialColorMode.Lcars })
+        foreach (var compact in new[] { false, true })
+        foreach (var scale in new[] { 1f, 1.5f })
+        {
+            presentation.GetProperty("Compact", members)!.SetValue(null, compact);
+            var theme = (MaterialTheme)themeFactory.Invoke(null, [0x6951E0u, new MaterialColorSettings { Mode = mode }])!;
+            theme.Density = compact ? MaterialDensity.Compact : MaterialDensity.Standard;
+            True(theme.IsLcars == (mode == MaterialColorMode.Lcars));
+            var feedback = new List<MaterialUiSoundCue>();
+            theme.Feedback = feedback.Add;
+            var clicks = 0; var disabledClicks = 0;
+            var toggle = new object?[] { "Show DTR Bar Entry##LcarsRegression", false, null };
+            var buttonPoint = Vector2.Zero; var togglePoint = Vector2.Zero; var disabledPoint = Vector2.Zero;
+            void Frame()
+            {
+                ImGui.NewFrame();
+                using (MaterialTheme.Push(theme, scale, MaterialStyleMode.ColorsOnly))
+                {
+                    ImGui.SetNextWindowPos(Vector2.Zero);
+                    ImGui.SetNextWindowSize(new Vector2(600, 500) * scale);
+                    ImGui.Begin("Krangler appearance regression", ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoTitleBar);
+                    var style = ImGui.GetStyle();
+                    var snapshot = (style.FramePadding, style.FrameRounding, style.ItemSpacing, style.Colors[(int)ImGuiCol.Text], style.Colors[(int)ImGuiCol.Button]);
+                    if ((bool)button.Invoke(null, ["Open Setup Wizard##LcarsRegression", Vector2.Zero, null])!) clicks++;
+                    Equal(ImGui.GetID("Open Setup Wizard##LcarsRegression"), ImGuiP.GetItemID());
+                    buttonPoint = (ImGui.GetItemRectMin() + ImGui.GetItemRectMax()) * .5f;
+                    checkbox.Invoke(null, toggle);
+                    Equal(ImGui.GetID((string)toggle[0]!), ImGuiP.GetItemID());
+                    togglePoint = (ImGui.GetItemRectMin() + ImGui.GetItemRectMax()) * .5f;
+                    ImGui.BeginDisabled();
+                    if ((bool)button.Invoke(null, ["Disabled##LcarsRegression", Vector2.Zero, null])!) disabledClicks++;
+                    disabledPoint = (ImGui.GetItemRectMin() + ImGui.GetItemRectMax()) * .5f;
+                    ImGui.EndDisabled();
+                    Equal(snapshot, (style.FramePadding, style.FrameRounding, style.ItemSpacing, style.Colors[(int)ImGuiCol.Text], style.Colors[(int)ImGuiCol.Button]));
+                    var origin = ImGui.GetCursorScreenPos();
+                    var vertices = ImGui.GetWindowDrawList().VtxBuffer.Size;
+                    surface.Invoke(null, [origin, origin + new Vector2(240, 120) * scale, false]);
+                    True(ImGui.GetWindowDrawList().VtxBuffer.Size > vertices);
+                    ImGui.End();
+                }
+                ImGui.Render();
+            }
+            void Click(Vector2 point)
+            {
+                io.AddMousePosEvent(point.X, point.Y); Frame();
+                io.AddMouseButtonEvent(0, true); Frame();
+                io.AddMouseButtonEvent(0, false); Frame();
+            }
+            io.FontGlobalScale = scale;
+            io.AddMousePosEvent(-1000, -1000);
+            for (var frame = 0; frame < 4; frame++) Frame();
+            Click(buttonPoint); Click(togglePoint); Click(disabledPoint);
+            Equal(1, clicks); Equal(0, disabledClicks); True((bool)toggle[1]!);
+            True(feedback.SequenceEqual(mode == MaterialColorMode.Lcars
+                ? new[] { MaterialUiSoundCue.Click, MaterialUiSoundCue.Toggle } : Array.Empty<MaterialUiSoundCue>()));
+        }
+    }
+    finally { ImGui.DestroyContext(context); ImGui.SetCurrentContext(previousContext); }
 }
 
 static string[] AppearanceSnapshot() => Enumerable.Range(0, 24).Select(i =>
@@ -307,4 +421,9 @@ sealed class PersistentSettingsProbe
 
     public void Save()
         => SaveCount++;
+}
+
+sealed class EmptyUiFont : IDisposable
+{
+    public void Dispose() { }
 }

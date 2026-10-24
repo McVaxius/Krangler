@@ -107,6 +107,7 @@ public sealed class SetupWizardWindow : Window
     {
         windowMotion.DrawChrome();
         UiGui.TitleWithButtons(WindowName.Split("##",2)[0], null, this);
+        if (MaterialTheme.Current.IsLcars) MaterialLcars.Header(UiText.T(WindowName.Split("##", 2)[0]));
         draft ??= WizardDraft.From(plugin.Configuration);
 
         UiGui.Text(UiText.F($"Step {step + 1} of 3"));

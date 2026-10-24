@@ -28,7 +28,9 @@ The DTR entry can show text, icon plus text, or icon only. Clicking it toggles K
 
 The main header exposes compact mode (**C**) and language; **Appearance** also provides the theme colour swatch and these preferences. Compact mode reduces spacing across the main window and setup wizard while keeping the same controls. The interface supports English, German, French, Spanish, Italian, Russian, Japanese, Korean, Simplified Chinese, Vietnamese, Brazilian Portuguese, Indonesian, Polish, Turkish, and Hindi; imported preset names, player names, commands, and logs keep their original text.
 
-Choose teal, blue, pink, or a custom RGB colour to recolour the decorative theme. Active and warning states keep their meaning. These preferences use Krangler's existing configuration save path and preserve existing gameplay settings. Narrower windows wrap the DTR icon groups and replacement controls as needed.
+The colour selector offers Auto, Picker and LCARS. Auto follows the teal, blue, pink or custom RGB accent; Picker keeps independent background, control and text choices. LCARS adds segmented headers, framed overview panels, outlined actions and blue checkboxes to the existing pages and setup wizard. Active and warning states keep their meaning. These preferences use Krangler's existing configuration save path and preserve existing gameplay settings. Narrower windows wrap the DTR icon groups and replacement controls as needed.
+
+LCARS UI sounds start muted. Appearance and the titlebar speaker share one saved setting, with a single Preview sound action when enabled. Muting, leaving LCARS or unloading stops only Krangler's UI player. Name and chat privacy remain controlled by their existing settings and master toggle.
 
 **Transparency** applies to the complete plugin window, including its titlebar and popups. Appearance provides normal opacity, automatic focus fade, faded opacity and delay; defaults are 100%, fading to 50% after 10 seconds without focus and restoring on focus. Compact and language controls can be hidden independently on Main while remaining available in Appearance.
 

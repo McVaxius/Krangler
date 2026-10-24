@@ -4,11 +4,13 @@
     <TargetFramework>net10.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="$(DALAMUD_HOME)/cimgui.dll" Link="cimgui.dll" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="..\Krangler\Krangler.csproj" />
-    <Reference Include="Dalamud;Newtonsoft.Json">
+    <Reference Include="Dalamud;Newtonsoft.Json;Dalamud.Bindings.ImGui;HexaGen.Runtime">
       <HintPath>$(DALAMUD_HOME)/%(Identity).dll</HintPath>
       <Private>true</Private>
     </Reference>
