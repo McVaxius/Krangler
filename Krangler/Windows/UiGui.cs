@@ -15,12 +15,28 @@ internal static class UiGui
 {
     internal static void Text(string text) => MaterialText.Text(UiText.T(text));
     internal static void Text(FormattableString text) => MaterialText.Text(UiText.F(text));
+    internal static void SectionHeading(string label, int accent = 1)
+    {
+        if (KranglerPresentation.HasMaterial) MaterialSkin.Heading(UiText.T(label), accent);
+        else { Text(label); ImGui.Separator(); }
+    }
     internal static void TextUnformatted(string text) => MaterialText.Text(UiText.T(text));
     internal static void TextWrapped(string text) => MaterialText.TextWrapped(UiText.T(text));
     internal static void TextDisabled(string text) { ImGui.PushTextWrapPos(0);try { MaterialText.TextDisabled(UiText.T(text)); } finally { ImGui.PopTextWrapPos(); } }
     internal static void TextColored(Vector4 color,string text) { ImGui.PushTextWrapPos(0);try { MaterialText.TextColored(color,UiText.T(text)); } finally { ImGui.PopTextWrapPos(); } }
     internal static void BulletText(string text) => MaterialText.BulletText(UiText.T(text));
-    internal static void SetTooltip(string text) { ImGui.BeginTooltip();ImGui.PushTextWrapPos(Math.Min(560*MaterialTheme.Metrics.Scale,ImGui.GetMainViewport().WorkSize.X*.8f));try { MaterialText.Text(UiText.T(text)); } finally { ImGui.PopTextWrapPos();ImGui.EndTooltip(); } }
+    internal static void SetTooltip(string text)
+    {
+        using (MaterialSkin.BackdropStyle(popup: true)) ImGui.BeginTooltip();
+        try
+        {
+            MaterialSkin.Backdrop();
+            ImGui.PushTextWrapPos(Math.Min(560*MaterialTheme.Metrics.Scale,ImGui.GetMainViewport().WorkSize.X*.8f));
+            try { MaterialText.Text(UiText.T(text)); }
+            finally { ImGui.PopTextWrapPos(); }
+        }
+        finally { ImGui.EndTooltip(); }
+    }
     private static string Visible(string label) => UiText.T(label.Split("##",2)[0]);
     private static void Ink(string label,Vector2 position,Vector2 min,Vector2 max)
     {
@@ -33,15 +49,27 @@ internal static class UiGui
         var translated=display ?? Visible(original);
         using var controls = ImGui.GetStyle().FramePadding.Y == 0 || MaterialControls.Context == MaterialControlContext.Dense
             ? default(MaterialControls.ControlScope) : MaterialControls.Push(MaterialControlContext.Toolbar);
+        var paddingY = ImGui.GetStyle().FramePadding.Y;
         using var height = MaterialText.PushLineHeight(translated);
-        using var nativeButtons = MaterialLcars.NativeButtonStyle();
+        var material = KranglerPresentation.HasMaterial;
+        var radius = ImGui.GetStyle().FrameRounding;
+        using var nativeButtons = material ? MaterialSkin.NativeButtonStyle() : MaterialLcars.NativeButtonStyle();
+        using var rounding = new MaterialStyleScope();
+        if (material) rounding.Style(ImGuiStyleVar.FrameRounding, radius);
         if (MaterialText.RequiresShaping(translated) && size.Y > 0)
-            size.Y = Math.Max(size.Y, MaterialText.Measure(translated).Y + ImGui.GetStyle().FramePadding.Y * 2);
+            size.Y = Math.Max(size.Y, MaterialText.Measure(translated).Y + (material ? paddingY : ImGui.GetStyle().FramePadding.Y) * 2);
         var natural=MaterialText.Measure(translated).X+ImGui.GetStyle().FramePadding.X*2;
         size.X=MaterialLayout.FitNextItemWidth(size.X,Math.Max(size.X,natural));
         ImGui.PushStyleColor(ImGuiCol.Text,Vector4.Zero);
-        var clicked=ImGui.Button(original,size);ImGui.PopStyleColor();
+        bool clicked;
+        try
+        {
+            using var face = material ? MaterialSkin.TransparentButtonFace() : new MaterialStyleScope();
+            clicked = ImGui.Button(original,size);
+        }
+        finally { ImGui.PopStyleColor(); }
         var min=ImGui.GetItemRectMin();var max=ImGui.GetItemRectMax();
+        if (material) MaterialSkin.PaintButton(min, max, ImGui.GetStyle().Alpha, radius);
         Ink(translated,min+(max-min-MaterialText.Measure(translated))*.5f,min,max);
         if (MaterialText.Measure(translated).X>max.X-min.X-ImGui.GetStyle().FramePadding.X*2 && ImGui.IsItemHovered()) MaterialText.SetTooltip(translated);
         MaterialLcars.Feedback(clicked);
@@ -71,8 +99,44 @@ internal static class UiGui
         ImGui.PushStyleColor(ImGuiCol.CheckMark,MaterialTheme.Current.IsLcars ? MaterialLcars.Text : colors.OnPrimary);
         ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize,MaterialTheme.Metrics.Scale);
         ImGui.PushStyleVar(ImGuiStyleVar.ItemInnerSpacing,new Vector2(Math.Max(0,gap.X+textSize.X-MaterialText.Measure(original).X),gap.Y));
-        ImGui.PushStyleColor(ImGuiCol.Text,Vector4.Zero);var changed=ImGui.Checkbox(label,ref value);ImGui.PopStyleColor();ImGui.PopStyleVar();
-        ImGui.PopStyleVar();ImGui.PopStyleColor(4);
+        var material = KranglerPresentation.HasMaterial;
+        var drawing = ImGui.GetWindowDrawList();
+        var splitter = material ? ImGui.ImDrawListSplitter() : default;
+        bool changed;
+        try
+        {
+            if (material) { splitter.Split(drawing, 2); splitter.SetCurrentChannel(drawing, 1); }
+            using (var face = new MaterialStyleScope())
+            {
+                if (material)
+                {
+                    face.Color(ImGuiCol.FrameBg, Vector4.Zero);
+                    face.Color(ImGuiCol.FrameBgHovered, Vector4.Zero);
+                    face.Color(ImGuiCol.FrameBgActive, Vector4.Zero);
+                    face.Color(ImGuiCol.Border, Vector4.Zero);
+                }
+                face.Color(ImGuiCol.Text, Vector4.Zero);
+                changed = ImGui.Checkbox(label, ref value);
+            }
+            if (material)
+            {
+                splitter.SetCurrentChannel(drawing, 0);
+                var faceMin = ImGui.GetItemRectMin();
+                using var skin = MaterialSkin.NativeButtonStyle();
+                using var face = new MaterialStyleScope();
+                face.Color(ImGuiCol.Button, ImGui.GetStyle().Colors[(int)ImGuiCol.FrameBg]);
+                face.Color(ImGuiCol.ButtonHovered, ImGui.GetStyle().Colors[(int)ImGuiCol.FrameBgHovered]);
+                face.Color(ImGuiCol.ButtonActive, ImGui.GetStyle().Colors[(int)ImGuiCol.FrameBgActive]);
+                MaterialSkin.PaintButton(faceMin, faceMin + new Vector2(height), ImGui.GetStyle().Alpha, Math.Min(6 * MaterialTheme.Metrics.Scale, height * .25f));
+                splitter.SetCurrentChannel(drawing, 1);
+            }
+        }
+        finally
+        {
+            if (material) { splitter.Merge(drawing); splitter.Destroy(); }
+            ImGui.PopStyleVar(2);
+            ImGui.PopStyleColor(4);
+        }
         var min=ImGui.GetItemRectMin();var max=ImGui.GetItemRectMax();
         var p=min+new Vector2(height+gap.X,(height-textSize.Y)*.5f);
         using (labelRole is { } inkRole?UiText.Font(inkRole):null)
@@ -86,7 +150,43 @@ internal static class UiGui
         using var height = MaterialText.PushLineHeight(translated);
         MaterialLayout.FitNextItemWidth(0,ImGui.GetFrameHeight()+gap.X+MaterialText.Measure(translated).X);
         ImGui.PushStyleVar(ImGuiStyleVar.ItemInnerSpacing,new Vector2(Math.Max(0,gap.X+MaterialText.Measure(translated).X-MaterialText.Measure(original).X),gap.Y));
-        ImGui.PushStyleColor(ImGuiCol.Text,Vector4.Zero);var changed=ImGui.RadioButton(label,selected);ImGui.PopStyleColor();ImGui.PopStyleVar();
+        var material = KranglerPresentation.HasMaterial;
+        var drawing = ImGui.GetWindowDrawList();
+        var splitter = material ? ImGui.ImDrawListSplitter() : default;
+        bool changed;
+        try
+        {
+            if (material) { splitter.Split(drawing, 2); splitter.SetCurrentChannel(drawing, 1); }
+            using (var face = new MaterialStyleScope())
+            {
+                if (material)
+                {
+                    face.Color(ImGuiCol.FrameBg, Vector4.Zero);
+                    face.Color(ImGuiCol.FrameBgHovered, Vector4.Zero);
+                    face.Color(ImGuiCol.FrameBgActive, Vector4.Zero);
+                    face.Color(ImGuiCol.Border, Vector4.Zero);
+                }
+                face.Color(ImGuiCol.Text, Vector4.Zero);
+                changed = ImGui.RadioButton(label, selected);
+            }
+            if (material)
+            {
+                splitter.SetCurrentChannel(drawing, 0);
+                var faceMin = ImGui.GetItemRectMin(); var side = ImGui.GetFrameHeight();
+                using var skin = MaterialSkin.NativeButtonStyle();
+                using var face = new MaterialStyleScope();
+                face.Color(ImGuiCol.Button, ImGui.GetStyle().Colors[(int)ImGuiCol.FrameBg]);
+                face.Color(ImGuiCol.ButtonHovered, ImGui.GetStyle().Colors[(int)ImGuiCol.FrameBgHovered]);
+                face.Color(ImGuiCol.ButtonActive, ImGui.GetStyle().Colors[(int)ImGuiCol.FrameBgActive]);
+                MaterialSkin.PaintButton(faceMin, faceMin + new Vector2(side), ImGui.GetStyle().Alpha, side * .5f);
+                splitter.SetCurrentChannel(drawing, 1);
+            }
+        }
+        finally
+        {
+            if (material) { splitter.Merge(drawing); splitter.Destroy(); }
+            ImGui.PopStyleVar();
+        }
         var min=ImGui.GetItemRectMin();var p=min+new Vector2(ImGui.GetFrameHeight()+gap.X,ImGui.GetStyle().FramePadding.Y);
         Ink(translated,p,min,new Vector2(p.X+MaterialText.Measure(translated).X,ImGui.GetItemRectMax().Y));
         MaterialLcars.Feedback(changed, MaterialUiSoundCue.Toggle);
@@ -139,12 +239,35 @@ internal static class UiGui
     {
         var shown=translatePreview?UiText.T(preview):preview;
         minimum=Math.Max(minimum,Math.Max(80*MaterialTheme.Metrics.Scale,MaterialText.Measure(shown).X+ImGui.GetFrameHeight()+2*ImGui.GetStyle().FramePadding.X));
-        using var height = MaterialText.PushLineHeight(MaterialText.RequiresShaping(shown) || MaterialText.RequiresShaping(label) || !showLabel ? "" : Visible(label));
+        var material = KranglerPresentation.HasMaterial;
+        using var height = material ? MaterialText.PushLineHeight(shown, showLabel ? Visible(label) : "")
+            : MaterialText.PushLineHeight(MaterialText.RequiresShaping(shown) || MaterialText.RequiresShaping(label) || !showLabel ? "" : Visible(label));
+        if (material) minimum = Math.Max(minimum, MaterialText.Measure(shown).X + ImGui.GetFrameHeight() + 2 * ImGui.GetStyle().FramePadding.X);
         var field=FitField(label,minimum,showLabel);
+        var font = ImGui.GetFont(); var fontSize = ImGui.GetFontSize();
+        var frameHeight = ImGui.GetFrameHeight(); var padding = ImGui.GetStyle().FramePadding;
+        var foreground = ImGui.GetColorU32(ImGuiCol.Text);
         bool open;
-        try { open=MaterialText.BeginCombo(label,shown,flags); }
+        try
+        {
+            using var skin = MaterialSkin.NativeFieldStyle();
+            using var backdrop = MaterialSkin.BackdropStyle(popup: true);
+            open = material ? ImGui.BeginCombo(label, "", flags) : MaterialText.BeginCombo(label,shown,flags);
+        }
         finally { field.Drawing.PopClipRect(); }
-        try { FieldLabel(field); }
+        try
+        {
+            if (open) MaterialSkin.Backdrop();
+            if (material && (flags & ImGuiComboFlags.NoPreview) == 0)
+            {
+                var visiblePreview = shown.Split("##", 2)[0];
+                var right = (flags & ImGuiComboFlags.NoArrowButton) == 0 ? frameHeight : padding.X;
+                field.Drawing.PushClipRect(field.Min, field.Min + new Vector2(Math.Max(padding.X, field.Width - right), frameHeight), true);
+                try { MaterialText.AddText(field.Drawing, font, fontSize, field.Min + new Vector2(padding.X, (frameHeight - MaterialText.Measure(visiblePreview).Y) * .5f), foreground, visiblePreview); }
+                finally { field.Drawing.PopClipRect(); }
+            }
+            FieldLabel(field);
+        }
         catch { if (open) ImGui.EndCombo(); throw; }
         if(!open && MaterialText.Measure(shown).X>field.Width-ImGui.GetFrameHeight() && ImGui.IsItemHovered()) MaterialText.SetTooltip(shown);
         return open;
@@ -154,8 +277,45 @@ internal static class UiGui
         var translated = Visible(label);
         if (MaterialText.RequiresShaping(translated)) size.Y = Math.Max(size.Y, MaterialText.Measure(translated).Y);
         var origin=ImGui.GetCursorScreenPos();
-        ImGui.PushStyleColor(ImGuiCol.Text,Vector4.Zero);var changed=ImGui.Selectable(label,selected,flags,size);ImGui.PopStyleColor();
-        var min=ImGui.GetItemRectMin();var max=ImGui.GetItemRectMax();Ink(Visible(label),origin,min,max);
+        var material = KranglerPresentation.HasMaterial;
+        var style = ImGui.GetStyle(); var radius = style.FrameRounding;
+        var foreground = style.Colors[(int)ImGuiCol.Text];
+        var alpha = style.Alpha;
+        if (material && (flags & ImGuiSelectableFlags.Disabled) != 0
+            && (ImGui.GetCurrentContext().CurrentItemFlags & ImGuiItemFlags.Disabled) == 0)
+        {
+            alpha *= style.DisabledAlpha;
+            foreground.W *= style.DisabledAlpha;
+        }
+        bool changed;
+        using (var face = new MaterialStyleScope())
+        {
+            face.Color(ImGuiCol.Text, Vector4.Zero);
+            if (material)
+            {
+                face.Color(ImGuiCol.Header, Vector4.Zero);
+                face.Color(ImGuiCol.HeaderHovered, Vector4.Zero);
+                face.Color(ImGuiCol.HeaderActive, Vector4.Zero);
+            }
+            changed = ImGui.Selectable(label, selected, flags, size);
+        }
+        var min=ImGui.GetItemRectMin();var max=ImGui.GetItemRectMax();
+        if (material && (selected || ImGui.IsItemHovered()))
+        {
+            using var skin = MaterialSkin.NativeButtonStyle();
+            using var face = new MaterialStyleScope();
+            face.Color(ImGuiCol.Button, style.Colors[(int)ImGuiCol.Header]);
+            face.Color(ImGuiCol.ButtonHovered, style.Colors[(int)ImGuiCol.HeaderHovered]);
+            face.Color(ImGuiCol.ButtonActive, style.Colors[(int)ImGuiCol.HeaderActive]);
+            MaterialSkin.PaintButton(min, max, alpha, radius);
+        }
+        if (material)
+        {
+            ImGui.GetWindowDrawList().PushClipRect(min, max, true);
+            try { MaterialText.AddText(ImGui.GetWindowDrawList(), origin, MaterialCanvas.Color(foreground), translated); }
+            finally { ImGui.GetWindowDrawList().PopClipRect(); }
+        }
+        else Ink(translated,origin,min,max);
         if (MaterialText.Measure(Visible(label)).X>max.X-min.X && ImGui.IsItemHovered()) MaterialText.SetTooltip(Visible(label));
         MaterialLcars.Feedback(changed);
         return changed;
@@ -197,7 +357,7 @@ internal static class UiGui
         using var height = MaterialText.PushLineHeight(value, showLabel ? Visible(label) : "");
         var field=FitField(label,TextMinimum(length),showLabel);
         bool changed;
-        try { changed=MaterialShapedInput.SingleLine(label,"",ref value,length,flags); }
+        try { using var skin = MaterialSkin.NativeFieldStyle(); changed=MaterialShapedInput.SingleLine(label,"",ref value,length,flags); }
         finally { field.Drawing.PopClipRect(); }
         FieldLabel(field);
         return changed;
@@ -207,7 +367,7 @@ internal static class UiGui
         using var height = MaterialText.PushLineHeight(value, showLabel ? Visible(label) : "");
         var field=FitField(label,minimum,showLabel);
         bool changed;
-        try { changed=MaterialShapedInput.SingleLine(label,"",ref value,length,flags); }
+        try { using var skin = MaterialSkin.NativeFieldStyle(); changed=MaterialShapedInput.SingleLine(label,"",ref value,length,flags); }
         finally { field.Drawing.PopClipRect(); }
         FieldLabel(field);
         return changed;
@@ -216,16 +376,16 @@ internal static class UiGui
     {
         using var height = MaterialText.PushLineHeight(value, UiText.T(hint), Visible(label));
         var field=FitField(label,TextMinimum(length));bool changed;
-        try { changed=MaterialShapedInput.SingleLine(label,UiText.T(hint),ref value,length,flags); }
+        try { using var skin = MaterialSkin.NativeFieldStyle(); changed=MaterialShapedInput.SingleLine(label,UiText.T(hint),ref value,length,flags); }
         finally { field.Drawing.PopClipRect(); }
         FieldLabel(field);return changed;
     }
     internal static bool InputTextMultiline(string label,ref string value,int length,Vector2 size,ImGuiInputTextFlags flags=ImGuiInputTextFlags.None)
     { var field=FitField(label,TextMinimum(length),preferred:size.X>0?size.X:ImGui.CalcItemWidth());size.X=field.Width;bool changed;try { changed=ImGui.InputTextMultiline(label,ref value,length,size,flags); }finally { field.Drawing.PopClipRect(); }FieldLabel(field);return changed; }
     internal static bool InputInt(string label,ref int value,int step=0,int fastStep=0,ImGuiInputTextFlags flags=ImGuiInputTextFlags.None)
-    { using var height=MaterialText.PushLineHeight(Visible(label));var field=FitField(label,NumberMinimum(step>0));bool changed;try { changed=ImGui.InputInt(label,ref value,step,fastStep,"%d",flags); }finally { field.Drawing.PopClipRect(); }FieldLabel(field);return changed; }
+    { using var height=MaterialText.PushLineHeight(Visible(label));var field=FitField(label,NumberMinimum(step>0));bool changed;try { using var skin = MaterialSkin.NativeFieldStyle(); changed=ImGui.InputInt(label,ref value,step,fastStep,"%d",flags); }finally { field.Drawing.PopClipRect(); }FieldLabel(field);return changed; }
     internal static bool SliderInt(string label,ref int value,int min,int max,string format="%d",ImGuiSliderFlags flags=ImGuiSliderFlags.None)
-    { using var height=MaterialText.PushLineHeight(Visible(label));var field=FitField(label,NumberMinimum(false));bool changed;try { changed=ImGui.SliderInt(label,ref value,min,max,UiText.T(format),flags); }finally { field.Drawing.PopClipRect(); }FieldLabel(field);return changed; }
+    { using var height=MaterialText.PushLineHeight(Visible(label));var field=FitField(label,NumberMinimum(false));bool changed;try { using var skin = MaterialSkin.NativeFieldStyle(); changed=ImGui.SliderInt(label,ref value,min,max,UiText.T(format),flags); }finally { field.Drawing.PopClipRect(); }FieldLabel(field);return changed; }
     internal static float TextMinimum(int length) => MathF.Ceiling(Math.Max((length<=8?44:80)*MaterialTheme.Metrics.Scale,MaterialText.Measure(new string('0',Math.Clamp(length-1,3,10))).X+2*ImGui.GetStyle().FramePadding.X));
     internal static float NumberMinimum(bool steps) => MathF.Ceiling(Math.Max(80*MaterialTheme.Metrics.Scale,MaterialText.Measure("-000000").X+2*ImGui.GetStyle().FramePadding.X))+(steps?2*(ImGui.GetFrameHeight()+ImGui.GetStyle().ItemInnerSpacing.X):0);
     internal static bool Combo(string label,ref int value,string[] options,int count)
@@ -249,7 +409,10 @@ internal static class UiGui
     internal static bool BeginPopupModal(string original,ImGuiWindowFlags flags)
     {
         ImGui.SetNextWindowSize(new Vector2(520*MaterialTheme.Metrics.Scale,0),ImGuiCond.Always);
-        var open=ImGui.BeginPopupModal(original,flags);if(open) Title(original.Split("##",2)[0]);return open;
+        bool open;
+        using (MaterialSkin.BackdropStyle(popup: true)) open=ImGui.BeginPopupModal(original,flags);
+        if(open) { MaterialSkin.Backdrop(); Title(original.Split("##",2)[0]); }
+        return open;
     }
     internal static void Title(string original,string? display=null)
         => TitleWithButtons(original, display, null);

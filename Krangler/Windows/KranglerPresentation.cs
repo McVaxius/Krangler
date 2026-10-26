@@ -14,6 +14,7 @@ internal static class KranglerPresentation
 {
     // Approved Krangler-review-v2 / compact-review-v1, logical pixels; retain native chrome.
     internal static bool Compact { get; set; }
+    internal static bool HasMaterial => MaterialTheme.Current.IsGlassmorphism || MaterialTheme.Current.IsSpatial || MaterialTheme.Current.IsCyberpunk;
     internal static float HeaderHeight => Compact ? 68 : 87;
     internal static float ContentTop => Compact ? 24 : 16;
     internal static float SidebarWidth => Compact ? 278 : 282;
@@ -76,6 +77,11 @@ internal static class KranglerPresentation
     }
     internal static void Surface(Vector2 min, Vector2 max, bool raised = false)
     {
+        if (HasMaterial)
+        {
+            MaterialSkin.PanelFrame(min, max, raised ? 2 : 1);
+            return;
+        }
         if (MaterialTheme.Current.IsLcars)
         {
             MaterialLcars.PanelFrame(min, max, raised ? 2 : 1);

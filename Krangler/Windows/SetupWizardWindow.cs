@@ -8,6 +8,7 @@ namespace Krangler.Windows;
 public sealed class SetupWizardWindow : Window
 {
     private readonly AethertekUI.Dalamud.MaterialWindowMotion windowMotion = new();
+    private bool backdropColorPushed;
     private sealed class WizardDraft
     {
         public bool Enabled { get; init; }
@@ -94,24 +95,44 @@ public sealed class SetupWizardWindow : Window
         ImGui.SetNextWindowSize(new Vector2(width, 0), ImGuiCond.Always);
         // Auto-fit must use the same width when predicting wrapped content and scrollbars.
         ImGui.SetNextWindowSizeConstraints(new Vector2(width, 0), new Vector2(width, float.MaxValue));
+        if (KranglerPresentation.HasMaterial)
+        {
+            ImGui.PushStyleColor(ImGuiCol.WindowBg, Vector4.Zero);
+            backdropColorPushed = true;
+        }
         windowMotion.Prepare(this, reducedMotion: false, roundedCorners: true);
     }
 
     public override void PostDraw()
     {
+        if (backdropColorPushed)
+        {
+            ImGui.PopStyleColor();
+            backdropColorPushed = false;
+        }
         windowMotion.Restore(this);
         UiGui.ImageTitleWithStatus(this, UiText.T(WindowName.Split("##", 2)[0]), plugin.OriginalIcon, status: plugin.TitlebarStatus);
     }
 
     public override void Draw()
     {
+        if (backdropColorPushed)
+        {
+            ImGui.PopStyleColor();
+            backdropColorPushed = false;
+        }
+        MaterialSkin.Backdrop();
         windowMotion.DrawChrome();
         UiGui.TitleWithButtons(WindowName.Split("##",2)[0], null, this);
         if (MaterialTheme.Current.IsLcars) MaterialLcars.Header(UiText.T(WindowName.Split("##", 2)[0]));
         draft ??= WizardDraft.From(plugin.Configuration);
 
-        UiGui.Text(UiText.F($"Step {step + 1} of 3"));
-        ImGui.Separator();
+        if (KranglerPresentation.HasMaterial) MaterialSkin.Heading(UiText.F($"Step {step + 1} of 3"));
+        else
+        {
+            UiGui.Text(UiText.F($"Step {step + 1} of 3"));
+            ImGui.Separator();
+        }
         ImGui.Spacing();
 
         switch (step)
@@ -138,7 +159,8 @@ public sealed class SetupWizardWindow : Window
 
     private void DrawFeatureStep()
     {
-        UiGui.Text("Core privacy choices");
+        if (KranglerPresentation.HasMaterial) MaterialSkin.Heading(UiText.T("Core privacy choices"), 1);
+        else UiGui.Text("Core privacy choices");
         UiGui.TextWrapped("Choose the broad local-only surfaces you want Krangler to change. You can refine every option later in the main window.");
         ImGui.Spacing();
 
@@ -152,7 +174,8 @@ public sealed class SetupWizardWindow : Window
 
     private void DrawSelfAndDtrStep()
     {
-        UiGui.Text("Self display and DTR");
+        if (KranglerPresentation.HasMaterial) MaterialSkin.Heading(UiText.T("Self display and DTR"), 1);
+        else UiGui.Text("Self display and DTR");
         UiGui.TextWrapped("Keep your own character stable if desired, and choose how Krangler appears in the server info bar.");
         ImGui.Spacing();
 
@@ -178,7 +201,8 @@ public sealed class SetupWizardWindow : Window
 
     private void DrawReviewStep()
     {
-        UiGui.Text("Review and apply");
+        if (KranglerPresentation.HasMaterial) MaterialSkin.Heading(UiText.T("Review and apply"), 1);
+        else UiGui.Text("Review and apply");
         UiGui.TextWrapped("Finish saves these choices once. Presets, Soul Thief, Amongus, Imaginary Fren, advanced appearance settings, and Racism rules are not changed by this wizard.");
         ImGui.Spacing();
 

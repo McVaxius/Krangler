@@ -16,6 +16,7 @@ public class MainWindow : Window, IDisposable
 {
     private readonly AethertekUI.Dalamud.MaterialSupportLog supportLog = new();
     private readonly AethertekUI.Dalamud.MaterialWindowMotion windowMotion = new();
+    private bool backdropColorPushed;
     private readonly Plugin plugin;
     private string presetSearch = string.Empty;
     private Vector2? queuedPosition;
@@ -58,11 +59,21 @@ public class MainWindow : Window, IDisposable
 
     public override void PreDraw()
     {
+        if (KranglerPresentation.HasMaterial)
+        {
+            ImGui.PushStyleColor(ImGuiCol.WindowBg, Vector4.Zero);
+            backdropColorPushed = true;
+        }
         windowMotion.Prepare(this, reducedMotion: false, roundedCorners: true);
     }
 
     public override void PostDraw()
     {
+        if (backdropColorPushed)
+        {
+            ImGui.PopStyleColor();
+            backdropColorPushed = false;
+        }
         windowMotion.Restore(this);
         var title = WindowName.Split("##", 2)[0];
         UiGui.ImageTitleWithStatus(this, $"{UiText.T(title)} {typeof(Plugin).Assembly.GetName().Version}", plugin.OriginalIcon, status: plugin.TitlebarStatus);
@@ -70,6 +81,12 @@ public class MainWindow : Window, IDisposable
 
     public override void Draw()
     {
+        if (backdropColorPushed)
+        {
+            ImGui.PopStyleColor();
+            backdropColorPushed = false;
+        }
+        MaterialSkin.Backdrop();
         windowMotion.DrawChrome();
         ApplyQueuedWindowPlacement();
         DrawTabbedInterface();
@@ -85,6 +102,7 @@ public class MainWindow : Window, IDisposable
             config.Save();
 
         var scale = MaterialTheme.Metrics.Scale;
+        var hasMaterial = KranglerPresentation.HasMaterial;
         var window = ImGuiP.GetCurrentWindow();
         ImGui.PushClipRect(window.InnerRect.Min,window.InnerRect.Max,false);
         var body = new Vector2(window.Pos.X, window.InnerRect.Min.Y);
@@ -100,8 +118,10 @@ public class MainWindow : Window, IDisposable
             +KranglerPresentation.NavigationHeight*scale+ImGui.GetStyle().ItemSpacing.Y*.5f+(KranglerPresentation.Compact?30:32)*scale;
         if (navigationBottom>bottom-body.Y) sidebarWidth+=ImGui.GetStyle().ScrollbarSize;
         ImGui.SetCursorScreenPos(body);
+        if (hasMaterial)
+            MaterialSkin.PanelFrame(body, new Vector2(body.X + sidebarWidth, bottom), inset: true);
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding,new Vector2(0,KranglerPresentation.Compact?30:32)*scale);
-        ImGui.PushStyleColor(ImGuiCol.ChildBg,MaterialTheme.Current.Colors.Background);
+        ImGui.PushStyleColor(ImGuiCol.ChildBg,hasMaterial ? Vector4.Zero : MaterialTheme.Current.Colors.Background);
         if (ImGui.BeginChild("##KranglerNavigation", new Vector2(sidebarWidth, bottom-body.Y), false,ImGuiWindowFlags.AlwaysUseWindowPadding))
         {
             ImGuiP.PushOverrideID(windowRootId);
@@ -121,16 +141,35 @@ public class MainWindow : Window, IDisposable
                     firstNavigationY+ImGui.GetStyle().ItemSpacing.Y*.5f+index*(KranglerPresentation.NavigationHeight*scale+ImGui.GetStyle().ItemSpacing.Y)));
                 var size = new Vector2(sidebarWidth-6*scale-ImGui.GetStyle().ItemSpacing.X, KranglerPresentation.NavigationHeight * scale);
                 var label = UiText.T(Sections[index]);
-                ImGui.PushStyleColor(ImGuiCol.Header,MaterialTheme.Current.IsLcars ? MaterialLcars.Lilac : MaterialTheme.Current.Colors.TertiaryContainer);
+                ImGui.PushStyleColor(ImGuiCol.Header,hasMaterial ? Vector4.Zero : MaterialTheme.Current.IsLcars ? MaterialLcars.Lilac : MaterialTheme.Current.Colors.TertiaryContainer);
+                if (hasMaterial)
+                {
+                    ImGui.PushStyleColor(ImGuiCol.HeaderHovered, Vector4.Zero);
+                    ImGui.PushStyleColor(ImGuiCol.HeaderActive, Vector4.Zero);
+                }
                 ImGui.PushStyleColor(ImGuiCol.Text, Vector4.Zero);
                 var clicked = ImGui.Selectable(Sections[index]+"##navigation", selectedSection == index, size: size);
                 if (clicked) selectedSection = index;
                 MaterialLcars.Feedback(clicked);
-                ImGui.PopStyleColor(2);
+                var navigationFill = ImGui.GetStyle().Colors[(int)(ImGui.IsItemHovered()
+                    ? ImGui.IsItemActive() ? ImGuiCol.HeaderActive : ImGuiCol.HeaderHovered
+                    : ImGuiCol.Header)];
+                ImGui.PopStyleColor(hasMaterial ? 4 : 2);
                 var min = ImGui.GetItemRectMin();
                 var max = ImGui.GetItemRectMax();
+                if (hasMaterial)
+                {
+                    var fill = selectedSection == index ? MaterialTheme.Current.Colors.PrimaryContainer : MaterialTheme.Current.Colors.SurfaceContainerLow;
+                    using var face = new MaterialStyleScope();
+                    face.Color(ImGuiCol.Button, fill);
+                    face.Color(ImGuiCol.ButtonHovered, MaterialColor.Layer(fill, MaterialTheme.Current.Colors.OnSurface, .08f));
+                    face.Color(ImGuiCol.ButtonActive, MaterialColor.Layer(fill, MaterialTheme.Current.Colors.OnSurface, .14f));
+                    MaterialSkin.PaintButton(min, max);
+                }
                 var color = selectedSection == index ? MaterialTheme.Current.Colors.OnSurface : MaterialTheme.Current.Colors.OnSurfaceVariant;
-                if (selectedSection == index && MaterialTheme.Current.IsLcars) color = MaterialLcars.Background;
+                if (selectedSection == index && MaterialTheme.Current.IsLcars)
+                    color = MaterialColor.Contrast(navigationFill, Vector4.One) >= MaterialColor.Contrast(navigationFill, new Vector4(0, 0, 0, 1))
+                        ? Vector4.One : new Vector4(0, 0, 0, 1);
                 var dl = ImGui.GetWindowDrawList();
                 if (selectedSection == index) dl.AddRectFilled(min, new Vector2(min.X+4*scale, max.Y), MaterialCanvas.Color(MaterialTheme.Current.Colors.Primary), 2*scale);
                 DrawSectionIcon(index,min+new Vector2(20,((max.Y-min.Y)/scale-38)*.5f)*scale,38*scale,
@@ -144,7 +183,13 @@ public class MainWindow : Window, IDisposable
         ImGui.GetWindowDrawList().AddLine(new Vector2(body.X+sidebarWidth,body.Y),new Vector2(body.X+sidebarWidth,bottom),MaterialCanvas.Color(MaterialTheme.Current.Colors.OutlineVariant),scale);
         var contentOrigin=body+new Vector2(sidebarWidth/scale+21,KranglerPresentation.ContentTop)*scale;
         ImGui.SetCursorScreenPos(contentOrigin);
-        if (ImGui.BeginChild("##KranglerContent", new Vector2(Math.Max(1,window.Pos.X+window.Size.X-21*scale-contentOrigin.X),Math.Max(1,bottom-contentOrigin.Y-21*scale)), false, ImGuiWindowFlags.HorizontalScrollbar))
+        var contentSize = new Vector2(Math.Max(1,window.Pos.X+window.Size.X-21*scale-contentOrigin.X),Math.Max(1,bottom-contentOrigin.Y-21*scale));
+        if (hasMaterial)
+        {
+            MaterialSkin.PanelFrame(contentOrigin, contentOrigin + contentSize);
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, Vector4.Zero);
+        }
+        if (ImGui.BeginChild("##KranglerContent", contentSize, false, ImGuiWindowFlags.HorizontalScrollbar))
         {
             ImGuiP.PushOverrideID(windowRootId);
             DrawHeader();
@@ -165,6 +210,7 @@ public class MainWindow : Window, IDisposable
             ImGui.PopID();ImGui.PopID();ImGui.PopID();
         }
         ImGui.EndChild();
+        if (hasMaterial) ImGui.PopStyleColor();
         // Overflow belongs to the two children; their full body rectangles must not grow the parent scroll range.
         window.DC.CursorMaxPos=Vector2.Max(window.DC.CursorStartPos,Vector2.Min(window.DC.CursorMaxPos,window.InnerRect.Max-ImGui.GetStyle().WindowPadding));
         ImGui.PopClipRect();
@@ -246,13 +292,13 @@ public class MainWindow : Window, IDisposable
     {
         var scale=MaterialTheme.Metrics.Scale;
         var rootId=ImGui.GetID("");
-        if (MaterialTheme.Current.IsLcars)
+        if (MaterialTheme.Current.IsLcars || KranglerPresentation.HasMaterial)
         {
             var origin = ImGui.GetCursorScreenPos();
-            MaterialLcars.PanelFrame(origin, origin + new Vector2(ImGui.GetContentRegionAvail().X, logicalHeight * scale), 1);
+            MaterialSkin.PanelFrame(origin, origin + new Vector2(ImGui.GetContentRegionAvail().X, logicalHeight * scale), 1);
         }
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding,new Vector2(KranglerPresentation.PanelPadding,0)*scale);
-        ImGui.PushStyleColor(ImGuiCol.ChildBg,MaterialTheme.Current.IsLcars ? Vector4.Zero : KranglerPresentation.Compact?MaterialTheme.Current.Colors.SurfaceContainerLowest:MaterialTheme.Current.Colors.Surface);
+        ImGui.PushStyleColor(ImGuiCol.ChildBg,MaterialTheme.Current.IsLcars || KranglerPresentation.HasMaterial ? Vector4.Zero : KranglerPresentation.Compact?MaterialTheme.Current.Colors.SurfaceContainerLowest:MaterialTheme.Current.Colors.Surface);
         if (ImGui.BeginChild(id,new Vector2(0,logicalHeight*scale),true,ImGuiWindowFlags.AlwaysUseWindowPadding|ImGuiWindowFlags.HorizontalScrollbar))
         {
             ImGuiP.PushOverrideID(rootId);draw();ImGui.PopID();
@@ -267,9 +313,13 @@ public class MainWindow : Window, IDisposable
             var scale=MaterialTheme.Metrics.Scale;var panel=ImGui.GetWindowPos()-new Vector2(ImGui.GetScrollX(),ImGui.GetScrollY());
             ImGui.SetCursorScreenPos(panel+new Vector2(KranglerPresentation.PanelPadding,KranglerPresentation.Compact?12:17)*scale);
             using (UiText.Font(MaterialTheme.Current.IsLcars ? UiFontRole.BodyStrong : KranglerPresentation.Compact?UiFontRole.Heading:UiFontRole.Title))
-                if (MaterialTheme.Current.IsLcars) MaterialLcars.PanelHeading(UiText.T("Overview"), 1);
+                if (KranglerPresentation.HasMaterial) MaterialSkin.Heading(UiText.T("Overview"), 1);
+                else if (MaterialTheme.Current.IsLcars) MaterialLcars.PanelHeading(UiText.T("Overview"), 1);
                 else UiGui.Text("Overview");
-            ImGui.SetCursorScreenPos(panel+new Vector2(KranglerPresentation.PanelPadding,KranglerPresentation.Compact?56:72)*scale);ImGui.Separator();
+            if (KranglerPresentation.HasMaterial)
+                panel.Y += Math.Max(0, ImGui.GetItemRectMax().Y - panel.Y - (KranglerPresentation.Compact ? 56 : 72) * scale);
+            ImGui.SetCursorScreenPos(panel+new Vector2(KranglerPresentation.PanelPadding,KranglerPresentation.Compact?56:72)*scale);
+            if (!KranglerPresentation.HasMaterial) ImGui.Separator();
             ImGui.SetCursorScreenPos(panel+new Vector2(KranglerPresentation.Compact?24:26,KranglerPresentation.Compact?78:107)*scale);
             DrawStatus(config);
             ImGui.SetCursorScreenPos(panel+new Vector2(KranglerPresentation.PanelPadding,KranglerPresentation.Compact?142:187)*scale);ImGui.Separator();
@@ -319,9 +369,13 @@ public class MainWindow : Window, IDisposable
         var scale=MaterialTheme.Metrics.Scale;var panel=ImGui.GetWindowPos()-new Vector2(ImGui.GetScrollX(),ImGui.GetScrollY());
         ImGui.SetCursorScreenPos(panel+new Vector2(KranglerPresentation.PanelPadding,KranglerPresentation.Compact?12:17)*scale);
         using (UiText.Font(MaterialTheme.Current.IsLcars ? UiFontRole.BodyStrong : KranglerPresentation.Compact?UiFontRole.Heading:UiFontRole.Title))
-            if (MaterialTheme.Current.IsLcars) MaterialLcars.PanelHeading(UiText.T("DTR Bar"), 1);
+            if (KranglerPresentation.HasMaterial) MaterialSkin.Heading(UiText.T("DTR Bar"), 1);
+            else if (MaterialTheme.Current.IsLcars) MaterialLcars.PanelHeading(UiText.T("DTR Bar"), 1);
             else UiGui.Text("DTR Bar");
-        ImGui.SetCursorScreenPos(panel+new Vector2(KranglerPresentation.PanelPadding,KranglerPresentation.Compact?55:70)*scale);ImGui.Separator();
+        if (KranglerPresentation.HasMaterial)
+            panel.Y += Math.Max(0, ImGui.GetItemRectMax().Y - panel.Y - (KranglerPresentation.Compact ? 55 : 70) * scale);
+        ImGui.SetCursorScreenPos(panel+new Vector2(KranglerPresentation.PanelPadding,KranglerPresentation.Compact?55:70)*scale);
+        if (!KranglerPresentation.HasMaterial) ImGui.Separator();
         ImGui.SetCursorScreenPos(panel+new Vector2(KranglerPresentation.Compact?28:34,KranglerPresentation.Compact?70:92)*scale);
 
         var dtrEnabled = config.DtrBarEnabled;
@@ -406,8 +460,7 @@ public class MainWindow : Window, IDisposable
     private void DrawNamesTab(Configuration config)
     {
         ImGui.Spacing();
-        UiGui.Text("Names");
-        ImGui.Separator();
+        UiGui.SectionHeading("Names");
 
         var randomizedMode = config.RandomizedMode;
         if (UiGui.Checkbox("Randomized mode", ref randomizedMode))
@@ -455,14 +508,12 @@ public class MainWindow : Window, IDisposable
 
     private void DrawAppearanceTab(Configuration config)
     {
-        UiGui.Text("Window appearance");
-        ImGui.Separator();
+        UiGui.SectionHeading("Window appearance");
         plugin.DrawCompactPreference(); SameLineIfFits(230); plugin.DrawAppearanceSelector();
         plugin.DrawWindowSettings();
         ImGui.Separator();
         ImGui.Spacing();
-        UiGui.Text("Appearance");
-        ImGui.Separator();
+        UiGui.SectionHeading("Appearance");
 
         var krangleGenders = config.KrangleGenders;
         if (UiGui.Checkbox("Krangle Genders", ref krangleGenders))
@@ -492,8 +543,7 @@ public class MainWindow : Window, IDisposable
             UiGui.SetTooltip("Randomize hair, face, eyes, and other appearance fields.");
 
         ImGui.Spacing();
-        UiGui.Text("Non-Player Targets");
-        ImGui.Separator();
+        UiGui.SectionHeading("Non-Player Targets");
         UiGui.TextWrapped("Broad non-player native mutation is currently blocked for crash safety.");
 
         ImGui.BeginDisabled();
@@ -661,8 +711,7 @@ public class MainWindow : Window, IDisposable
     private void DrawImaginaryFrenTab(Configuration config, IReadOnlyList<string> presetNames)
     {
         ImGui.Spacing();
-        UiGui.Text("Imaginary Fren");
-        ImGui.Separator();
+        UiGui.SectionHeading("Imaginary Fren");
         UiGui.Text(UiText.F($"Presets loaded: {plugin.GlamourerPresetService.PresetCount}"));
         ImGui.Spacing();
 
@@ -944,8 +993,7 @@ public class MainWindow : Window, IDisposable
         supportLog.Draw(Plugin.PluginInterface, key => UiText.T(key),
             path => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = path, UseShellExecute = true }), ex => Plugin.Log.Error(ex, "Dalamud log export failed."), Plugin.CommandManager);
         ImGui.Spacing();
-        UiGui.Text("Debug");
-        ImGui.Separator();
+        UiGui.SectionHeading("Debug");
 
         if (!plugin.ShowDebugOptions)
         {
@@ -1201,8 +1249,7 @@ public class MainWindow : Window, IDisposable
     private void DrawAmongusSection(Configuration config, IReadOnlyList<string> presetNames)
     {
         ImGui.Spacing();
-        UiGui.Text("Amongus");
-        ImGui.Separator();
+        UiGui.SectionHeading("Amongus");
 
         var amongusEnabled = config.AmongusEnabled;
         if (UiGui.Checkbox("Amongus", ref amongusEnabled))

@@ -1,3 +1,9 @@
+2026-10-26 - 2.0.0.12 - Approved material styles and colour controls
+
+- Add Glassmorphism, Spatial and Cyberpunk across Main, Setup, appearance popups and font status while retaining Auto, Picker and LCARS. Preserve native controls, IDs, drafts, title actions and the seven existing font roles.
+- Add independent material palettes, LCARS Background and three bar colours, individual/current-palette resets, and Glass animation, numeric speed and three separately editable wave colours. Keep wave choices editable with animation off and save through the existing configuration.
+- Translate the new controls in all fifteen catalogs and pin CI to the published AethertekUI revision used by the integration.
+
 2026-10-23 - LCARS appearance (unreleased)
 
 - Add LCARS after Auto and Picker, with segmented Main/Setup headers, framed overview panels, readable selected navigation, outlined native actions and blue checkboxes. Retain all eight pages, rule drafts and wizard gates.
