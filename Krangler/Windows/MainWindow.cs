@@ -17,6 +17,7 @@ public class MainWindow : Window, IDisposable
     private readonly AethertekUI.Dalamud.MaterialSupportLog supportLog = new();
     private readonly AethertekUI.Dalamud.MaterialWindowMotion windowMotion = new();
     private bool backdropColorPushed;
+    private readonly AethertekUI.Dalamud.MaterialWindowLock movementLock = new();
     private readonly Plugin plugin;
     private string presetSearch = string.Empty;
     private Vector2? queuedPosition;
@@ -59,22 +60,24 @@ public class MainWindow : Window, IDisposable
 
     public override void PreDraw()
     {
-        if (KranglerPresentation.HasMaterial)
+        if (KranglerPresentation.HasMaterial || plugin.BackgroundBlurEnabled)
         {
             ImGui.PushStyleColor(ImGuiCol.WindowBg, Vector4.Zero);
             backdropColorPushed = true;
         }
-        windowMotion.Prepare(this, reducedMotion: false, roundedCorners: true);
+        windowMotion.Prepare(this, reducedMotion: !plugin.Configuration.UiStylingEnabled, roundedCorners: plugin.Configuration.UiStylingEnabled);
+        movementLock.Apply(this, plugin.Configuration.UiWindowsLocked);
     }
 
     public override void PostDraw()
     {
+        movementLock.Restore(this);
+        windowMotion.Restore(this);
         if (backdropColorPushed)
         {
             ImGui.PopStyleColor();
             backdropColorPushed = false;
         }
-        windowMotion.Restore(this);
         var title = WindowName.Split("##", 2)[0];
         UiGui.ImageTitleWithStatus(this, $"{UiText.T(title)} {typeof(Plugin).Assembly.GetName().Version}", plugin.OriginalIcon, status: plugin.TitlebarStatus);
     }
@@ -86,8 +89,9 @@ public class MainWindow : Window, IDisposable
             ImGui.PopStyleColor();
             backdropColorPushed = false;
         }
-        MaterialSkin.Backdrop();
         windowMotion.DrawChrome();
+        plugin.DrawWindowBackdrop(this);
+        using var structuralBackgrounds = MaterialSkin.StructuralBackgroundStyle();
         ApplyQueuedWindowPlacement();
         DrawTabbedInterface();
     }
@@ -121,7 +125,7 @@ public class MainWindow : Window, IDisposable
         if (hasMaterial)
             MaterialSkin.PanelFrame(body, new Vector2(body.X + sidebarWidth, bottom), inset: true);
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding,new Vector2(0,KranglerPresentation.Compact?30:32)*scale);
-        ImGui.PushStyleColor(ImGuiCol.ChildBg,hasMaterial ? Vector4.Zero : MaterialTheme.Current.Colors.Background);
+        ImGui.PushStyleColor(ImGuiCol.ChildBg,hasMaterial ? Vector4.Zero : MaterialSkin.BackgroundFill(MaterialTheme.Current.Colors.Background));
         if (ImGui.BeginChild("##KranglerNavigation", new Vector2(sidebarWidth, bottom-body.Y), false,ImGuiWindowFlags.AlwaysUseWindowPadding))
         {
             ImGuiP.PushOverrideID(windowRootId);
@@ -298,7 +302,7 @@ public class MainWindow : Window, IDisposable
             MaterialSkin.PanelFrame(origin, origin + new Vector2(ImGui.GetContentRegionAvail().X, logicalHeight * scale), 1);
         }
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding,new Vector2(KranglerPresentation.PanelPadding,0)*scale);
-        ImGui.PushStyleColor(ImGuiCol.ChildBg,MaterialTheme.Current.IsLcars || KranglerPresentation.HasMaterial ? Vector4.Zero : KranglerPresentation.Compact?MaterialTheme.Current.Colors.SurfaceContainerLowest:MaterialTheme.Current.Colors.Surface);
+        ImGui.PushStyleColor(ImGuiCol.ChildBg,MaterialTheme.Current.IsLcars || KranglerPresentation.HasMaterial ? Vector4.Zero : MaterialSkin.BackgroundFill(KranglerPresentation.Compact?MaterialTheme.Current.Colors.SurfaceContainerLowest:MaterialTheme.Current.Colors.Surface));
         if (ImGui.BeginChild(id,new Vector2(0,logicalHeight*scale),true,ImGuiWindowFlags.AlwaysUseWindowPadding|ImGuiWindowFlags.HorizontalScrollbar))
         {
             ImGuiP.PushOverrideID(rootId);draw();ImGui.PopID();

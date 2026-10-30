@@ -25,7 +25,7 @@ var tests = new (string Name, Action Run)[]
     ("fixed preset choices survive new epochs", FixedPresetChoiceSurvives),
     ("all shipped catalogs include randomized-mode controls", RandomizedCatalogs),
     ("LCARS appearance preserves legacy privacy and Picker values", LcarsAppearanceRoundtrip),
-    ("native LCARS actions preserve IDs, styles and single feedback", NativeLcarsActions),
+    ("native LCARS actions preserve IDs, styles, feedback and popup owner opacity", NativeLcarsActions),
 };
 
 foreach (var (name, run) in tests)
@@ -64,6 +64,13 @@ static void LcarsAppearanceRoundtrip()
     const string legacy = """{"Version":2,"Enabled":true,"KrangleNames":false,"KrangleChat":true,"RandomizedMode":false,"UiLanguage":"ja","UiColors":{"Mode":1,"BackgroundRgb":1193046,"ControlsRgb":5666970,"TextRgb":14544639},"FutureAppearanceSetting":{"choice":"unchanged"}}""";
     var config = Newtonsoft.Json.JsonConvert.DeserializeObject<Configuration>(legacy)!;
     True(config.UiLcarsSoundsMuted);
+    True(config.UiStylingEnabled && !config.UiWindowsLocked);
+    True(config.UiColors.BackgroundBlurPercent == 75);
+    foreach (var mode in Enum.GetValues<MaterialColorMode>())
+        True(config.UiColors.HasBackgroundBlur(mode) == (mode == MaterialColorMode.Glassmorphism));
+    var command = typeof(Plugin).GetMethod("ApplyAppearanceCommand", BindingFlags.NonPublic | BindingFlags.Static)!;
+    True((bool)command.Invoke(null, [config, "style off"])! && !config.UiStylingEnabled);
+    True((bool)command.Invoke(null, [config, "lock"])! && config.UiWindowsLocked);
     var picker = config.UiColors;
     True(picker.Mode == AethertekUI.MaterialColorMode.Picker);
     config.UiColors = picker with { Mode = AethertekUI.MaterialColorMode.Lcars };
@@ -76,6 +83,16 @@ static void LcarsAppearanceRoundtrip()
     restored.UiColors = restored.UiColors with { Mode = AethertekUI.MaterialColorMode.Auto };
     var automatic = Newtonsoft.Json.JsonConvert.DeserializeObject<Configuration>(Newtonsoft.Json.JsonConvert.SerializeObject(restored))!;
     True(automatic.UiColors == picker with { Mode = AethertekUI.MaterialColorMode.Auto });
+    True(!automatic.UiStylingEnabled && automatic.UiWindowsLocked);
+    automatic.UiColors = automatic.UiColors with { Mode = MaterialColorMode.Glassmorphism,
+        GlassBackground = MaterialGlassBackground.Image, GlassImagePath = "chosen.png",
+        GlassLights = MaterialGlassLights.PointerGlow, GlassLight1Rgb = 0x123456,
+        GlassWave2Rgb = 0xABCDEF, BackgroundBlurPercent = 82 };
+    var glass = Newtonsoft.Json.JsonConvert.DeserializeObject<Configuration>(Newtonsoft.Json.JsonConvert.SerializeObject(automatic))!;
+    True(glass.UiColors == automatic.UiColors);
+    True((bool)command.Invoke(null, [glass, "style on"])! && glass.UiStylingEnabled);
+    True((bool)command.Invoke(null, [glass, "unlock"])! && !glass.UiWindowsLocked);
+    True(!(bool)command.Invoke(null, [glass, "on"])!);
 }
 
 static unsafe void NativeLcarsActions()
@@ -106,6 +123,7 @@ static unsafe void NativeLcarsActions()
         byte* pixels = null; int width = 0, height = 0;
         io.Fonts.GetTexDataAsRGBA32(0, &pixels, &width, &height);
         io.Fonts.SetTexID(0, new ImTextureID((nint)1));
+        PopupBackdropOwnerOpacity();
         foreach (var mode in new[] { MaterialColorMode.Auto, MaterialColorMode.Picker, MaterialColorMode.Lcars })
         foreach (var compact in new[] { false, true })
         foreach (var scale in new[] { 1f, 1.5f })
@@ -164,6 +182,55 @@ static unsafe void NativeLcarsActions()
         }
     }
     finally { ImGui.DestroyContext(context); ImGui.SetCurrentContext(previousContext); }
+}
+
+static void PopupBackdropOwnerOpacity()
+{
+    const BindingFlags instance = BindingFlags.NonPublic | BindingFlags.Instance;
+    var plugin = (Plugin)System.Runtime.CompilerServices.RuntimeHelpers.GetUninitializedObject(typeof(Plugin));
+    var config = new Configuration { UiTransparencyEnabled = true, UiWindowOpacityPercent = 80 };
+    typeof(Plugin).GetProperty("Configuration")!.SetValue(plugin, config);
+    var glass = (AethertekUI.Dalamud.MaterialGlassRenderer)System.Runtime.CompilerServices.RuntimeHelpers
+        .GetUninitializedObject(typeof(AethertekUI.Dalamud.MaterialGlassRenderer));
+    typeof(Plugin).GetField("backgroundGlass", instance)!.SetValue(plugin, glass);
+    var first = new OpacityWindow("Opacity first##OwnerRegression");
+    var second = new OpacityWindow("Opacity second##OwnerRegression");
+    var unopened = new OpacityWindow("Opacity unopened##OwnerRegression");
+    var firstOpacity = new MaterialWindowOpacity();
+    var secondOpacity = new MaterialWindowOpacity();
+    typeof(MaterialWindowOpacity).GetProperty("CurrentOpacity")!.SetValue(firstOpacity, .31f);
+    typeof(MaterialWindowOpacity).GetProperty("CurrentOpacity")!.SetValue(secondOpacity, .67f);
+    typeof(Plugin).GetField("windowOpacities", instance)!.SetValue(plugin,
+        new Dictionary<Dalamud.Interface.Windowing.IWindow, MaterialWindowOpacity>
+        { [first] = firstOpacity, [second] = secondOpacity });
+    var setOpacity = typeof(Plugin).GetMethod("SetWindowBackgroundOpacity", instance)!;
+    void DrawOwner(OpacityWindow owner)
+    {
+        ImGui.SetNextWindowSize(new Vector2(250, 150));
+        ImGui.Begin(owner.WindowName, ImGuiWindowFlags.NoSavedSettings);
+        ImGui.End();
+    }
+    for (var frame = 0; frame < 2; frame++)
+    {
+        ImGui.NewFrame();
+        DrawOwner(first); DrawOwner(second);
+        ImGui.Render();
+    }
+    True(!ImGuiP.FindWindowByName(first.WindowName).Appearing);
+    setOpacity.Invoke(plugin, [first]); Equal(.31f, glass.Opacity);
+    setOpacity.Invoke(plugin, [second]); Equal(.67f, glass.Opacity);
+    setOpacity.Invoke(plugin, [first]); Equal(.31f, glass.Opacity);
+    setOpacity.Invoke(plugin, [unopened]); Equal(.8f, glass.Opacity);
+    config.UiTransparencyEnabled = false;
+    setOpacity.Invoke(plugin, [first]); Equal(1f, glass.Opacity);
+    config.UiTransparencyEnabled = true;
+    ImGui.NewFrame(); DrawOwner(second); ImGui.Render();
+    ImGui.NewFrame(); DrawOwner(first); DrawOwner(second);
+    True(ImGuiP.FindWindowByName(first.WindowName).Appearing);
+    // This runs outside the owner's Begin, as the centralized popup loop does.
+    setOpacity.Invoke(plugin, [first]); Equal(.8f, glass.Opacity);
+    setOpacity.Invoke(plugin, [second]); Equal(.67f, glass.Opacity);
+    ImGui.Render();
 }
 
 static string[] AppearanceSnapshot() => Enumerable.Range(0, 24).Select(i =>
@@ -426,4 +493,9 @@ sealed class PersistentSettingsProbe
 sealed class EmptyUiFont : IDisposable
 {
     public void Dispose() { }
+}
+
+sealed class OpacityWindow(string name) : Dalamud.Interface.Windowing.Window(name)
+{
+    public override void Draw() { }
 }

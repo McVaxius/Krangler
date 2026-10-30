@@ -20,6 +20,8 @@ public class Configuration : IPluginConfiguration
     public string UiLanguage { get; set; } = "en";
     public uint UiAccentRgb { get; set; } = 0x6951E0;
     public AethertekUI.MaterialColorSettings UiColors { get; set; } = new();
+    public bool UiStylingEnabled { get; set; } = true;
+    public bool UiWindowsLocked { get; set; }
     public bool UiLcarsSoundsMuted { get; set; } = true;
     public bool UiCompact { get; set; } = true;
     public bool UiShowTitlebarStatus { get; set; } = true;

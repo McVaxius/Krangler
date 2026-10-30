@@ -1,3 +1,9 @@
+2026-10-29 - Shared appearance and Glasswork backgrounds (2.0.0.13)
+
+- Add native styling and movement/resize lock controls to titlebars, Settings and /kr or /krangler commands: style [on|off], lock and unlock. Preserve privacy leases, native identities, storage, fonts and opacity/fade.
+- Use shared Glasswork only on structural backgrounds, with independent style blur choices and 75% Frost initially enabled for Glassmorphism. Add Waves, all three Lights effects, Image mode and a native image picker. Screenshot pause starts off and is available in Colour and Transparency.
+- Ship the adapter Glasswork DLLs and MIT notice. Isolated checks remain separate from game/GPU, detached-window and screenshot acceptance.
+
 2026-10-26 - 2.0.0.12 - Approved material styles and colour controls
 
 - Add Glassmorphism, Spatial and Cyberpunk across Main, Setup, appearance popups and font status while retaining Auto, Picker and LCARS. Preserve native controls, IDs, drafts, title actions and the seven existing font roles.

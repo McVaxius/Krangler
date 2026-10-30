@@ -9,6 +9,7 @@ public sealed class SetupWizardWindow : Window
 {
     private readonly AethertekUI.Dalamud.MaterialWindowMotion windowMotion = new();
     private bool backdropColorPushed;
+    private readonly AethertekUI.Dalamud.MaterialWindowLock movementLock = new();
     private sealed class WizardDraft
     {
         public bool Enabled { get; init; }
@@ -95,22 +96,24 @@ public sealed class SetupWizardWindow : Window
         ImGui.SetNextWindowSize(new Vector2(width, 0), ImGuiCond.Always);
         // Auto-fit must use the same width when predicting wrapped content and scrollbars.
         ImGui.SetNextWindowSizeConstraints(new Vector2(width, 0), new Vector2(width, float.MaxValue));
-        if (KranglerPresentation.HasMaterial)
+        if (KranglerPresentation.HasMaterial || plugin.BackgroundBlurEnabled)
         {
             ImGui.PushStyleColor(ImGuiCol.WindowBg, Vector4.Zero);
             backdropColorPushed = true;
         }
-        windowMotion.Prepare(this, reducedMotion: false, roundedCorners: true);
+        windowMotion.Prepare(this, reducedMotion: !plugin.Configuration.UiStylingEnabled, roundedCorners: plugin.Configuration.UiStylingEnabled);
+        movementLock.Apply(this, plugin.Configuration.UiWindowsLocked);
     }
 
     public override void PostDraw()
     {
+        movementLock.Restore(this);
+        windowMotion.Restore(this);
         if (backdropColorPushed)
         {
             ImGui.PopStyleColor();
             backdropColorPushed = false;
         }
-        windowMotion.Restore(this);
         UiGui.ImageTitleWithStatus(this, UiText.T(WindowName.Split("##", 2)[0]), plugin.OriginalIcon, status: plugin.TitlebarStatus);
     }
 
@@ -121,8 +124,9 @@ public sealed class SetupWizardWindow : Window
             ImGui.PopStyleColor();
             backdropColorPushed = false;
         }
-        MaterialSkin.Backdrop();
         windowMotion.DrawChrome();
+        plugin.DrawWindowBackdrop(this);
+        using var structuralBackgrounds = MaterialSkin.StructuralBackgroundStyle();
         UiGui.TitleWithButtons(WindowName.Split("##",2)[0], null, this);
         if (MaterialTheme.Current.IsLcars) MaterialLcars.Header(UiText.T(WindowName.Split("##", 2)[0]));
         draft ??= WizardDraft.From(plugin.Configuration);
