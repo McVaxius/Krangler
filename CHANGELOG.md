@@ -1,3 +1,8 @@
+2026-11-09 - 2.0.0.14 - Shared UI library update
+
+- Update shared text controls and glass rendering to the reviewed AethertekUI 0.3.1 baseline.
+- The shared-library rollout to other existing plugins is in progress.
+
 2026-10-29 - Shared appearance and Glasswork backgrounds (2.0.0.13)
 
 - Add native styling and movement/resize lock controls to titlebars, Settings and /kr or /krangler commands: style [on|off], lock and unlock. Preserve privacy leases, native identities, storage, fonts and opacity/fade.
