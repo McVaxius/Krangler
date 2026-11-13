@@ -5071,7 +5071,19 @@ public sealed class Plugin : IDalamudPlugin
 
     private bool DrawColourEditor(string id)
     {
-        var changed = MaterialAppearanceSelector.DrawColors(id, ref colorDraft, ref accentDraft,
+        var contrast = Configuration.UiHighlightContrastPercent;
+        MaterialText.Text(UiText.T("Highlight contrast"), System.Math.Max(1f, ImGui.GetContentRegionAvail().X));
+        ImGui.SetNextItemWidth(MaterialLayout.FitNextItemWidth(280 * MaterialTheme.Metrics.Scale, 120 * MaterialTheme.Metrics.Scale));
+        var changed = false;
+        using (var field = MaterialSkin.NativeFieldStyle())
+        {
+            if (ImGui.SliderInt("##UiHighlightContrastPercent", ref contrast, 0, 100, "%d%%", ImGuiSliderFlags.AlwaysClamp))
+                Configuration.UiHighlightContrastPercent = contrast;
+            changed = ImGui.IsItemDeactivatedAfterEdit();
+        }
+        MaterialText.Text(UiText.T("Makes controls and selection states more distinct."), System.Math.Max(1f, ImGui.GetContentRegionAvail().X));
+        ImGui.Spacing();
+        changed |= MaterialAppearanceSelector.DrawColors(id, ref colorDraft, ref accentDraft,
             new(UiText.T("Color"), UiText.T("Language"), UiText.T("Teal"), UiText.T("Blue"), UiText.T("Pink"), UiText.T("Custom RGB")),
             new(UiText.T("Auto"), UiText.T("Picker"), UiText.T("Default"), UiText.T("Background, controls and text follow your theme."), UiText.T("Theme colour"), UiText.T("Choose each colour independently."), UiText.T("Background"), UiText.T("Controls"), UiText.T("Text"), UiText.T("Aa  Preview text"), UiText.T("Control"), UiText.T("Switch to Picker to set each colour yourself."), UiText.T("Switch back to Auto to use the automatic theme."))
             {
@@ -5334,6 +5346,7 @@ public sealed class Plugin : IDalamudPlugin
             var rgb = KranglerPresentation.Rgb(appliedAccent);
             accentDraft = new(rgb.X, rgb.Y, rgb.Z);
         }
+        uiTheme.HighlightContrastPercent = Configuration.UiHighlightContrastPercent;
         uiTheme.Density = Configuration.UiCompact ? MaterialDensity.Compact : MaterialDensity.Standard;
         if (appliedSoundsMuted != Configuration.UiLcarsSoundsMuted)
         {
