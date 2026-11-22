@@ -46,6 +46,7 @@
       <PluginFiles Include="$(ProjectDir)$(AssemblyName).json" />
       <PluginFiles Include="$(TargetDir)AethertekUI.dll" />
       <PluginFiles Include="$(TargetDir)AethertekUI.Dalamud.dll" />
+      <PluginFontFiles Include="$(TargetDir)Fonts\Selawik\selawk.ttf;$(TargetDir)Fonts\Selawik\selawksb.ttf;$(TargetDir)Fonts\Selawik\selawkb.ttf;$(TargetDir)Fonts\Selawik\LICENSE.txt" />
       <PluginFiles Include="$(TargetDir)Glasswork.dll" />
       <PluginFiles Include="$(TargetDir)Glasswork.Glass.dll" />
       <PluginFiles Include="$(TargetDir)Glasswork.Backend.dll" />
@@ -54,6 +55,7 @@
       <PresetFiles Include="data\presets\*.json" />
     </ItemGroup>
     <Copy SourceFiles="@(PluginFiles)" DestinationFolder="$(PluginOutput)" />
+    <Copy SourceFiles="@(PluginFontFiles)" DestinationFolder="$(PluginOutput)\Fonts\Selawik" />
     <Copy SourceFiles="$(ProjectDir)images\icon.png" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(PresetFiles)" DestinationFolder="$(PluginOutput)\data\presets" />
   </Target>

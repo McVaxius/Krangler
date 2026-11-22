@@ -1,11 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.IO;
-using Dalamud;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.ManagedFontAtlas;
 using AethertekUI;
+using AethertekUI.Dalamud;
 
 namespace Krangler.Windows;
 
@@ -14,26 +13,15 @@ internal sealed class KranglerFonts : IDisposable
     private readonly IFontHandle[] handles;
     private int generation;
     internal int Generation => System.Threading.Volatile.Read(ref generation);
-    internal KranglerFonts(IFontAtlas atlas, ushort[] ranges,string language)
+    internal KranglerFonts(IFontAtlas atlas, ushort[] ranges, string language, string assetRoot)
     {
-        handles=KranglerPresentation.FontSizes.Select((size,index)=>atlas.NewDelegateFontHandle(toolkit=>toolkit.OnPreBuild(build=>
-        {
-            build.NewImAtlas.TexDesiredWidth=4096;
-            build.NewImAtlas.TexDesiredHeight=4096;
-            size=KranglerPresentation.AtlasHeight((UiFontRole)index);
-            var config=new SafeFontConfig { SizePx=size, GlyphRanges=ranges };
-            build.Font=build.AddFontFromFile(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts),KranglerPresentation.FontFiles[index]),config);
-            build.AddFontFromFile(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts),"seguisym.ttf"),
-                new SafeFontConfig { SizePx=size, MergeFont=build.Font, GlyphRanges=ranges });
-            // Verified bundled TTC faces: JP=0, KR=1, SC=2, TC=3.
-            build.AddDalamudAssetFont(DalamudAsset.NotoSansCjkRegular,new SafeFontConfig
-            {
-                SizePx=size, MergeFont=build.Font, GlyphRanges=ranges,
-                FontNo=language switch { "ko"=>1, "zh-Hans" or "zh-CN"=>2, "zh-Hant" or "zh-TW"=>3, _=>0 },
-            });
-            build.AttachExtraGlyphsForDalamudLanguage(new SafeFontConfig { SizePx=size, MergeFont=build.Font });
-            build.AddGameSymbol(new SafeFontConfig { SizePx=size,MergeFont=build.Font });
-        }))).ToArray();
+        handles = KranglerPresentation.FontSizes.Select((_, index) => MaterialFontAtlas.CreateFont(
+            atlas,
+            KranglerPresentation.FontWeights[index],
+            KranglerPresentation.AtlasHeight((UiFontRole)index),
+            ranges,
+            language,
+            assetRoot)).ToArray();
         foreach(var handle in handles) handle.ImFontChanged+=FontChanged;
     }
     private void FontChanged(IFontHandle handle,ILockedImFont font) => System.Threading.Interlocked.Increment(ref generation);

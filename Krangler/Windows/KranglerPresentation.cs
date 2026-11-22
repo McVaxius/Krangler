@@ -4,6 +4,7 @@ using System.Linq;
 using System.IO;
 using System.Numerics;
 using AethertekUI;
+using AethertekUI.Dalamud;
 using Dalamud.Bindings.ImGui;
 
 namespace Krangler.Windows;
@@ -26,7 +27,16 @@ internal static class KranglerPresentation
     internal static float Gap => Compact ? 14 : 20;
     internal const uint ReferenceAccent = 0x6951E0;
     internal static readonly float[] FontSizes = [16, 16, 38, 14, 12, 28, 18];
-    internal static readonly string[] FontFiles = ["segoeui.ttf", "seguisb.ttf", "segoeuib.ttf", "segoeui.ttf", "segoeui.ttf", "seguisb.ttf", "seguisb.ttf"];
+    internal static readonly MaterialFontWeight[] FontWeights =
+    [
+        MaterialFontWeight.Regular,
+        MaterialFontWeight.Semibold,
+        MaterialFontWeight.Bold,
+        MaterialFontWeight.Regular,
+        MaterialFontWeight.Regular,
+        MaterialFontWeight.Semibold,
+        MaterialFontWeight.Semibold,
+    ];
     internal static float AtlasHeight(UiFontRole role) => FontSizes[(int)role] * 4 / 3;
     internal static Vector4 Rgb(uint rgb) => new(((rgb >> 16) & 255) / 255f, ((rgb >> 8) & 255) / 255f, (rgb & 255) / 255f, 1);
     internal static readonly Vector4 Ready = Rgb(0x3CDD88), Pending = Rgb(0xE8B86C), Error = Rgb(0xEE7788);
