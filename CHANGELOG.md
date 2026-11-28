@@ -1,3 +1,8 @@
+2026-11-27 - 2.0.0.17 - Lower interface memory
+
+- Load Krangler's font atlas when its windows open and release it when they close.
+- Keep backdrop renderers and UI sound resources scoped to the features that use them.
+
 2026-11-22 - 2.0.0.16 - Portable interface fonts
 
 - **Updated interface fonts.** Dalamud loads bundled fonts on Windows and Wine.

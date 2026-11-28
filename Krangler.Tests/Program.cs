@@ -26,6 +26,7 @@ var tests = new (string Name, Action Run)[]
     ("all shipped catalogs include randomized-mode controls", RandomizedCatalogs),
     ("LCARS appearance preserves legacy privacy and Picker values", LcarsAppearanceRoundtrip),
     ("native LCARS actions preserve IDs, styles, feedback and popup owner opacity", NativeLcarsActions),
+    ("closed windows defer font and backdrop initialization", ClosedWindowsDeferUiResources),
 };
 
 foreach (var (name, run) in tests)
@@ -182,6 +183,17 @@ static unsafe void NativeLcarsActions()
         }
     }
     finally { ImGui.DestroyContext(context); ImGui.SetCurrentContext(previousContext); }
+}
+
+static void ClosedWindowsDeferUiResources()
+{
+    const BindingFlags instance = BindingFlags.NonPublic | BindingFlags.Instance;
+    var plugin = (Plugin)System.Runtime.CompilerServices.RuntimeHelpers.GetUninitializedObject(typeof(Plugin));
+    var type = typeof(Plugin);
+    type.GetField(nameof(Plugin.WindowSystem))!.SetValue(plugin, new Dalamud.Interface.Windowing.WindowSystem("Closed windows"));
+    type.GetMethod("DrawUiFrame", instance)!.Invoke(plugin, null);
+    foreach (var field in new[] { "uiFonts", "uiText", "uiTheme", "shapedText", "backgroundGlass", "uiSoundPlayer" })
+        True(type.GetField(field, instance)!.GetValue(plugin) is null);
 }
 
 static void PopupBackdropOwnerOpacity()
