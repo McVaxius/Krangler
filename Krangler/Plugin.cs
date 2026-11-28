@@ -5148,6 +5148,13 @@ public sealed class Plugin : IDalamudPlugin
 
     private void ReleaseBackgroundGlassResources() => backgroundGlass?.ReleaseResources();
 
+    private void DisposeBackgroundGlass()
+    {
+        backgroundGlass?.Dispose();
+        backgroundGlass = null;
+        backgroundWasBlurred = false;
+    }
+
     private void SetWindowBackgroundOpacity(Window owner)
     {
         if (backgroundGlass == null) return;
@@ -5188,7 +5195,7 @@ public sealed class Plugin : IDalamudPlugin
         using var shaping = shapedText.Push();
         if (!uiFonts.Ready)
         {
-            backgroundGlass?.EndFrame(false);
+            DisposeBackgroundGlass();
             if (!fontIssueLogged && uiFonts.LoadException is { } error)
             { Log.Error(error,"[Krangler] Required UI fonts failed to load."); fontIssueLogged=true; }
             DrawFontStatus(uiFonts.LoadException is null);
@@ -5216,7 +5223,7 @@ public sealed class Plugin : IDalamudPlugin
             }
             catch (Exception error)
             {
-                backgroundGlass?.EndFrame(false);
+                DisposeBackgroundGlass();
                 if (!fontIssueLogged) { Log.Error(error,"[Krangler] Required UI glyph coverage failed."); fontIssueLogged=true; }
                 DrawFontStatus(false);return;
             }
@@ -5233,8 +5240,7 @@ public sealed class Plugin : IDalamudPlugin
         }
         else
         {
-            backgroundGlass?.Dispose();
-            backgroundGlass = null;
+            DisposeBackgroundGlass();
         }
         backgroundWasBlurred = useGlass;
         var completed = false;
@@ -5459,9 +5465,7 @@ public sealed class Plugin : IDalamudPlugin
     private void ReleaseWindowResources()
     {
         glassImagePicker.Reset();
-        backgroundGlass?.Dispose();
-        backgroundGlass = null;
-        backgroundWasBlurred = false;
+        DisposeBackgroundGlass();
         ReleaseUiSounds();
         shapedText?.Dispose();
         shapedText = null;

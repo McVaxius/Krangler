@@ -1,3 +1,7 @@
+2026-11-28 - 2.0.0.19 - Backdrop resource cleanup
+
+- **Fixed backdrop cleanup.** Krangler releases its backdrop while interface fonts load or fail to load.
+
 2026-11-28 - 2.0.0.18 - Shared UI update
 
 - Use the finalized AethertekUI 0.3.7 release for on-demand fonts and backdrops.
