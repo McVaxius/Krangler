@@ -1,3 +1,7 @@
+2026-11-28 - 2.0.0.18 - Shared UI update
+
+- Use the finalized AethertekUI 0.3.7 release for on-demand fonts and backdrops.
+
 2026-11-27 - 2.0.0.17 - Lower interface memory
 
 - Load Krangler's font atlas when its windows open and release it when they close.
